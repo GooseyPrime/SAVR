@@ -1,0 +1,89 @@
+name: Phase 01 — Baseline Validation
+
+on:
+  push:
+    paths:
+      - 'savr-platform/web/**'
+      - 'savr-platform/supabase/**'
+      - '.github/workflows/phase-01-baseline.yml'
+  pull_request:
+    paths:
+      - 'savr-platform/web/**'
+      - 'savr-platform/supabase/**'
+      - '.github/workflows/phase-01-baseline.yml'
+
+jobs:
+  web-lint:
+    name: Web — Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+  web-typecheck:
+    name: Web — TypeScript check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+  web-build:
+    name: Web — Production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/web
+    env:
+      CI: 'true'
+      # Dummy Supabase config: the app's build-safe client uses these as placeholders
+      # when real values are absent in CI. See savr-platform/web/lib/supabase.ts.
+      NEXT_PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co'
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'dummy_key_for_build'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run production build
+        run: npm run build

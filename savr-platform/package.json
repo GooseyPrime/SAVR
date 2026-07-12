@@ -1,0 +1,19 @@
+{
+  "name": "savr-platform",
+  "version": "1.0.0",
+  "description": "SAVR — Smart AI Virtual Recipes — canonical production platform",
+  "private": true,
+  "scripts": {
+    "web:dev": "npm run dev --prefix web",
+    "web:build": "npm run build --prefix web",
+    "web:lint": "npm run lint --prefix web",
+    "web:start": "npm run start --prefix web"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GooseyPrime/SAVR.git"
+  },
+  "keywords": ["supabase", "recipes", "ai", "meal-planning", "expo", "nextjs"],
+  "author": "GooseyPrime",
+  "license": "MIT"
+}
