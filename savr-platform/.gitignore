@@ -1,0 +1,33 @@
+# savr-platform .gitignore
+
+# Node dependencies
+node_modules/
+
+# Next.js build output
+web/.next/
+web/out/
+
+# Expo build output
+mobile/.expo/
+mobile/dist/
+
+# Environment files (never commit secrets)
+.env.local
+.env.*.local
+web/.env.local
+mobile/.env.local
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test results
+test-results/
+playwright-report/
+e2e-tests/test-results/
+e2e-tests/playwright-report/
