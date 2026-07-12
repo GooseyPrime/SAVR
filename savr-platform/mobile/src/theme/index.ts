@@ -41,8 +41,9 @@ export const colors = {
   surfaceRaised: '#1A221E',
   muted: '#232D28',
   mutedForeground: '#8FA89A',
-  border: '#1E2B24',
-  borderStrong: '#2A3D31',
+  // React Native supports CSS4 8-digit hex (#RRGGBBAA) — values match tokens.ts
+  border: '#BAFF5C12',
+  borderStrong: '#BAFF5C28',
 
   // Text
   foreground: '#FFFFFF',
