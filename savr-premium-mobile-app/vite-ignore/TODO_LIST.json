@@ -1,0 +1,51 @@
+{
+  "summary": "SAVR Production Integration Pass",
+  "todos": [
+    {
+      "id": 1,
+      "description": "Auth provider, data services, type fixes",
+      "files": [
+        "src/contexts/AuthContext.tsx",
+        "src/services/",
+        "src/store/app-store.ts"
+      ],
+      "status": "complete"
+    },
+    {
+      "id": 2,
+      "description": "AI gateway with provider adapters, Google Vision OCR",
+      "files": [
+        "supabase/functions/ai-gateway/",
+        "supabase/functions/vision-analyze/"
+      ],
+      "status": "complete"
+    },
+    {
+      "id": 3,
+      "description": "Pet safety validation, preferences wiring",
+      "files": [
+        "src/lib/pet-safety.ts",
+        "src/hooks/use-preferences.ts"
+      ],
+      "status": "complete"
+    },
+    {
+      "id": 4,
+      "description": "Grocery lists, cooking mode, meal plans fixes",
+      "files": [
+        "src/pages/GroceryList.tsx",
+        "src/pages/CookingMode.tsx",
+        "src/pages/Plans.tsx"
+      ],
+      "status": "complete"
+    },
+    {
+      "id": 5,
+      "description": "Final validation and acceptance gates",
+      "files": [],
+      "status": "complete"
+    }
+  ],
+  "createdAt": "2026-07-12T12:52:24.139Z",
+  "updatedAt": "2026-07-12T13:04:57.088Z"
+}

@@ -1,0 +1,252 @@
+/**
+ * SAVR Design System - Fresh Culinary
+ * Vibrant lime green from logo + clean modern aesthetic
+ * The S has a fork (dollar sign), the A's slope is a spoon
+ * 
+ * CONTRAST OPTIMIZED: All text passes WCAG AA (4.5:1 minimum)
+ */
+
+@theme {
+  /* === BRAND COLORS === */
+  /* Primary - Vibrant Lime from logo S and A */
+  --color-primary: #BAFF5C;
+  --color-primary-hover: #C8FF7A;
+  --color-primary-light: #BAFF5C18;
+  --color-primary-foreground: #0D1208;
+  
+  /* Secondary - Fresh Mint (complementary) */
+  --color-secondary: #5CFFBA;
+  --color-secondary-hover: #7AFFC8;
+  --color-secondary-light: #5CFFBA18;
+  --color-secondary-foreground: #0D1208;
+  
+  /* Accent - Warm Citrus (analogous warmth) */
+  --color-accent: #FFE55C;
+  --color-accent-hover: #FFEB7A;
+  --color-accent-light: #FFE55C18;
+  --color-accent-foreground: #0D1208;
+  
+  /* Pet Mode - Soft Peach */
+  --color-pet: #FFAB5C;
+  --color-pet-hover: #FFBC7A;
+  --color-pet-light: #FFAB5C18;
+  --color-pet-foreground: #0D1208;
+  
+  /* === NEUTRALS (deep forest-slate for contrast) === */
+  --color-background: #0D1210;
+  --color-surface: #141A17;
+  --color-surface-raised: #1A221E;
+  --color-muted: #232D28;
+  --color-muted-foreground: #8FA89A;
+  --color-border: #BAFF5C12;
+  --color-border-strong: #BAFF5C28;
+  
+  /* === TEXT (high contrast) === */
+  --color-foreground: #FFFFFF;
+  --color-foreground-secondary: #C8D9CF;
+  --color-foreground-muted: #7A9486;
+  
+  /* === SEMANTIC === */
+  --color-success: #5CFF8A;
+  --color-success-light: #5CFF8A20;
+  --color-warning: #FFE55C;
+  --color-warning-light: #FFE55C20;
+  --color-error: #FF6B6B;
+  --color-error-light: #FF6B6B20;
+  --color-info: #5CBAFF;
+  --color-info-light: #5CBAFF20;
+  
+  /* === TYPOGRAPHY === */
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-script: 'Caveat', cursive;
+  
+  /* === SPACING === */
+  --spacing-safe-top: env(safe-area-inset-top, 0px);
+  --spacing-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --spacing-nav-height: 72px;
+  --spacing-header-height: 56px;
+  
+  /* === RADII (soft modern) === */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  
+  /* === SHADOWS (lime glow) === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 30px #BAFF5C25;
+  --shadow-glow-strong: 0 0 50px #BAFF5C40;
+  
+  /* === TRANSITIONS === */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}
+
+/* === FONT IMPORTS === */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/outfit/v11/QGYyz_MVcBeNP4NjuGObqx1XmO1I4TC1C4G-EiAou6Y.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/caveat/v18/WnznHAc5bAfYB2QRah7pcpNvOx-pjfJ9SIKjYBxPigs.woff2') format('woff2');
+}
+
+/* === GLOBAL STYLES === */
+html {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+body {
+  min-height: 100dvh;
+  overscroll-behavior: none;
+  background: radial-gradient(ellipse at 50% 0%, #1A221E 0%, #0D1210 70%);
+}
+
+/* Base text sizing - slightly larger */
+p, span, div {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+/* Precision focus states */
+*:focus-visible {
+  outline: 1px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Elegant scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Gold selection */
+::selection {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Safe area utilities */
+.pt-safe { padding-top: var(--spacing-safe-top); }
+.pb-safe { padding-bottom: var(--spacing-safe-bottom); }
+
+/* Sticklight border trace effect */
+.sticklight-border {
+  position: relative;
+}
+
+.sticklight-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--color-border);
+  pointer-events: none;
+  transition: border-color var(--duration-normal) var(--ease-smooth);
+}
+
+.sticklight-border:hover::before {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Display heading styling */
+.display-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Clean mono styling */
+.clean-mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+}
+
+/* Script accent */
+.script-accent {
+  font-family: var(--font-script);
+  font-weight: 500;
+}
+
+/* Laser border */
+.laser-border {
+  border: 1px solid var(--color-border);
+}
+
+.laser-border-strong {
+  border: 1px solid var(--color-border-strong);
+}
+
+/* Amber glow on hover */
+.amber-glow:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Color dodge blend for volumetric light */
+.volumetric-light {
+  mix-blend-mode: color-dodge;
+}

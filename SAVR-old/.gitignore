@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+web/node_modules/
+mobile/node_modules/
+
+# Build outputs
+.next/
+web/.next/
+web/out/
+mobile/dist/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+
+# Vercel
+.vercel
+
+# Supabase
+.branches/
+.temp/
+
+# Expo
+mobile/.expo/
+mobile/.expo-shared/
+
+# Mobile build artifacts
+mobile/android/
+mobile/ios/
+mobile/*.apk
+mobile/*.aab
+mobile/*.ipa
+
+# Google Services (contains API keys - do not commit)
+mobile/google-services.json
+mobile/GoogleService-Info.plist
+
+# Play Store service account key
+mobile/google-play-service-account.json
+
+# Lock files (keep only package-lock.json)
+yarn.lock
