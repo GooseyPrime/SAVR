@@ -33,6 +33,28 @@ The production baseline from `SAVR-old/` has been copied into this directory as 
 
 ---
 
+## Phase 2 — Validation and contracts complete
+
+### What was added in Phase 2
+
+| File | Change |
+|---|---|
+| `web/package.json` | Added `typecheck` script (`tsc --noEmit`) |
+| `mobile/package.json` | Added `typecheck` script (`tsc --noEmit`) |
+| `savr-platform/package.json` | Added `web:typecheck` and `mobile:typecheck` root shortcuts |
+| `.github/workflows/phase-02-validation.yml` | New CI job for mobile TypeScript check |
+| `docs/decisions/ADR-001-billing-tier-names.md` | Billing tier naming conflict documented |
+| `docs/decisions/ADR-002-firebase-storage-compat.md` | Firebase Storage backward-compat status documented |
+| `docs/validation/required-gates.md` | Updated with Phase 2 additions and remaining gaps |
+
+### Stale Firebase references (status after Phase 2)
+
+- `web/lib/storage.ts` Firebase URL helpers — **retain** (backward compat for legacy user data; see ADR-002)
+- `mobile/app.json` empty Firebase stubs — **retain** until confirmed unused (see ADR-002)
+- Billing tier names (`free`/`plus`/`premium` vs `basic`/`pro`) — **conflict documented** (see ADR-001); do not add new references to legacy names
+
+---
+
 ## Active rules for this directory going forward
 
 - `savr-platform/` is the only canonical production implementation tree

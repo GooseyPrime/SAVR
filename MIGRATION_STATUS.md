@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 1 — Baseline import into `savr-platform` (complete)**
+**Phase 2 — Validation and Contract Reconciliation (complete)**
 
 ---
 
@@ -18,7 +18,42 @@ Tracks the current phase of the SAVR consolidation project.
 | Source roles established | ✅ Yes |
 | Architecture discovery complete | ✅ Yes, with explicit verification limitations and unresolved conflicts documented |
 | Canonical application initialized | ✅ Yes — Phase 1 PR merged |
+| Validation gates established | ✅ Yes — Phase 2 complete |
+| Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
 | Feature migration started | ❌ No |
+
+---
+
+## Phase 2 Completion Summary
+
+Validation gates and contract conflicts were established and documented. The baseline is now reproducible before broad UI adaptation begins.
+
+### What was added
+
+- `savr-platform/web/package.json` — `typecheck` script (`tsc --noEmit`)
+- `savr-platform/mobile/package.json` — `typecheck` script (`tsc --noEmit`)
+- `savr-platform/package.json` — `web:typecheck` and `mobile:typecheck` root shortcuts
+- `.github/workflows/phase-02-validation.yml` — CI job for mobile TypeScript check
+- `docs/decisions/ADR-001-billing-tier-names.md` — billing tier naming conflict documented
+- `docs/decisions/ADR-002-firebase-storage-compat.md` — Firebase Storage backward-compat status documented
+- `docs/validation/required-gates.md` — updated to reflect Phase 2 additions and remaining gaps
+
+### Validation gates now active
+
+| Gate | Command | CI job |
+|---|---|---|
+| Web lint | `npm run lint` (in `savr-platform/web`) | `phase-01-baseline.yml: web-lint` |
+| Web typecheck | `npm run typecheck` (in `savr-platform/web`) | `phase-01-baseline.yml: web-typecheck` |
+| Web build | `npm run build` (in `savr-platform/web`) | `phase-01-baseline.yml: web-build` |
+| Mobile typecheck | `npm run typecheck` (in `savr-platform/mobile`) | `phase-02-validation.yml: mobile-typecheck` |
+
+### Remaining validation gaps (explicit)
+
+- Mobile lint — no ESLint config in `savr-platform/mobile/`
+- Unit/integration tests — no non-E2E test suite
+- Supabase migration CI gate — requires Supabase CLI or project access
+- E2E CI gate — requires a deployed application target
+- Security scanning — no automated dependency or SAST scan
 
 ---
 
@@ -50,23 +85,24 @@ The production baseline from `SAVR-old/` was copied into `savr-platform/` withou
 
 ## Known Remaining Blockers
 
-- No dedicated TypeScript type-check script in web `package.json` (gap documented in `docs/validation/required-gates.md`)
-- Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
+- Billing tier names conflict — see `docs/decisions/ADR-001-billing-tier-names.md`
+- Firebase Storage backward compat — see `docs/decisions/ADR-002-firebase-storage-compat.md`
+- Mobile Google OAuth requires additional setup; not production-ready for all paths
 - Supabase migration validation has no committed `db lint` or `db reset` script
 - E2E tests require a running application; cannot run headless in CI without a deployed target
-- Reproducible validation gaps to be addressed in Phase 2
+- No unit/integration test suite for web or mobile
 
 ---
 
 ## Next Phase
 
-**Phase 2 — Validation and contracts**
+**Phase 3 — Design System**
 
 Required outcome:
 
-1. Establish reproducible validation gates for web, mobile, database, and end-to-end behavior.
-2. Resolve stale configuration: Firebase-era root references, legacy billing tier names, workflow gaps.
-3. Add any missing lint, type-check, and security-scan scripts to `savr-platform/`.
+1. Adapt design tokens, typography, color, and component primitives from `savr-premium-mobile-app/` into `savr-platform/`.
+2. Preserve production data contracts; change only presentation.
+3. Do not introduce a second auth state, local-only persistence, or prototype architecture.
 
 ---
 
