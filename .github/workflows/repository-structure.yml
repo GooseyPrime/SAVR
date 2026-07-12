@@ -1,0 +1,41 @@
+name: Repository Structure Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-required-files:
+    name: Verify required initialization files exist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required files
+        run: |
+          missing=0
+          files=(
+            "README.md"
+            "AGENTS.md"
+            "SOURCE_ORIGINS.md"
+            "MIGRATION_STATUS.md"
+            ".github/copilot-instructions.md"
+            "savr-platform/README.md"
+            "savr-platform/AGENTS.md"
+          )
+          for f in "${files[@]}"; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ MISSING: $f"
+              missing=$((missing + 1))
+            fi
+          done
+          if [ "$missing" -gt 0 ]; then
+            echo ""
+            echo "$missing required file(s) are missing."
+            exit 1
+          fi
+          echo ""
+          echo "All required initialization files are present."
