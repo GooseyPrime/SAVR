@@ -1,0 +1,91 @@
+/**
+ * SAVR Design System — Web CSS Theme (Tailwind v4)
+ *
+ * Mirrors the token values in savr-platform/design-system/tokens.ts
+ * as CSS custom properties. Tailwind v4 reads @theme to generate
+ * bg-*, text-*, border-*, and other utility classes.
+ *
+ * Loaded into savr-platform/web/app/globals.css via @import.
+ *
+ * Do not edit token values here without updating tokens.ts to match.
+ */
+
+@theme {
+  /* === Brand Colors === */
+  --color-primary: #BAFF5C;
+  --color-primary-hover: #C8FF7A;
+  --color-primary-light: #BAFF5C18;
+  --color-primary-foreground: #0D1208;
+
+  --color-secondary: #5CFFBA;
+  --color-secondary-hover: #7AFFC8;
+  --color-secondary-light: #5CFFBA18;
+  --color-secondary-foreground: #0D1208;
+
+  --color-accent: #FFE55C;
+  --color-accent-hover: #FFEB7A;
+  --color-accent-light: #FFE55C18;
+  --color-accent-foreground: #0D1208;
+
+  --color-pet: #FFAB5C;
+  --color-pet-hover: #FFBC7A;
+  --color-pet-light: #FFAB5C18;
+  --color-pet-foreground: #0D1208;
+
+  /* === Neutrals === */
+  --color-background: #0D1210;
+  --color-surface: #141A17;
+  --color-surface-raised: #1A221E;
+  --color-muted: #232D28;
+  --color-muted-foreground: #8FA89A;
+  --color-border: #BAFF5C12;
+  --color-border-strong: #BAFF5C28;
+
+  /* === Text === */
+  --color-foreground: #FFFFFF;
+  --color-foreground-secondary: #C8D9CF;
+  --color-foreground-muted: #7A9486;
+
+  /* === Semantic States === */
+  --color-success: #5CFF8A;
+  --color-success-light: #5CFF8A20;
+  --color-warning: #FFE55C;
+  --color-warning-light: #FFE55C20;
+  --color-error: #FF6B6B;
+  --color-error-light: #FF6B6B20;
+  --color-info: #5CBAFF;
+  --color-info-light: #5CBAFF20;
+
+  /* === Typography === */
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-script: 'Caveat', cursive;
+
+  /* === Spacing — layout primitives === */
+  --spacing-nav-height: 72px;
+  --spacing-header-height: 56px;
+
+  /* === Border Radius === */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 30px #BAFF5C25;
+  --shadow-glow-strong: 0 0 50px #BAFF5C40;
+
+  /* === Motion === */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}

@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 1 — Baseline import into `savr-platform` (complete)**
+**Phase 3 — Shared Design System Foundation (in progress)**
 
 ---
 
@@ -18,6 +18,8 @@ Tracks the current phase of the SAVR consolidation project.
 | Source roles established | ✅ Yes |
 | Architecture discovery complete | ✅ Yes, with explicit verification limitations and unresolved conflicts documented |
 | Canonical application initialized | ✅ Yes — Phase 1 PR merged |
+| Validation gates documented | ✅ Yes — Phase 2 complete |
+| Shared design tokens created | ✅ Yes — Phase 3 |
 | Feature migration started | ❌ No |
 
 ---
@@ -48,25 +50,74 @@ The production baseline from `SAVR-old/` was copied into `savr-platform/` withou
 
 ---
 
-## Known Remaining Blockers
+## Phase 2 Completion Summary
 
-- No dedicated TypeScript type-check script in web `package.json` (gap documented in `docs/validation/required-gates.md`)
+Phase 2 (Validation and Contract Reconciliation) exit criteria were met through
+documentation established across Phase 1 and subsequent cleanup. No dedicated
+Phase 2 PR was needed because all required artifacts already existed.
+
+### Exit criteria met
+
+- Validation gates documented in `docs/validation/required-gates.md`
+- Source-of-truth conflicts documented in `docs/architecture/source-of-truth.md`
+- Production architecture reference documented in `docs/architecture/production-reference.md`
+- Stale Firebase-era root scripts removed from `savr-platform/package.json`
+- CI workflow established for web lint, typecheck, and production build (`phase-01-baseline.yml`)
+- `typecheck` npm script added to `savr-platform/web/package.json` (closes Phase 1 gap)
+
+### Remaining validation gaps (documented, not blocking Phase 3)
+
 - Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
 - Supabase migration validation has no committed `db lint` or `db reset` script
 - E2E tests require a running application; cannot run headless in CI without a deployed target
-- Reproducible validation gaps to be addressed in Phase 2
+- No non-E2E unit/integration test commands
+
+---
+
+## Phase 3 Completion Summary
+
+Shared design tokens ported from `savr-premium-mobile-app/src/theme.css` into
+production-safe shared primitives available to both web and mobile platforms.
+
+### What was created
+
+- `savr-platform/design-system/tokens.ts` — canonical TypeScript source of all token values
+- `savr-platform/design-system/web/theme.css` — Tailwind v4 `@theme` CSS block (mirrors tokens.ts)
+- `savr-platform/design-system/README.md` — per-platform usage documentation
+- `savr-platform/mobile/src/theme/index.ts` — React Native–compatible token constants
+
+### What was updated
+
+- `savr-platform/web/app/globals.css` — replaced old cyan/purple theme with premium lime/dark-green design system tokens via Tailwind v4 `@theme` block; updated utility classes and global styles to use CSS variables
+- `savr-platform/web/package.json` — added `typecheck` npm script
+- `.github/workflows/phase-01-baseline.yml` — updated typecheck job to use `npm run typecheck`
+
+### What did NOT change
+
+- No API routes, data contracts, or auth flows modified
+- No navigation structure or routing changed
+- No database or RLS changes
+- `SAVR-old/` and `savr-premium-mobile-app/` not modified
+
+---
+
+## Known Remaining Blockers
+
+- Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
+- Supabase migration validation has no committed `db lint` or `db reset` script
+- E2E tests require a running application; cannot run headless in CI without a deployed target
 
 ---
 
 ## Next Phase
 
-**Phase 2 — Validation and contracts**
+**Phase 4 — Application Shells**
 
 Required outcome:
 
-1. Establish reproducible validation gates for web, mobile, database, and end-to-end behavior.
-2. Resolve stale configuration: Firebase-era root references, legacy billing tier names, workflow gaps.
-3. Add any missing lint, type-check, and security-scan scripts to `savr-platform/`.
+1. Production-safe web and mobile application shells in `savr-platform/` that preserve routing, auth boundaries, safe areas, and navigation affordances.
+2. Shells consume the shared design token layer established in Phase 3.
+3. No feature behavior changes beyond presentation and navigation structure.
 
 ---
 
