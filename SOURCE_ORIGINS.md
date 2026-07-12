@@ -4,38 +4,17 @@ This file is the source registry for all repositories contributing to the SAVR c
 
 ---
 
-## SAVR-old
+## Imported sources
 
-| Field | Value |
-|---|---|
-| **Status** | Not imported |
-| **Future folder** | `SAVR-old/` |
-| **Role** | Production architecture and feature baseline |
-| **Source URL** | To be recorded after import |
-| **Source commit** | To be recorded after import |
+| Folder | Role | Imported source repository | Expected source SHA | Verified SHA | Verification status | Import status | Read-only |
+|---|---|---|---|---|---|---|---|
+| `SAVR-old/` | Production architecture baseline, production feature baseline, backend/database contract reference, web/mobile implementation reference | `GooseyPrime/SAVR-old` | `645c870ad23e76e9fdd8a0e8c554120f70644d48` | Not verifiable from imported contents | Imported folder has no nested `.git` metadata and no committed manifest proving the expected head | Imported | Yes |
+| `savr-premium-mobile-app/` | Approved visual-design, navigation, interaction, and responsive/mobile UX reference | `GooseyPrime/savr-premium-mobile-app` | `1273037c3ac98ce12a2fa81319879ee05301daf4` | Not verifiable from imported contents | Imported folder has no nested `.git` metadata and no committed manifest proving the expected head | Imported | Yes |
+| `savr-platform/` | Canonical merged production application | N/A | N/A | N/A | Workspace intentionally not initialized with production code yet | Present but not initialized | No |
 
 ---
 
-## savr-premium-mobile-app
+## Notes
 
-| Field | Value |
-|---|---|
-| **Status** | Not imported |
-| **Future folder** | `savr-premium-mobile-app/` |
-| **Role** | UI/UX and interaction reference |
-| **Source URL** | To be recorded after import |
-| **Source commit** | To be recorded after import |
-
----
-
-## savr-platform
-
-| Field | Value |
-|---|---|
-| **Status** | Empty workspace |
-| **Folder** | `savr-platform/` |
-| **Role** | Canonical future production application |
-
----
-
-*Update this file immediately after each source folder is imported.*
+- Source-head verification must remain explicitly unverified until future import provenance is committed or otherwise proven.
+- Future production implementation work belongs only in `savr-platform/`.
