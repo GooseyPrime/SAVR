@@ -156,7 +156,7 @@ function SharedRecipeContent() {
         </div>
         <Link
           href="/sign-up"
-          className="inline-block rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover"
+          className="inline-flex items-center rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover px-6 py-2 font-semibold transition-all duration-200"
         >
           Get SAVR to create your own recipes
         </Link>
