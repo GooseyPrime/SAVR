@@ -7,7 +7,9 @@
     "web:dev": "npm run dev --prefix web",
     "web:build": "npm run build --prefix web",
     "web:lint": "npm run lint --prefix web",
-    "web:start": "npm run start --prefix web"
+    "web:typecheck": "npm run typecheck --prefix web",
+    "web:start": "npm run start --prefix web",
+    "mobile:typecheck": "npm run typecheck --prefix mobile"
   },
   "repository": {
     "type": "git",

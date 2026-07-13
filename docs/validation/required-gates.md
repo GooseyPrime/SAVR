@@ -1,28 +1,38 @@
 # Required Validation Gates
 
-This file records the exact commands that are already available in `SAVR-old/` and the gaps that future work must close.
+This file records the exact commands that are available in `savr-platform/` and the gaps that future work must close.
 
-## Available commands and direct validations
+## Phase 1 + Phase 2 available commands
 
-| Area | Exact command currently available from the repository | Status | Evidence |
+| Area | Exact command | Status | Evidence |
 |---|---|---|---|
-| Web dependency installation | `cd SAVR-old/web && npm install` | Available | `SAVR-old/web/package-lock.json`, README guidance |
-| Mobile dependency installation | `cd SAVR-old/mobile && npm install --legacy-peer-deps` | Available | `SAVR-old/README.md` quick-start guidance |
-| Web lint | `cd SAVR-old/web && npm run lint` | Available | `SAVR-old/web/package.json` |
-| Web production build | `cd SAVR-old/web && npm run build` | Available | `SAVR-old/web/package.json` |
-| Playwright E2E | `cd SAVR-old/e2e-tests && npm run test:e2e` | Available | `SAVR-old/e2e-tests/package.json` |
-| Playwright UI mode | `cd SAVR-old/e2e-tests && npm run test:e2e:ui` | Available | `SAVR-old/e2e-tests/package.json` |
-| Playwright headed mode | `cd SAVR-old/e2e-tests && npm run test:e2e:headed` | Available | `SAVR-old/e2e-tests/package.json` |
-| Playwright debug mode | `cd SAVR-old/e2e-tests && npm run test:e2e:debug` | Available | `SAVR-old/e2e-tests/package.json` |
-| Web type-check | No committed dedicated script; direct command inferred from checked-in TypeScript config would be `cd SAVR-old/web && npx tsc --noEmit` | Gap | TypeScript config exists, script absent |
-| Mobile type-check | No committed dedicated script; direct command inferred from checked-in TypeScript config would be `cd SAVR-old/mobile && npx tsc --noEmit` | Gap | TypeScript config exists, script absent |
-| Mobile Expo validation | No committed validation script found beyond `expo start`, `expo run:android`, `expo run:ios`, and `expo start --web` | Gap | `SAVR-old/mobile/package.json` |
-| Existing unit/integration tests | No committed non-E2E test command found | Gap | no script in root/web/mobile packages |
-| Supabase migration validation | No committed repository command found for `supabase db lint`, `supabase db reset`, or similar | Gap | migration SQL present, validation script absent |
-| Security scanning | No committed repository command found for dependency or code security scanning | Gap | no script or workflow imported |
+| Web dependency installation | `cd savr-platform/web && npm ci` | ✅ Available | `savr-platform/web/package-lock.json` |
+| Mobile dependency installation | `cd savr-platform/mobile && npm ci` | ✅ Available | `savr-platform/mobile/package-lock.json` (lockfileVersion 3) |
+| Web lint | `cd savr-platform/web && npm run lint` | ✅ Available | `savr-platform/web/package.json`; CI job `web-lint` in `phase-01-baseline.yml` |
+| Web TypeScript check | `cd savr-platform/web && npm run typecheck` | ✅ Available | `savr-platform/web/package.json` (`tsc --noEmit`); CI job `web-typecheck` in `phase-01-baseline.yml` |
+| Web production build | `cd savr-platform/web && npm run build` | ✅ Available | `savr-platform/web/package.json`; CI job `web-build` in `phase-01-baseline.yml` |
+| Mobile TypeScript check | `cd savr-platform/mobile && npm run typecheck` | ✅ Available | `savr-platform/mobile/package.json` (`tsc --noEmit`); CI job `mobile-typecheck` in `phase-02-validation.yml` |
+| Playwright E2E | `cd savr-platform/e2e-tests && npm run test:e2e` | ⚠️ Available locally; blocked in CI | `savr-platform/e2e-tests/package.json`; requires a running application target |
+| Mobile lint | No committed ESLint configuration in `savr-platform/mobile/` | ❌ Gap | no `eslint.config.*` file in mobile directory |
+| Mobile Expo validation | No committed validation script beyond `expo start` and `tsc --noEmit` | ⚠️ Partial | `savr-platform/mobile/package.json` |
+| Existing unit/integration tests | No committed non-E2E test command found | ❌ Gap | no test script in root/web/mobile packages |
+| Supabase migration validation | No committed `db lint`, `db reset`, or migration CI gate | ❌ Gap | migration SQL present; Supabase CLI not wired into CI |
+| Security scanning | No committed dependency or code security scanning script | ❌ Gap | no script or workflow present |
+
+## Remaining gaps (Phase 2 exit state)
+
+The following gaps are explicitly documented and deferred to later phases:
+
+- **Mobile lint**: No ESLint config exists in `savr-platform/mobile/`. Add in a dedicated future PR.
+- **Unit/integration tests**: No non-E2E test suite. Add in Phase 6 (hardening and release).
+- **Supabase migration CI gate**: Requires either a Supabase project with service key or Supabase CLI Docker-based reset. Defer to Phase 5 or Phase 6.
+- **E2E CI gate**: Requires a deployed application target. Defer to Phase 6 (hardening and release).
+- **Security scanning**: No automated dependency vulnerability or SAST scan. Add in Phase 6.
 
 ## Rules for future agents
 
 - Do not claim a gate passed unless the exact command was actually run and its output is recorded.
 - When a gap exists, document it in the PR and, if appropriate, add the missing gate in a dedicated future phase rather than hiding the gap.
 - Reproducible validation is a required early migration phase before broad visual adaptation.
+- The `savr-platform/` commands above supersede the `SAVR-old/` commands listed in Phase 1 discovery.
+
