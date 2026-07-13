@@ -6,168 +6,267 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePathname } from 'next/navigation';
 
+const publicLinks = [
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/faq', label: 'FAQ' },
+];
+
+const appPrimaryLinks = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/inventory', label: 'Pantry' },
+  { href: '/recipes', label: 'Recipes' },
+  { href: '/meal-plans', label: 'Plans' },
+  { href: '/grocery-lists', label: 'Lists' },
+] as const;
+
+const appUtilityLinks = [
+  { href: '/upload', label: 'Scan Upload' },
+  { href: '/chat', label: 'AI Chef' },
+  { href: '/preferences', label: 'Preferences' },
+  { href: '/settings', label: 'Settings' },
+] as const;
+
+function isActivePath(pathname: string, href: string) {
+  if (href === '/') {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function MenuIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
+      setMenuOpen(false);
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  const isActive = (path: string) => pathname === path;
+  const navLinkClass = (href: string) => {
+    const active = isActivePath(pathname, href);
 
-  const navLinkClass = (path: string) =>
-    `text-sm font-medium transition-colors duration-200 ${
-      isActive(path)
-        ? 'text-[#00d4ff]'
-        : 'text-[#9ca3c2] hover:text-white'
-    }`;
+    return [
+      'rounded-full px-3 py-2 text-sm font-medium transition-all duration-200',
+      active
+        ? 'text-[var(--color-primary-foreground)] shadow-[var(--shadow-glow)]'
+        : 'text-[var(--color-foreground-muted)] hover:text-[var(--color-foreground)] hover:bg-white/5',
+    ].join(' ');
+  };
+
+  const secondaryLinkClass = (href: string) => {
+    const active = isActivePath(pathname, href);
+
+    return [
+      'flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200',
+      active
+        ? 'text-[var(--color-primary)] border-[var(--color-border-strong)] bg-[var(--color-primary-light)]'
+        : 'text-[var(--color-foreground-secondary)] border-transparent bg-white/3 hover:border-[var(--color-border)] hover:bg-white/5',
+    ].join(' ');
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50" style={{ background: 'rgba(6, 9, 24, 0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center group">
-            <Image
-              src="https://res.cloudinary.com/dksj2niho/image/upload/w_64,h_64,c_fit,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png"
-              alt="SAVR"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-              unoptimized
-            />
+    <nav
+      className="fixed inset-x-0 top-0 z-50 border-b"
+      style={{
+        background: 'rgba(13, 18, 16, 0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderColor: 'var(--color-border)',
+      }}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex min-h-[72px] items-center justify-between gap-4">
+          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[rgba(20,26,23,0.88)]">
+              <Image
+                src="https://res.cloudinary.com/dksj2niho/image/upload/w_64,h_64,c_fit,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png"
+                alt="SAVR"
+                width={32}
+                height={32}
+                className="h-8 w-8"
+                unoptimized
+              />
+            </div>
+            <div className="hidden sm:block">
+              <p className="font-[var(--font-display)] text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-secondary)]">
+                SAVR
+              </p>
+              <p className="text-xs text-[var(--color-foreground-muted)]">
+                Smart kitchen shell
+              </p>
+            </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[rgba(20,26,23,0.88)] p-1">
+            {(user ? appPrimaryLinks : publicLinks).map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={navLinkClass(href)}
+                style={
+                  isActivePath(pathname, href)
+                    ? {
+                        background: 'var(--color-primary)',
+                      }
+                    : undefined
+                }
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden lg:flex items-center gap-3">
             {user ? (
               <>
-                <Link href="/dashboard" className={navLinkClass('/dashboard')}>Dashboard</Link>
-                <Link href="/upload" className={navLinkClass('/upload')}>Upload</Link>
-                <Link href="/inventory" className={navLinkClass('/inventory')}>Inventory</Link>
-                <Link href="/recipes" className={navLinkClass('/recipes')}>Recipes</Link>
-                <Link href="/meal-plans" className={navLinkClass('/meal-plans')}>Meal Plans</Link>
-                <Link href="/grocery-lists" className={navLinkClass('/grocery-lists')}>Lists</Link>
-                <Link href="/chat" className={navLinkClass('/chat')}>Chat</Link>
-                <Link href="/preferences" className={navLinkClass('/preferences')}>Preferences</Link>
-                <Link href="/settings" className={navLinkClass('/settings')}>Settings</Link>
+                <Link href="/upload" className="btn-primary !px-5 !py-2.5 text-sm">
+                  Scan Upload
+                </Link>
                 <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-[#9ca3c2] hover:text-[#00d4ff] transition-colors duration-200"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[rgba(20,26,23,0.92)] px-4 py-2 text-sm font-medium text-[var(--color-foreground-secondary)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-foreground)]"
+                  aria-expanded={menuOpen}
+                  aria-controls="savr-nav-menu"
                 >
-                  Logout
+                  <span className="max-w-32 truncate">{user.email}</span>
+                  {menuOpen ? <CloseIcon /> : <MenuIcon />}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/pricing" className={navLinkClass('/pricing')}>Pricing</Link>
-                <Link href="/faq" className={navLinkClass('/faq')}>FAQ</Link>
-                <Link href="/sign-in" className="text-sm font-medium text-[#9ca3c2] hover:text-white transition-colors duration-200">
+                <Link
+                  href="/sign-in"
+                  className="text-sm font-medium text-[var(--color-foreground-secondary)] transition hover:text-[var(--color-foreground)]"
+                >
                   Sign In
                 </Link>
-                <Link
-                  href="/sign-up"
-                  className="btn-primary text-sm !py-2.5 !px-5"
-                >
+                <Link href="/sign-up" className="btn-primary text-sm !px-5 !py-2.5">
                   Get Started
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile menu button */}
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-[#9ca3c2] hover:text-white transition-colors"
-            aria-label="Toggle menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[rgba(20,26,23,0.92)] text-[var(--color-foreground-secondary)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-foreground)] lg:hidden"
+            aria-label="Toggle navigation menu"
+            aria-expanded={menuOpen}
+            aria-controls="savr-nav-menu"
           >
-            {mobileOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
+            {menuOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      {mobileOpen && (
-        <div className="md:hidden" style={{ background: 'rgba(6, 9, 24, 0.97)', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-          <div className="px-4 py-4 space-y-1">
+      {menuOpen && (
+        <div
+          id="savr-nav-menu"
+          className="border-t"
+          style={{
+            background: 'rgba(13, 18, 16, 0.96)',
+            borderColor: 'var(--color-border)',
+          }}
+        >
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             {user ? (
-              <>
-                {[
-                  { href: '/dashboard', label: 'Dashboard' },
-                  { href: '/upload', label: 'Upload' },
-                  { href: '/inventory', label: 'Inventory' },
-                  { href: '/recipes', label: 'Recipes' },
-                  { href: '/meal-plans', label: 'Meal Plans' },
-                  { href: '/grocery-lists', label: 'Grocery Lists' },
-                  { href: '/chat', label: 'Chat' },
-                  { href: '/preferences', label: 'Preferences' },
-                  { href: '/settings', label: 'Settings' },
-                ].map(({ href, label }) => (
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-muted)]">
+                    Primary navigation
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {appPrimaryLinks.map(({ href, label }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setMenuOpen(false)}
+                        className={secondaryLinkClass(href)}
+                      >
+                        <span>{label}</span>
+                        <ChevronRightIcon />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-muted)]">
+                    Workspace
+                  </p>
+                  <div className="grid gap-2">
+                    {appUtilityLinks.map(({ href, label }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setMenuOpen(false)}
+                        className={secondaryLinkClass(href)}
+                      >
+                        <span>{label}</span>
+                        <ChevronRightIcon />
+                      </Link>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-error-light)] bg-[rgba(255,107,107,0.08)] px-4 py-3 text-sm font-medium text-[var(--color-error)] transition hover:bg-[rgba(255,107,107,0.12)]"
+                  >
+                    <span>Logout</span>
+                    <ChevronRightIcon />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {publicLinks.map(({ href, label }) => (
                   <Link
                     key={href}
                     href={href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                      isActive(href)
-                        ? 'text-[#00d4ff] bg-[rgba(0,212,255,0.08)]'
-                        : 'text-[#9ca3c2] hover:text-white hover:bg-[rgba(255,255,255,0.04)]'
-                    }`}
+                    onClick={() => setMenuOpen(false)}
+                    className={secondaryLinkClass(href)}
                   >
-                    {label}
+                    <span>{label}</span>
+                    <ChevronRightIcon />
                   </Link>
                 ))}
-                <button
-                  onClick={() => { handleLogout(); setMobileOpen(false); }}
-                  className="block w-full text-left py-3 px-4 rounded-lg text-sm font-medium text-[#9ca3c2] hover:text-[#00d4ff] hover:bg-[rgba(0,212,255,0.08)] transition-colors"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/pricing"
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-3 px-4 rounded-lg text-sm font-medium text-[#9ca3c2] hover:text-white hover:bg-[rgba(255,255,255,0.04)] transition-colors"
-                >
-                  Pricing
+                <Link href="/sign-in" onClick={() => setMenuOpen(false)} className={secondaryLinkClass('/sign-in')}>
+                  <span>Sign In</span>
+                  <ChevronRightIcon />
                 </Link>
-                <Link
-                  href="/faq"
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-3 px-4 rounded-lg text-sm font-medium text-[#9ca3c2] hover:text-white hover:bg-[rgba(255,255,255,0.04)] transition-colors"
-                >
-                  FAQ
-                </Link>
-                <Link
-                  href="/sign-in"
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-3 px-4 rounded-lg text-sm font-medium text-[#9ca3c2] hover:text-white hover:bg-[rgba(255,255,255,0.04)] transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/sign-up"
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-3 px-4 rounded-lg text-sm font-semibold btn-primary text-center mt-2"
-                >
+                <Link href="/sign-up" onClick={() => setMenuOpen(false)} className="btn-primary flex justify-center text-sm">
                   Get Started
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </div>

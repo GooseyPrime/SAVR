@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { colors } from '../theme';
 
 interface LoadingSpinnerProps {
   size?: 'small' | 'large';
   color?: string;
 }
 
-export default function LoadingSpinner({ size = 'large', color = '#ea580c' }: LoadingSpinnerProps) {
+export default function LoadingSpinner({ size = 'large', color = colors.primary }: LoadingSpinnerProps) {
   return (
     <View style={styles.container}>
       <ActivityIndicator size={size} color={color} />
@@ -19,6 +20,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
 });

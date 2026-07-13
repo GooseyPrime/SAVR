@@ -17,19 +17,10 @@ export default function ProtectedRoute({
   const searchParams = useSearchParams();
   const isActive = hasActiveSubscription(userData);
   const hasPro = isProTier(userData?.subscription_tier);
-
-  // Check if user is returning from successful Stripe checkout
   const isReturningFromStripe = searchParams.get('stripeSuccess') === 'true';
-
-  // Also check localStorage for checkout intent (fallback when Stripe redirect
-  // URL doesn't include ?stripeSuccess=true)
-  // Initialize synchronously to avoid race condition with redirect logic
   const [hasCheckoutIntent, setHasCheckoutIntent] = useState(() => hasRecentCheckoutIntent());
-
-  // Grace period: allow access if user just came from Stripe checkout
   const inGracePeriod = isReturningFromStripe || hasCheckoutIntent;
 
-  // Clear checkout intent once subscription activates (webhook processed)
   useEffect(() => {
     if (isActive && hasCheckoutIntent) {
       clearCheckoutIntent();
@@ -42,8 +33,6 @@ export default function ProtectedRoute({
       if (!user) {
         router.push('/sign-in');
       } else if (!isActive && !inGracePeriod) {
-        // User hasn't completed Stripe onboarding — send to pricing
-        // BUT allow access if they just successfully paid (grace period for webhook processing)
         router.push('/pricing');
       } else if (requirePro && !hasPro) {
         router.push('/pricing');
@@ -53,8 +42,18 @@ export default function ProtectedRoute({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#000000' }}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d4ff]"></div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
+        <div className="flex items-center gap-4 rounded-3xl border border-[var(--color-border)] bg-[rgba(20,26,23,0.82)] px-6 py-5 shadow-[var(--shadow-md)]">
+          <div className="h-11 w-11 animate-spin rounded-full border-[3px] border-[var(--color-border-strong)] border-t-[var(--color-primary)]" />
+          <div>
+            <p className="font-[var(--font-display)] text-sm font-semibold text-[var(--color-foreground)]">
+              Loading your workspace
+            </p>
+            <p className="text-sm text-[var(--color-foreground-muted)]">
+              Checking auth and subscription access.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
