@@ -172,13 +172,13 @@ function MealPlansContent() {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Meal Plans</h1>
           <button
             onClick={() => setShowForm(true)}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition text-sm sm:text-base"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition text-sm sm:text-base"
           >
             Create Meal Plan
           </button>
         </div>
 
-        <p className="text-[#9ca3c2] text-sm mb-6">
+        <p className="text-[#C8D9CF] text-sm mb-6">
           AI-generated meal schedules with full nutritional tracking. Set dietary preferences and SAVR will
           plan balanced meals that comply with your dietary goals and minimize food waste.
         </p>
@@ -193,12 +193,12 @@ function MealPlansContent() {
           <div className="glass-card rounded-lg shadow p-12 text-center">
             <div className="text-6xl mb-4">📅</div>
             <h2 className="text-2xl font-semibold text-white mb-2">No meal plans yet</h2>
-            <p className="text-[#9ca3c2] mb-6">
+            <p className="text-[#C8D9CF] mb-6">
               Create your first meal plan with nutritional tracking and never wonder what&apos;s for dinner!
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition text-sm sm:text-base"
             >
               Create Meal Plan
             </button>
@@ -224,7 +224,7 @@ function MealPlansContent() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                  <label className="block text-sm font-medium text-[#C8D9CF] mb-1">
                     Number of Days
                   </label>
                   <input
@@ -238,7 +238,7 @@ function MealPlansContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                  <label className="block text-sm font-medium text-[#C8D9CF] mb-1">
                     Meals Per Day
                   </label>
                   <select
@@ -253,7 +253,7 @@ function MealPlansContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#9ca3c2] mb-2">
+                  <label className="block text-sm font-medium text-[#C8D9CF] mb-2">
                     Dietary Preferences
                   </label>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 max-h-40 overflow-y-auto">
@@ -283,7 +283,7 @@ function MealPlansContent() {
                               });
                             }
                           }}
-                          className="mr-2 accent-[#00d4ff]"
+                          className="mr-2 accent-[#BAFF5C]"
                         />
                         <span className="text-sm capitalize">{option}</span>
                       </label>
@@ -291,7 +291,7 @@ function MealPlansContent() {
                   </div>
                 </div>
 
-                <div className="rounded-lg px-4 py-3 text-xs text-[#9ca3c2]" style={{ background: 'rgba(0, 212, 255, 0.04)', border: '1px solid rgba(0, 212, 255, 0.1)' }}>
+                <div className="rounded-lg px-4 py-3 text-xs text-[#C8D9CF]" style={{ background: 'rgba(186, 255, 92, 0.04)', border: '1px solid rgba(186, 255, 92, 0.1)' }}>
                   Nutritional data (calories, macros, sodium) will be calculated for every meal and summarized per day to help you track dietary compliance.
                 </div>
               </div>
@@ -300,7 +300,7 @@ function MealPlansContent() {
                 <button
                   onClick={handleGenerateMealPlan}
                   disabled={generating}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] disabled:opacity-50"
                 >
                   {generating ? 'Creating...' : 'Create Plan'}
                 </button>
@@ -345,13 +345,13 @@ function MealPlanCard({
   return (
     <div className="glass-card rounded-lg shadow hover:shadow-lg transition p-6">
       <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
-      <p className="text-sm text-[#9ca3c2] mb-2">
+      <p className="text-sm text-[#C8D9CF] mb-2">
         {new Date(plan.startDate).toLocaleDateString()} - {new Date(plan.endDate).toLocaleDateString()}
       </p>
-      <p className="text-[#9ca3c2] mb-3">{plan.meals.length} meals planned</p>
+      <p className="text-[#C8D9CF] mb-3">{plan.meals.length} meals planned</p>
 
       {avgDailyCalories && (
-        <div className="flex items-center gap-3 text-xs text-[#9ca3c2] mb-4 flex-wrap">
+        <div className="flex items-center gap-3 text-xs text-[#C8D9CF] mb-4 flex-wrap">
           <span className="px-2 py-1 rounded bg-white/5">~{avgDailyCalories} cal/day</span>
           {plan.dailyNutritionSummary && plan.dailyNutritionSummary[0] && (
             <>
@@ -366,7 +366,7 @@ function MealPlanCard({
       <div className="flex space-x-2">
         <button
           onClick={() => onView(plan)}
-          className="flex-1 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition"
+          className="flex-1 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition"
         >
           View Plan
         </button>
@@ -388,15 +388,15 @@ function DailyNutritionBar({ totals, label }: { totals: NutritionalInfo; label?:
   const fatPct = macroTotal > 0 ? Math.round((totals.fat / macroTotal) * 100) : 0;
 
   return (
-    <div className="rounded-lg p-3" style={{ background: 'rgba(0, 212, 255, 0.04)', border: '1px solid rgba(0, 212, 255, 0.08)' }}>
-      {label && <div className="text-xs font-medium text-[#9ca3c2] mb-2">{label}</div>}
+    <div className="rounded-lg p-3" style={{ background: 'rgba(186, 255, 92, 0.04)', border: '1px solid rgba(186, 255, 92, 0.08)' }}>
+      {label && <div className="text-xs font-medium text-[#C8D9CF] mb-2">{label}</div>}
       <div className="flex items-center gap-4 mb-2">
         <div className="text-center">
           <div className="text-base font-bold text-white">{Math.round(totals.calories)}</div>
           <div className="text-[10px] text-[#6b7294]">cal</div>
         </div>
         <div className="text-center">
-          <div className="text-sm font-semibold text-[#00d4ff]">{Math.round(totals.protein)}g</div>
+          <div className="text-sm font-semibold text-[#BAFF5C]">{Math.round(totals.protein)}g</div>
           <div className="text-[10px] text-[#6b7294]">protein</div>
         </div>
         <div className="text-center">
@@ -408,16 +408,16 @@ function DailyNutritionBar({ totals, label }: { totals: NutritionalInfo; label?:
           <div className="text-[10px] text-[#6b7294]">fat</div>
         </div>
         <div className="text-center">
-          <div className="text-sm text-[#9ca3c2]">{Math.round(totals.fiber)}g</div>
+          <div className="text-sm text-[#C8D9CF]">{Math.round(totals.fiber)}g</div>
           <div className="text-[10px] text-[#6b7294]">fiber</div>
         </div>
         <div className="text-center">
-          <div className="text-sm text-[#9ca3c2]">{Math.round(totals.sodium)}mg</div>
+          <div className="text-sm text-[#C8D9CF]">{Math.round(totals.sodium)}mg</div>
           <div className="text-[10px] text-[#6b7294]">sodium</div>
         </div>
       </div>
       <div className="flex h-1.5 rounded-full overflow-hidden">
-        <div className="bg-[#00d4ff]" style={{ width: `${proteinPct}%` }} />
+        <div className="bg-[#BAFF5C]" style={{ width: `${proteinPct}%` }} />
         <div className="bg-[#a855f7]" style={{ width: `${carbsPct}%` }} />
         <div className="bg-[#f59e0b]" style={{ width: `${fatPct}%` }} />
       </div>
@@ -502,13 +502,13 @@ function MealPlanDetailsModal({
         <div className="flex justify-between items-start mb-4">
           <div>
             <h2 className="text-3xl font-bold text-white">{plan.name}</h2>
-            <p className="text-[#9ca3c2]">
+            <p className="text-[#C8D9CF]">
               {new Date(plan.startDate).toLocaleDateString()} - {new Date(plan.endDate).toLocaleDateString()}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-[#9ca3c2] hover:text-white text-2xl"
+            className="text-[#C8D9CF] hover:text-white text-2xl"
           >
             ×
           </button>
@@ -520,8 +520,8 @@ function MealPlanDetailsModal({
             onClick={() => setActiveTab('schedule')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
               activeTab === 'schedule'
-                ? 'bg-[#00d4ff]/15 text-[#00d4ff]'
-                : 'text-[#9ca3c2] hover:text-white'
+                ? 'bg-[#BAFF5C]/15 text-[#BAFF5C]'
+                : 'text-[#C8D9CF] hover:text-white'
             }`}
           >
             Meal Schedule
@@ -530,8 +530,8 @@ function MealPlanDetailsModal({
             onClick={() => setActiveTab('nutrition')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
               activeTab === 'nutrition'
-                ? 'bg-[#00d4ff]/15 text-[#00d4ff]'
-                : 'text-[#9ca3c2] hover:text-white'
+                ? 'bg-[#BAFF5C]/15 text-[#BAFF5C]'
+                : 'text-[#C8D9CF] hover:text-white'
             }`}
           >
             Nutrition Tracker
@@ -554,7 +554,7 @@ function MealPlanDetailsModal({
               <tbody>
                 {days.map((date) => (
                   <tr key={date} className="border-b border-white/6">
-                    <td className="py-3 pr-4 font-medium text-[#9ca3c2] whitespace-nowrap">
+                    <td className="py-3 pr-4 font-medium text-[#C8D9CF] whitespace-nowrap">
                       {new Date(date).toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
@@ -567,7 +567,7 @@ function MealPlanDetailsModal({
                         <td key={mt} className="py-3 px-2">
                           {meal ? (
                             <div>
-                              <div className="text-[#9ca3c2]">{meal.recipeName}</div>
+                              <div className="text-[#C8D9CF]">{meal.recipeName}</div>
                               {meal.nutrition && (
                                 <div className="text-[10px] text-[#6b7294] mt-0.5">
                                   {meal.nutrition.calories} cal | P{meal.nutrition.protein}g C{meal.nutrition.carbs}g F{meal.nutrition.fat}g
@@ -591,36 +591,36 @@ function MealPlanDetailsModal({
           <div className="space-y-4">
             {/* Weekly average summary */}
             {weeklyAvg && (
-              <div className="rounded-xl p-4 mb-2" style={{ background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.15)' }}>
+              <div className="rounded-xl p-4 mb-2" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.15)' }}>
                 <h3 className="text-sm font-semibold text-white mb-3">Daily Average</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-7 gap-3">
                   <div className="text-center">
                     <div className="text-xl font-bold text-white">{weeklyAvg.calories}</div>
-                    <div className="text-xs text-[#9ca3c2]">Calories</div>
+                    <div className="text-xs text-[#C8D9CF]">Calories</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-[#00d4ff]">{weeklyAvg.protein}g</div>
-                    <div className="text-xs text-[#9ca3c2]">Protein</div>
+                    <div className="text-lg font-bold text-[#BAFF5C]">{weeklyAvg.protein}g</div>
+                    <div className="text-xs text-[#C8D9CF]">Protein</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-[#a855f7]">{weeklyAvg.carbs}g</div>
-                    <div className="text-xs text-[#9ca3c2]">Carbs</div>
+                    <div className="text-xs text-[#C8D9CF]">Carbs</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-[#f59e0b]">{weeklyAvg.fat}g</div>
-                    <div className="text-xs text-[#9ca3c2]">Fat</div>
+                    <div className="text-xs text-[#C8D9CF]">Fat</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg text-[#9ca3c2]">{weeklyAvg.fiber}g</div>
-                    <div className="text-xs text-[#9ca3c2]">Fiber</div>
+                    <div className="text-lg text-[#C8D9CF]">{weeklyAvg.fiber}g</div>
+                    <div className="text-xs text-[#C8D9CF]">Fiber</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg text-[#9ca3c2]">{weeklyAvg.sugar}g</div>
-                    <div className="text-xs text-[#9ca3c2]">Sugar</div>
+                    <div className="text-lg text-[#C8D9CF]">{weeklyAvg.sugar}g</div>
+                    <div className="text-xs text-[#C8D9CF]">Sugar</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg text-[#9ca3c2]">{weeklyAvg.sodium}mg</div>
-                    <div className="text-xs text-[#9ca3c2]">Sodium</div>
+                    <div className="text-lg text-[#C8D9CF]">{weeklyAvg.sodium}mg</div>
+                    <div className="text-xs text-[#C8D9CF]">Sodium</div>
                   </div>
                 </div>
               </div>
@@ -632,7 +632,7 @@ function MealPlanDetailsModal({
                 <DailyNutritionBar key={idx} totals={day.totals} label={day.dayLabel} />
               ))
             ) : (
-              <div className="text-center py-8 text-[#9ca3c2]">
+              <div className="text-center py-8 text-[#C8D9CF]">
                 <p>No nutritional data available for this meal plan.</p>
                 <p className="text-sm text-[#6b7294] mt-1">
                   Generate a new meal plan to get per-meal and daily nutritional tracking.
@@ -644,7 +644,7 @@ function MealPlanDetailsModal({
 
         <button
           onClick={onClose}
-          className="w-full mt-6 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(0,212,255,0.4)]"
+          className="w-full mt-6 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(186,255,92,0.4)]"
         >
           Close
         </button>

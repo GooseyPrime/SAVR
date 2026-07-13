@@ -84,7 +84,7 @@ function SharedRecipeContent() {
       <div className="min-h-screen" style={{ background: '#000000' }}>
         <Navbar />
         <div className="container mx-auto px-4 pt-28 pb-16 text-center">
-          <p className="text-[#9ca3c2]">Loading recipe...</p>
+          <p className="text-[#C8D9CF]">Loading recipe...</p>
         </div>
       </div>
     );
@@ -96,7 +96,7 @@ function SharedRecipeContent() {
         <Navbar />
         <div className="container mx-auto px-4 pt-28 pb-16 text-center">
           <p className="text-red-400 mb-4">{error || 'Recipe not found.'}</p>
-          <Link href="/" className="text-[#00d4ff] hover:underline">
+          <Link href="/" className="text-[#BAFF5C] hover:underline">
             Go to SAVR
           </Link>
         </div>
@@ -108,15 +108,15 @@ function SharedRecipeContent() {
     <div className="min-h-screen" style={{ background: '#000000' }}>
       <Navbar />
       <div className="container mx-auto px-4 pt-24 pb-8 max-w-2xl">
-        <p className="text-sm text-[#9ca3c2] mb-2">Shared recipe from SAVR</p>
+        <p className="text-sm text-[#C8D9CF] mb-2">Shared recipe from SAVR</p>
         <h1 className="text-3xl font-bold text-white mb-4">{recipe.title}</h1>
         {recipe.recipeType === 'pet' && (
           <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-4 text-sm">
             Pet recipe: Safe for {recipe.species === 'cat' ? 'cats' : 'dogs'}. Always consult your veterinarian. These are intended as occasional supplements, not a complete diet.
           </div>
         )}
-        <p className="text-[#9ca3c2] mb-6 whitespace-pre-line">{recipe.description}</p>
-        <div className="flex flex-wrap gap-4 mb-6 text-sm text-[#9ca3c2]">
+        <p className="text-[#C8D9CF] mb-6 whitespace-pre-line">{recipe.description}</p>
+        <div className="flex flex-wrap gap-4 mb-6 text-sm text-[#C8D9CF]">
           <span>⏱️ {recipe.prepTime + recipe.cookTime} min</span>
           <span>🍽️ {recipe.servings} servings</span>
           <span>📊 {recipe.difficulty}</span>
@@ -135,8 +135,8 @@ function SharedRecipeContent() {
           <ul className="space-y-2">
             {recipe.ingredients.map((ing, i) => (
               <li key={i} className="flex items-start">
-                <span className="text-[#00d4ff] mr-2">•</span>
-                <span className="text-[#9ca3c2]">
+                <span className="text-[#BAFF5C] mr-2">•</span>
+                <span className="text-[#C8D9CF]">
                   {ing.quantity} {ing.unit} {ing.name}
                 </span>
               </li>
@@ -148,15 +148,15 @@ function SharedRecipeContent() {
           <ol className="space-y-3">
             {recipe.instructions.map((step, i) => (
               <li key={i} className="flex items-start">
-                <span className="font-semibold text-[#00d4ff] mr-3">{i + 1}.</span>
-                <span className="text-[#9ca3c2]">{step}</span>
+                <span className="font-semibold text-[#BAFF5C] mr-3">{i + 1}.</span>
+                <span className="text-[#C8D9CF]">{step}</span>
               </li>
             ))}
           </ol>
         </div>
         <Link
           href="/sign-up"
-          className="inline-block rounded-lg bg-gradient-to-r from-[#00d4ff] to-[#0099cc] px-6 py-2 text-black font-semibold hover:shadow-[0_0_30px_rgba(0,212,255,0.4)]"
+          className="inline-block rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] px-6 py-2 text-black font-semibold hover:shadow-[0_0_30px_rgba(186,255,92,0.4)]"
         >
           Get SAVR to create your own recipes
         </Link>
@@ -171,7 +171,7 @@ export default function SharedRecipePage() {
       <div className="min-h-screen" style={{ background: '#000000' }}>
         <Navbar />
         <div className="container mx-auto px-4 pt-28 pb-16 text-center">
-          <p className="text-[#9ca3c2]">Loading...</p>
+          <p className="text-[#C8D9CF]">Loading...</p>
         </div>
       </div>
     }>

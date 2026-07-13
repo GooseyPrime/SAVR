@@ -154,7 +154,7 @@ function UploadContent() {
         const qrDataUrl = await QRCode.toDataURL(transferUrl, {
           width: 300,
           margin: 2,
-          color: { dark: '#00d4ff', light: '#000000' },
+          color: { dark: '#BAFF5C', light: '#000000' },
         });
         setTransferQr(qrDataUrl);
         setTransferPhotos([]);
@@ -257,7 +257,7 @@ function UploadContent() {
         <h1 className="text-3xl font-bold text-white mb-4">
           {scanMode === 'receipt' ? 'Scan Receipt' : 'Upload Pantry Photo'}
         </h1>
-        <p className="text-[#9ca3c2] mb-4">
+        <p className="text-[#C8D9CF] mb-4">
           {scanMode === 'receipt'
             ? 'Upload a photo of your grocery receipt. Our AI will extract items and quantities so you can add them to your inventory in bulk.'
             : 'Upload a photo of your pantry or fridge. Our AI will analyze it and extract ingredients that you can add to your inventory with one click.'}
@@ -269,8 +269,8 @@ function UploadContent() {
             onClick={() => setScanMode('inventory')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
               scanMode === 'inventory'
-                ? 'bg-[#00d4ff] text-black'
-                : 'border border-white/20 text-[#9ca3c2] hover:text-white hover:border-[#00d4ff]/40'
+                ? 'bg-[#BAFF5C] text-black'
+                : 'border border-white/20 text-[#C8D9CF] hover:text-white hover:border-[#BAFF5C]/40'
             }`}
           >
             Pantry Scan
@@ -280,18 +280,18 @@ function UploadContent() {
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
               scanMode === 'receipt'
                 ? 'bg-[#f59e0b] text-black'
-                : 'border border-white/20 text-[#9ca3c2] hover:text-white hover:border-[#f59e0b]/40'
+                : 'border border-white/20 text-[#C8D9CF] hover:text-white hover:border-[#f59e0b]/40'
             }`}
           >
             Receipt Scan
           </button>
         </div>
 
-        <div className="rounded-xl px-5 py-4 mb-8 text-sm" style={{ background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.15)' }}>
-          <p className="font-semibold text-[#00d4ff] mb-1">
+        <div className="rounded-xl px-5 py-4 mb-8 text-sm" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.15)' }}>
+          <p className="font-semibold text-[#BAFF5C] mb-1">
             {scanMode === 'receipt' ? 'Tips for receipt scanning' : 'Tips for best results'}
           </p>
-          <ul className="text-[#9ca3c2] space-y-1 list-disc list-inside">
+          <ul className="text-[#C8D9CF] space-y-1 list-disc list-inside">
             {scanMode === 'receipt' ? (
               <>
                 <li>Make sure the full receipt is visible and text is readable.</li>
@@ -304,7 +304,7 @@ function UploadContent() {
                 <li>Use good lighting and avoid blurry photos.</li>
                 <li>Lay items out so labels are visible when possible.</li>
                 <li>After analysis, review detected items — you can remove any that are wrong before saving.</li>
-                <li>If something is missed, head to <span className="text-[#00d4ff]">Inventory</span> to add it manually or scan a barcode.</li>
+                <li>If something is missed, head to <span className="text-[#BAFF5C]">Inventory</span> to add it manually or scan a barcode.</li>
               </>
             )}
           </ul>
@@ -327,7 +327,7 @@ function UploadContent() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold text-white">Transfer from Phone</h2>
-              <p className="text-sm text-[#9ca3c2]">Scan the QR code on your phone to upload photos directly.</p>
+              <p className="text-sm text-[#C8D9CF]">Scan the QR code on your phone to upload photos directly.</p>
             </div>
             <button
               onClick={handleCreateTransferSession}
@@ -341,7 +341,7 @@ function UploadContent() {
           {transferQr && (
             <div className="flex flex-col items-center gap-4">
               <img src={transferQr} alt="QR Code for transfer" className="w-48 h-48 rounded-lg" />
-              <p className="text-xs text-[#9ca3c2]">Scan with your phone camera. Link expires in 15 minutes.</p>
+              <p className="text-xs text-[#C8D9CF]">Scan with your phone camera. Link expires in 15 minutes.</p>
 
               {transferPhotos.length > 0 && (
                 <div className="w-full">
@@ -353,7 +353,7 @@ function UploadContent() {
                       <button
                         key={idx}
                         onClick={() => handleAnalyzeTransferredPhoto(url)}
-                        className="relative aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-[#00d4ff]/40 transition"
+                        className="relative aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-[#BAFF5C]/40 transition"
                       >
                         <img src={url} alt={`Transfer ${idx + 1}`} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition">
@@ -384,12 +384,12 @@ function UploadContent() {
               <div className="flex gap-2 flex-wrap">
                 {/* Bulk category assignment */}
                 <div className="flex items-center gap-1 text-xs">
-                  <span className="text-[#9ca3c2]">Set all to:</span>
+                  <span className="text-[#C8D9CF]">Set all to:</span>
                   {(['pantry', 'fridge', 'freezer'] as const).map(cat => (
                     <button
                       key={cat}
                       onClick={() => setAllCategories(cat)}
-                      className="px-2 py-1 rounded border border-white/10 text-[#9ca3c2] hover:border-[#00d4ff]/40 hover:text-[#00d4ff] transition capitalize"
+                      className="px-2 py-1 rounded border border-white/10 text-[#C8D9CF] hover:border-[#BAFF5C]/40 hover:text-[#BAFF5C] transition capitalize"
                     >
                       {cat}
                     </button>
@@ -398,7 +398,7 @@ function UploadContent() {
                 <button
                   onClick={handleSaveToInventory}
                   disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black text-sm font-semibold hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black text-sm font-semibold hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Add All to Inventory'}
                 </button>
@@ -412,7 +412,7 @@ function UploadContent() {
                   className={`rounded-lg border p-4 transition ${
                     ingredient.isDuplicate
                       ? 'border-[#f59e0b]/30 bg-[#f59e0b]/5'
-                      : 'border-white/6 hover:border-[#00d4ff]/30'
+                      : 'border-white/6 hover:border-[#BAFF5C]/30'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -420,7 +420,7 @@ function UploadContent() {
                       type="text"
                       value={ingredient.name}
                       onChange={(e) => updateIngredient(index, { name: e.target.value })}
-                      className="font-semibold text-white bg-transparent border-b border-transparent hover:border-white/20 focus:border-[#00d4ff] focus:outline-none w-full mr-2"
+                      className="font-semibold text-white bg-transparent border-b border-transparent hover:border-white/20 focus:border-[#BAFF5C] focus:outline-none w-full mr-2"
                     />
                     <button
                       onClick={() => removeIngredient(index)}
@@ -450,7 +450,7 @@ function UploadContent() {
                       className="w-16 px-2 py-1 text-sm border border-white/6 rounded bg-white/5 text-white"
                     />
                     {ingredient.price !== undefined && (
-                      <span className="text-xs text-[#9ca3c2]">${ingredient.price.toFixed(2)}</span>
+                      <span className="text-xs text-[#C8D9CF]">${ingredient.price.toFixed(2)}</span>
                     )}
                   </div>
 
@@ -462,8 +462,8 @@ function UploadContent() {
                         onClick={() => updateIngredient(index, { category: cat })}
                         className={`text-xs px-2 py-1 rounded transition capitalize ${
                           ingredient.category === cat
-                            ? 'bg-[#00d4ff]/20 text-[#00d4ff] border border-[#00d4ff]/40'
-                            : 'bg-white/5 text-[#9ca3c2] border border-white/6 hover:border-[#00d4ff]/20'
+                            ? 'bg-[#BAFF5C]/20 text-[#BAFF5C] border border-[#BAFF5C]/40'
+                            : 'bg-white/5 text-[#C8D9CF] border border-white/6 hover:border-[#BAFF5C]/20'
                         }`}
                       >
                         {cat}
@@ -472,7 +472,7 @@ function UploadContent() {
                   </div>
 
                   <div className="mt-2">
-                    <span className="rounded bg-[#00d4ff]/10 px-2 py-0.5 text-xs text-[#00d4ff]">
+                    <span className="rounded bg-[#BAFF5C]/10 px-2 py-0.5 text-xs text-[#BAFF5C]">
                       {(ingredient.confidence * 100).toFixed(0)}% confident
                     </span>
                   </div>

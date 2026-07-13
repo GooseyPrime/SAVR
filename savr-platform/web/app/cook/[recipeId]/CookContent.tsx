@@ -322,8 +322,8 @@ export default function CookContent() {
       <div className="min-h-screen" style={{ background: '#000000' }}>
         <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-8 text-center">
-          <p className="text-[#9ca3c2] text-lg">Recipe not found.</p>
-          <button onClick={() => router.push('/recipes')} className="mt-4 text-[#00d4ff] hover:underline">
+          <p className="text-[#C8D9CF] text-lg">Recipe not found.</p>
+          <button onClick={() => router.push('/recipes')} className="mt-4 text-[#BAFF5C] hover:underline">
             Back to Recipes
           </button>
         </div>
@@ -343,11 +343,11 @@ export default function CookContent() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div>
-              <button onClick={() => router.push('/recipes')} className="text-[#9ca3c2] hover:text-white text-sm mb-2 inline-block">
+              <button onClick={() => router.push('/recipes')} className="text-[#C8D9CF] hover:text-white text-sm mb-2 inline-block">
                 &larr; Back to Recipes
               </button>
               <h1 className="text-2xl md:text-3xl font-bold text-white">{recipe.title}</h1>
-              <p className="text-[#9ca3c2] text-sm mt-1">
+              <p className="text-[#C8D9CF] text-sm mt-1">
                 Step {currentStep + 1} of {recipe.instructions.length}
               </p>
             </div>
@@ -356,8 +356,8 @@ export default function CookContent() {
                 onClick={() => setShowChat(!showChat)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                   showChat
-                    ? 'bg-[#00d4ff] text-black'
-                    : 'border border-[#00d4ff]/40 text-[#00d4ff] hover:bg-[#00d4ff]/10'
+                    ? 'bg-[#BAFF5C] text-black'
+                    : 'border border-[#BAFF5C]/40 text-[#BAFF5C] hover:bg-[#BAFF5C]/10'
                 }`}
               >
                 {showChat ? 'Hide Chat' : 'Ask Assistant'}
@@ -379,14 +379,14 @@ export default function CookContent() {
               {/* Progress bar */}
               <div className="w-full h-2 bg-white/10 rounded-full mb-6">
                 <div
-                  className="h-2 bg-gradient-to-r from-[#00d4ff] to-[#a855f7] rounded-full transition-all duration-300"
+                  className="h-2 bg-gradient-to-r from-[#BAFF5C] to-[#a855f7] rounded-full transition-all duration-300"
                   style={{ width: `${((currentStep + 1) / recipe.instructions.length) * 100}%` }}
                 />
               </div>
 
               {/* Current step - large display */}
               <div className="glass-card rounded-xl p-6 md:p-8 mb-6">
-                <div className="text-xs uppercase tracking-wider text-[#00d4ff] font-semibold mb-3">
+                <div className="text-xs uppercase tracking-wider text-[#BAFF5C] font-semibold mb-3">
                   Step {currentStep + 1}
                 </div>
                 <p className="text-white text-lg md:text-xl leading-relaxed">
@@ -408,7 +408,7 @@ export default function CookContent() {
                           {formatTime(timer.remainingSeconds)}
                         </div>
                         <div className="flex-1">
-                          <p className="text-[#9ca3c2] text-sm">{timer.label}</p>
+                          <p className="text-[#C8D9CF] text-sm">{timer.label}</p>
                         </div>
                         <button
                           onClick={() => toggleTimer(timer.id)}
@@ -416,7 +416,7 @@ export default function CookContent() {
                             timer.isRunning
                               ? 'bg-[#f59e0b]/20 text-[#f59e0b] hover:bg-[#f59e0b]/30'
                               : timer.remainingSeconds === 0
-                                ? 'bg-white/10 text-[#9ca3c2]'
+                                ? 'bg-white/10 text-[#C8D9CF]'
                                 : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                           }`}
                           disabled={timer.remainingSeconds === 0}
@@ -425,7 +425,7 @@ export default function CookContent() {
                         </button>
                         <button
                           onClick={() => resetTimer(timer.id)}
-                          className="px-2 py-1.5 rounded-md text-sm text-[#9ca3c2] hover:text-white hover:bg-white/10 transition"
+                          className="px-2 py-1.5 rounded-md text-sm text-[#C8D9CF] hover:text-white hover:bg-white/10 transition"
                         >
                           Reset
                         </button>
@@ -451,9 +451,9 @@ export default function CookContent() {
                       onClick={() => setCurrentStep(idx)}
                       className={`w-3 h-3 rounded-full transition ${
                         idx === currentStep
-                          ? 'bg-[#00d4ff]'
+                          ? 'bg-[#BAFF5C]'
                           : idx < currentStep
-                            ? 'bg-[#00d4ff]/40'
+                            ? 'bg-[#BAFF5C]/40'
                             : 'bg-white/20'
                       }`}
                     />
@@ -469,7 +469,7 @@ export default function CookContent() {
                 ) : (
                   <button
                     onClick={() => setCurrentStep(Math.min(recipe.instructions.length - 1, currentStep + 1))}
-                    className="px-6 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition"
+                    className="px-6 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition"
                   >
                     Next
                   </button>
@@ -479,7 +479,7 @@ export default function CookContent() {
               {/* All timers summary */}
               {timers.length > 0 && (
                 <div className="glass-card rounded-xl p-4 mb-6">
-                  <h3 className="text-sm font-semibold text-[#9ca3c2] uppercase tracking-wider mb-3">All Timers</h3>
+                  <h3 className="text-sm font-semibold text-[#C8D9CF] uppercase tracking-wider mb-3">All Timers</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {timers.map(timer => (
                       <button
@@ -493,10 +493,10 @@ export default function CookContent() {
                             ? 'bg-[#f59e0b]/10 border border-[#f59e0b]/30'
                             : timer.remainingSeconds === 0
                               ? 'bg-green-500/10 border border-green-500/30'
-                              : 'bg-white/5 border border-white/10 hover:border-[#00d4ff]/30'
+                              : 'bg-white/5 border border-white/10 hover:border-[#BAFF5C]/30'
                         }`}
                       >
-                        <span className="text-[#9ca3c2] text-xs">{timer.label}</span>
+                        <span className="text-[#C8D9CF] text-xs">{timer.label}</span>
                         <span className={`block font-mono font-bold ${
                           timer.isRunning ? 'text-[#f59e0b]' : timer.remainingSeconds === 0 ? 'text-green-400' : 'text-white'
                         }`}>
@@ -510,11 +510,11 @@ export default function CookContent() {
 
               {/* Ingredients reference */}
               <div className="glass-card rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-[#9ca3c2] uppercase tracking-wider mb-3">Ingredients</h3>
+                <h3 className="text-sm font-semibold text-[#C8D9CF] uppercase tracking-wider mb-3">Ingredients</h3>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                   {recipe.ingredients.map((ing, idx) => (
                     <p key={idx} className="text-sm text-white">
-                      <span className="text-[#00d4ff]">{ing.quantity} {ing.unit}</span> {ing.name}
+                      <span className="text-[#BAFF5C]">{ing.quantity} {ing.unit}</span> {ing.name}
                     </p>
                   ))}
                 </div>
@@ -526,14 +526,14 @@ export default function CookContent() {
               <div className="lg:col-span-2 glass-card rounded-xl flex flex-col" style={{ maxHeight: 'calc(100vh - 120px)' }}>
                 <div className="p-4 border-b border-white/10">
                   <h3 className="text-white font-semibold">Cooking Assistant</h3>
-                  <p className="text-[#9ca3c2] text-xs">
+                  <p className="text-[#C8D9CF] text-xs">
                     I have the full recipe context. Ask me anything!
                   </p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {chatMessages.length === 0 && (
-                    <div className="text-center py-8 text-[#9ca3c2] text-sm">
+                    <div className="text-center py-8 text-[#C8D9CF] text-sm">
                       <p>Ask about this step, substitutions, technique tips, or anything else!</p>
                     </div>
                   )}
@@ -541,7 +541,7 @@ export default function CookContent() {
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] rounded-lg p-3 text-sm ${
                         msg.role === 'user'
-                          ? 'bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-medium'
+                          ? 'bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-medium'
                           : 'bg-white/5 text-white'
                       }`}>
                         <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -570,12 +570,12 @@ export default function CookContent() {
                       onChange={e => setChatInput(e.target.value)}
                       placeholder="Ask about this step..."
                       disabled={chatLoading}
-                      className="flex-1 px-3 py-2 text-sm border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-1 focus:ring-[#00d4ff] disabled:opacity-50"
+                      className="flex-1 px-3 py-2 text-sm border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-1 focus:ring-[#BAFF5C] disabled:opacity-50"
                     />
                     <button
                       type="submit"
                       disabled={chatLoading || !chatInput.trim()}
-                      className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black rounded-lg disabled:opacity-50 transition"
+                      className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black rounded-lg disabled:opacity-50 transition"
                     >
                       Send
                     </button>
@@ -591,7 +591,7 @@ export default function CookContent() {
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
             <div className="glass-card rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
               <h3 className="text-xl font-bold text-white mb-2">Great job cooking!</h3>
-              <p className="text-[#9ca3c2] text-sm mb-4">
+              <p className="text-[#C8D9CF] text-sm mb-4">
                 Deduct used ingredients from your inventory?
               </p>
 
@@ -605,14 +605,14 @@ export default function CookContent() {
                     <div key={idx} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
                       <div>
                         <p className="text-white text-sm font-medium">{ing.name}</p>
-                        <p className="text-[#9ca3c2] text-xs">{ing.quantity} {ing.unit}</p>
+                        <p className="text-[#C8D9CF] text-xs">{ing.quantity} {ing.unit}</p>
                       </div>
                       {match ? (
                         <span className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded">
                           In stock: {match.quantity} {match.unit}
                         </span>
                       ) : (
-                        <span className="text-xs px-2 py-1 bg-white/10 text-[#9ca3c2] rounded">
+                        <span className="text-xs px-2 py-1 bg-white/10 text-[#C8D9CF] rounded">
                           Not in inventory
                         </span>
                       )}

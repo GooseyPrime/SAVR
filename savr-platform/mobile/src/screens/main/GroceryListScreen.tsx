@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { GroceryList, GroceryItem } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { getGroceryLists, updateGroceryList } from '../../lib/db';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 interface DbGroceryItem {
   id?: string;
@@ -28,9 +30,16 @@ interface DbGroceryList {
   items: DbGroceryItem[];
 }
 
+const CATEGORY_ORDER = ['produce', 'protein', 'dairy', 'grains', 'other'];
+
+function capitalized(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export default function GroceryListScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryList | null>(null);
 
   useEffect(() => {
@@ -58,11 +67,17 @@ export default function GroceryListScreen() {
           createdAt: new Date().toISOString(),
         });
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to load grocery list');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadGroceryList();
   };
 
   const toggleItem = async (itemId: string) => {
@@ -83,7 +98,7 @@ export default function GroceryListScreen() {
         })),
       } as any);
       setGroceryList({ ...groceryList, items: updatedItems });
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to update item');
     }
   };
@@ -95,38 +110,64 @@ export default function GroceryListScreen() {
   if (!groceryList || groceryList.items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="cart-outline" size={64} color="#9ca3af" />
+        <View style={styles.emptyIcon}>
+          <Ionicons name="cart-outline" size={40} color={colors.primary} />
+        </View>
         <Text style={styles.emptyText}>Your grocery list is empty</Text>
         <Text style={styles.emptySubtext}>
-          Generate recipes to add items to your list
+          Generate recipes to populate your grocery list
         </Text>
       </View>
     );
   }
 
   const groupedItems = groceryList.items.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
+    const cat = item.category || 'other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(item);
     return acc;
   }, {} as Record<string, GroceryItem[]>);
 
+  const categories = [
+    ...CATEGORY_ORDER.filter(c => groupedItems[c]),
+    ...Object.keys(groupedItems).filter(c => !CATEGORY_ORDER.includes(c)),
+  ];
+
+  const checkedCount = groceryList.items.filter(i => i.checked).length;
+  const totalCount = groceryList.items.length;
+
   return (
     <FlatList
-      data={Object.keys(groupedItems)}
+      data={categories}
       keyExtractor={(category) => category}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      ListHeaderComponent={
+        <View style={styles.progressBar}>
+          <View style={styles.progressInfo}>
+            <Text style={styles.progressLabel}>Progress</Text>
+            <Text style={styles.progressCount}>{checkedCount}/{totalCount}</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View
+              style={[styles.progressFill, { width: `${(checkedCount / totalCount) * 100}%` as any }]}
+            />
+          </View>
+        </View>
+      }
       renderItem={({ item: category }) => (
         <View style={styles.categorySection}>
-          <Text style={styles.categoryTitle}>{category}</Text>
+          <Text style={styles.categoryTitle}>{capitalized(category)}</Text>
           {groupedItems[category].map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.itemRow}
+              style={[styles.itemRow, item.checked && styles.itemRowChecked]}
               onPress={() => toggleItem(item.id)}
+              activeOpacity={0.7}
             >
-              <View style={styles.checkbox}>
-                {item.checked && <Ionicons name="checkmark" size={20} color="#fff" />}
+              <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
+                {item.checked && <Ionicons name="checkmark" size={16} color={colors.primaryForeground} />}
               </View>
               <View style={styles.itemInfo}>
                 <Text style={[styles.itemName, item.checked && styles.checkedText]}>
@@ -150,74 +191,128 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    padding: 24,
+    backgroundColor: colors.background,
+    padding: 32,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: radii.xl,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
+    color: colors.foreground,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6b7280',
-    marginTop: 8,
+    color: colors.foregroundMuted,
     textAlign: 'center',
+    lineHeight: 20,
   },
   listContent: {
     padding: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
+    paddingBottom: 32,
+  },
+  progressBar: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 13,
+    color: colors.foregroundSecondary,
+    fontWeight: '500',
+  },
+  progressCount: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.muted,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: radii.full,
   },
   categorySection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   categoryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 12,
-    textTransform: 'capitalize',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.foregroundMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    backgroundColor: colors.surface,
+    padding: 14,
+    borderRadius: radii.md,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadowElevations.sm,
+  },
+  itemRowChecked: {
+    opacity: 0.6,
   },
   checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: radii.sm,
     borderWidth: 2,
-    borderColor: '#ea580c',
+    borderColor: colors.borderStrong,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   itemInfo: {
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.foreground,
     marginBottom: 2,
   },
   checkedText: {
     textDecorationLine: 'line-through',
-    color: '#9ca3af',
+    color: colors.foregroundMuted,
   },
   itemQuantity: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 13,
+    color: colors.foregroundMuted,
   },
 });

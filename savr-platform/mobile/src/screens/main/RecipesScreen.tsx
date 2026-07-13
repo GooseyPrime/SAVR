@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, TouchableOpacity, Text, RefreshControl } from 'react-native';
+import { View, FlatList, StyleSheet, Alert, TouchableOpacity, Text, RefreshControl, TextInput } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Recipe } from '../../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,6 +9,7 @@ import RecipeCard from '../../components/RecipeCard';
 import { Ionicons } from '@expo/vector-icons';
 import { getRecipes, getInventory } from '../../lib/db';
 import { generateRecipes } from '../../utils/api';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 type RecipesScreenNavigationProp = NativeStackNavigationProp<MainStackParamList, 'MainTabs'>;
 
@@ -49,6 +50,7 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadRecipes();
@@ -60,7 +62,7 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
     try {
       const recipeList = await getRecipes(user.id);
       setRecipes(recipeList.map(mapDbRecipeToMobile));
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to load recipes');
     } finally {
       setLoading(false);
@@ -99,17 +101,40 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
     }
   };
 
+  const filteredRecipes = recipes.filter(r =>
+    r.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
     <View style={styles.container}>
+      {/* Search bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={colors.foregroundMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search recipes…"
+            placeholderTextColor={colors.foregroundMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color={colors.foregroundMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       <FlatList
-        data={recipes}
+        data={filteredRecipes}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#ea580c']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         renderItem={({ item }) => (
           <RecipeCard
@@ -119,23 +144,29 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="restaurant-outline" size={64} color="#9ca3af" />
-            <Text style={styles.emptyText}>No recipes yet</Text>
-            <Text style={styles.emptySubtext}>Generate recipes from your pantry</Text>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="restaurant-outline" size={40} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'No matching recipes' : 'No recipes yet'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {searchQuery ? 'Try a different search term' : 'Tap ✦ to generate recipes from your pantry'}
+            </Text>
           </View>
         }
-        contentContainerStyle={recipes.length === 0 ? styles.emptyContainer : styles.listContent}
+        contentContainerStyle={filteredRecipes.length === 0 ? styles.emptyContainer : styles.listContent}
       />
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, generating && styles.fabDisabled]}
         onPress={handleGenerateRecipes}
         disabled={generating}
       >
         {generating ? (
-          <LoadingSpinner size="small" color="#fff" />
+          <LoadingSpinner size="small" color={colors.primaryForeground} />
         ) : (
-          <Ionicons name="sparkles" size={32} color="#fff" />
+          <Ionicons name="sparkles" size={26} color={colors.primaryForeground} />
         )}
       </TouchableOpacity>
     </View>
@@ -145,45 +176,82 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.foreground,
   },
   listContent: {
     padding: 16,
   },
   emptyContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: radii.xl,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 80,
+    paddingHorizontal: 32,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
+    color: colors.foreground,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6b7280',
-    marginTop: 8,
+    color: colors.foregroundMuted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#ea580c',
+    width: 60,
+    height: 60,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...shadowElevations.md,
+  },
+  fabDisabled: {
+    opacity: 0.6,
   },
 });

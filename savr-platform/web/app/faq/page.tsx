@@ -195,7 +195,7 @@ export default function FAQPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-[#00d4ff] mb-4">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">
             Support
           </h2>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
@@ -203,7 +203,7 @@ export default function FAQPage() {
           </h1>
           <p className="text-lg max-w-xl mx-auto" style={{ color: '#9ca3c2' }}>
             Everything you need to know about using SAVR. Can&apos;t find what you&apos;re looking for?{' '}
-            <Link href="/chat" className="text-[#00d4ff] hover:underline">
+            <Link href="/chat" className="text-[#BAFF5C] hover:underline">
               Ask our AI assistant
             </Link>
             .
@@ -216,7 +216,7 @@ export default function FAQPage() {
             <div key={category.title}>
               <h3
                 className="text-xs font-bold uppercase tracking-widest mb-4"
-                style={{ color: '#00d4ff' }}
+                style={{ color: '#BAFF5C' }}
               >
                 {category.title}
               </h3>
@@ -245,7 +245,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       className="rounded-xl overflow-hidden transition-all duration-200"
       style={{
         background: isOpen ? 'rgba(13, 17, 41, 0.8)' : 'rgba(13, 17, 41, 0.5)',
-        border: `1px solid ${isOpen ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
+        border: `1px solid ${isOpen ? 'rgba(186, 255, 92, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
       }}
     >
       <button

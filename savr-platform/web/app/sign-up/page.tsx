@@ -51,7 +51,7 @@ export default function SignUpPage() {
         setError(
           <span>
             An account with this email already exists. You may have previously signed up with Google.{' '}
-            <Link href="/sign-in" className="underline text-[#00d4ff]">Sign in instead</Link>
+            <Link href="/sign-in" className="underline text-[#BAFF5C]">Sign in instead</Link>
           </span>
         );
       } else {
@@ -80,14 +80,14 @@ export default function SignUpPage() {
         setError(
           <span>
             An account with this email already exists using email and password.{' '}
-            <Link href="/sign-in" className="underline text-[#00d4ff]">Sign in with your password</Link>, then link your Google account in Settings.
+            <Link href="/sign-in" className="underline text-[#BAFF5C]">Sign in with your password</Link>, then link your Google account in Settings.
           </span>
         );
       } else if (message.includes('auth/email-already-in-use')) {
         setError(
           <span>
             This email is already registered.{' '}
-            <Link href="/sign-in" className="underline text-[#00d4ff]">Sign in instead</Link>
+            <Link href="/sign-in" className="underline text-[#BAFF5C]">Sign in instead</Link>
           </span>
         );
       } else {
@@ -129,7 +129,7 @@ export default function SignUpPage() {
             </h2>
             <p className="mt-2 text-center text-sm" style={{ color: '#9ca3c2' }}>
               Start your 5-day free trial. Or{' '}
-              <Link href="/sign-in" className="font-medium text-[#00d4ff] hover:text-[#00bfa6] transition-colors">
+              <Link href="/sign-in" className="font-medium text-[#BAFF5C] hover:text-[#00bfa6] transition-colors">
                 sign in to existing account
               </Link>
             </p>
@@ -144,7 +144,7 @@ export default function SignUpPage() {
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-[#C8D9CF] mb-1">
                   Email address
                 </label>
                 <input
@@ -157,14 +157,14 @@ export default function SignUpPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
                   style={inputStyle}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
+                  onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                   placeholder="you@example.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-[#C8D9CF] mb-1">
                   Password
                 </label>
                 <div className="relative">
@@ -178,14 +178,14 @@ export default function SignUpPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 pr-12 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
                     style={inputStyle}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
+                    onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                     placeholder="At least 6 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#9ca3c2] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#C8D9CF] transition-colors"
                     tabIndex={-1}
                   >
                     <EyeIcon show={showPassword} />
@@ -194,7 +194,7 @@ export default function SignUpPage() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#C8D9CF] mb-1">
                   Confirm Password
                 </label>
                 <div className="relative">
@@ -208,14 +208,14 @@ export default function SignUpPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full px-4 py-3 pr-12 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
                     style={inputStyle}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
+                    onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                     placeholder="Confirm your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#9ca3c2] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#C8D9CF] transition-colors"
                     tabIndex={-1}
                   >
                     <EyeIcon show={showConfirmPassword} />

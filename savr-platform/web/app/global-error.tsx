@@ -21,7 +21,7 @@ export default function GlobalError({
             <button
               onClick={() => reset()}
               style={{
-                background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                background: 'linear-gradient(135deg, #BAFF5C, #C8FF7A)',
                 color: '#000000',
                 fontWeight: 600,
                 padding: '0.75rem 1.5rem',

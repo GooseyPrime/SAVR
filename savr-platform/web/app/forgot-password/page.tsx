@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
 
           {success ? (
             <div className="space-y-6">
-              <div className="px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.2)', color: '#00d4ff' }}>
+              <div className="px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(186, 255, 92, 0.08)', border: '1px solid rgba(186, 255, 92, 0.2)', color: '#BAFF5C' }}>
                 If an account exists with that email, you&apos;ll receive a password reset link shortly. Check your inbox and spam folder.
               </div>
               <Link
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
           ) : (
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-[#C8D9CF] mb-1">
                   Email address
                 </label>
                 <input
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
                   style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
+                  onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                   placeholder="you@example.com"
                 />
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <div className="text-center">
-                <Link href="/sign-in" className="text-sm font-medium text-[#00d4ff] hover:text-[#00bfa6] transition-colors">
+                <Link href="/sign-in" className="text-sm font-medium text-[#BAFF5C] hover:text-[#00bfa6] transition-colors">
                   Back to sign in
                 </Link>
               </div>

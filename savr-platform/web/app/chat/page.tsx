@@ -138,7 +138,7 @@ function ChatContent() {
               <div>
                 <div className="text-6xl mb-4">👨‍🍳</div>
                 <h3 className="text-xl font-semibold text-white mb-2">Start a conversation</h3>
-                <p className="text-[#9ca3c2]">
+                <p className="text-[#C8D9CF]">
                   Ask me about cooking techniques, recipe ideas, ingredient substitutions, and more!
                 </p>
               </div>
@@ -153,13 +153,13 @@ function ChatContent() {
                   <div
                     className={`max-w-[80%] rounded-lg p-4 ${
                       message.role === 'user'
-                        ? 'bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold'
+                        ? 'bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold'
                         : 'bg-white/5 text-white'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
                     <p className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-black/60' : 'text-[#9ca3c2]'
+                      message.role === 'user' ? 'text-black/60' : 'text-[#C8D9CF]'
                     }`}>
                       {new Date(message.timestamp).toLocaleTimeString()}
                     </p>
@@ -191,12 +191,12 @@ function ChatContent() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me anything about cooking..."
               disabled={loading}
-              className="flex-1 px-4 py-2 border border-white/6 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d4ff] disabled:bg-white/5 bg-white/5 text-white"
+              className="flex-1 px-4 py-2 border border-white/6 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BAFF5C] disabled:bg-white/5 bg-white/5 text-white"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition disabled:opacity-50"
+              className="px-6 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition disabled:opacity-50"
             >
               Send
             </button>

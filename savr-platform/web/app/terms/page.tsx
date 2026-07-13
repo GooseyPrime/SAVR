@@ -10,8 +10,8 @@ export default function TermsPage() {
           Terms and Conditions
         </h1>
         
-        <div className="prose prose-lg max-w-none space-y-6 text-[#9ca3c2]">
-          <p className="text-sm text-[#9ca3c2]">
+        <div className="prose prose-lg max-w-none space-y-6 text-[#C8D9CF]">
+          <p className="text-sm text-[#C8D9CF]">
             Last Updated: February 7, 2025
           </p>
 

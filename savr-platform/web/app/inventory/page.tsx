@@ -230,14 +230,14 @@ function InventoryContent() {
       
       <div className="container mx-auto px-4 pt-24 pb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Inventory Management</h1>
-        <p className="text-[#9ca3c2] text-sm mb-4">
+        <p className="text-[#C8D9CF] text-sm mb-4">
           Your ingredients are listed below. You can add items manually, scan a barcode, or{' '}
-          <a href="/upload" className="text-[#00d4ff] hover:underline">upload a photo</a> for AI detection.
+          <a href="/upload" className="text-[#BAFF5C] hover:underline">upload a photo</a> for AI detection.
           Tap <span className="font-semibold text-white">Edit</span> on any item to correct its name, quantity, or category.
         </p>
-        <div className="rounded-xl px-5 py-4 mb-6 text-sm" style={{ background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.15)' }}>
-          <p className="font-semibold text-[#00d4ff] mb-1">AI import not quite right?</p>
-          <p className="text-[#9ca3c2]">
+        <div className="rounded-xl px-5 py-4 mb-6 text-sm" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.15)' }}>
+          <p className="font-semibold text-[#BAFF5C] mb-1">AI import not quite right?</p>
+          <p className="text-[#C8D9CF]">
             If an uploaded photo missed items or got quantities wrong, just use the <span className="font-semibold text-white">Edit</span> button
             to fix them, or <span className="font-semibold text-white">Add Item Manually</span> below to fill in anything that was missed.
             You can also delete incorrect entries and re-add them.
@@ -255,7 +255,7 @@ function InventoryContent() {
           <h2 className="text-xl font-semibold text-white mb-4">
             Add by barcode
           </h2>
-          <p className="text-sm text-[#9ca3c2] mb-3">
+          <p className="text-sm text-[#C8D9CF] mb-3">
             Enter a product barcode to add it from the Open Food Facts database.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -270,7 +270,7 @@ function InventoryContent() {
               type="button"
               onClick={handleBarcodeLookup}
               disabled={barcodeLoading || !barcodeInput.trim()}
-              className="rounded-lg bg-gradient-to-r from-[#00d4ff] to-[#0099cc] px-4 py-2 text-sm font-semibold text-black hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] disabled:opacity-50"
+              className="rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] px-4 py-2 text-sm font-semibold text-black hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] disabled:opacity-50"
             >
               {barcodeLoading ? 'Looking up...' : 'Look up & add'}
             </button>
@@ -287,7 +287,7 @@ function InventoryContent() {
           </h2>
           <div className="grid gap-4 md:grid-cols-4">
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-[#9ca3c2]">Name</label>
+              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Name</label>
               <input
                 type="text"
                 value={newItem.name}
@@ -297,7 +297,7 @@ function InventoryContent() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#9ca3c2]">Quantity</label>
+              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Quantity</label>
               <input
                 type="number"
                 min={0}
@@ -309,7 +309,7 @@ function InventoryContent() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#9ca3c2]">Unit</label>
+              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Unit</label>
               <input
                 type="text"
                 value={newItem.unit}
@@ -321,7 +321,7 @@ function InventoryContent() {
           </div>
           <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="md:w-48">
-              <label className="mb-1 block text-sm font-medium text-[#9ca3c2]">Category</label>
+              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Category</label>
               <select
                 value={newItem.category}
                 onChange={(e) =>
@@ -340,7 +340,7 @@ function InventoryContent() {
             <button
               type="button"
               onClick={handleAddItem}
-              className="mt-2 inline-flex items-center rounded-lg bg-gradient-to-r from-[#00d4ff] to-[#0099cc] px-6 py-2 text-sm font-semibold text-black hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] md:mt-0"
+              className="mt-2 inline-flex items-center rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] px-6 py-2 text-sm font-semibold text-black hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] md:mt-0"
             >
               Add Item
             </button>
@@ -354,7 +354,7 @@ function InventoryContent() {
           </h2>
           
           {items.length === 0 ? (
-            <div className="text-center py-12 text-[#9ca3c2]">
+            <div className="text-center py-12 text-[#C8D9CF]">
               <p className="text-lg mb-2">No items in inventory yet</p>
               <p className="text-sm">Upload a photo to get started!</p>
             </div>
@@ -398,10 +398,10 @@ function InventoryCard({
   onQuickAdjust: (id: string, delta: number) => void;
 }) {
   return (
-    <div className="border border-white/6 rounded-lg p-4 hover:border-[#00d4ff]/30 transition glass-card">
+    <div className="border border-white/6 rounded-lg p-4 hover:border-[#BAFF5C]/30 transition glass-card">
       <div className="flex justify-between items-start mb-2">
         <h3 className="font-semibold text-white">{item.name}</h3>
-        <span className="text-xs px-2 py-1 bg-[#00d4ff]/20 text-[#00d4ff] rounded">
+        <span className="text-xs px-2 py-1 bg-[#BAFF5C]/20 text-[#BAFF5C] rounded">
           {item.category}
         </span>
       </div>
@@ -425,14 +425,14 @@ function InventoryCard({
         </button>
       </div>
       {item.expiryDate && (
-        <p className="text-sm text-[#9ca3c2] mb-3">
+        <p className="text-sm text-[#C8D9CF] mb-3">
           Expires: {new Date(item.expiryDate).toLocaleDateString()}
         </p>
       )}
       <div className="flex space-x-2">
         <button
           onClick={() => onEdit(item)}
-          className="flex-1 px-3 py-1 text-sm bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition"
+          className="flex-1 px-3 py-1 text-sm bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition"
         >
           Edit
         </button>
@@ -465,7 +465,7 @@ function EditModal({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#9ca3c2] mb-1">Name</label>
+            <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Name</label>
             <input
               type="text"
               value={formData.name}
@@ -476,7 +476,7 @@ function EditModal({
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#9ca3c2] mb-1">Quantity</label>
+              <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Quantity</label>
               <input
                 type="number"
                 value={formData.quantity}
@@ -485,7 +485,7 @@ function EditModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#9ca3c2] mb-1">Unit</label>
+              <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Unit</label>
               <input
                 type="text"
                 value={formData.unit}
@@ -496,7 +496,7 @@ function EditModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#9ca3c2] mb-1">Category</label>
+            <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Category</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value as 'pantry' | 'fridge' | 'freezer' })}
@@ -509,7 +509,7 @@ function EditModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#9ca3c2] mb-1">Expiry Date (optional)</label>
+            <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Expiry Date (optional)</label>
             <input
               type="date"
               value={formData.expiryDate || ''}
@@ -522,7 +522,7 @@ function EditModal({
         <div className="flex space-x-3 mt-6">
           <button
             onClick={() => onSave(formData)}
-            className="flex-1 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(0,212,255,0.4)]"
+            className="flex-1 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(186,255,92,0.4)]"
           >
             Save
           </button>

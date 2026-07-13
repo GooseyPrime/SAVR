@@ -89,7 +89,7 @@ function ExportContent() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#9ca3c2] mb-2">Export Format</label>
+              <label className="block text-sm font-medium text-[#C8D9CF] mb-2">Export Format</label>
               <select
                 value={exportFormat}
                 onChange={e => setExportFormat(e.target.value as 'coco' | 'yolo' | 'custom')}
@@ -102,7 +102,7 @@ function ExportContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#9ca3c2] mb-2">Label Status</label>
+              <label className="block text-sm font-medium text-[#C8D9CF] mb-2">Label Status</label>
               <div className="space-y-2">
                 {['unlabeled', 'ai_labeled', 'in_review', 'approved'].map(status => (
                   <label key={status} className="flex items-center">
@@ -116,9 +116,9 @@ function ExportContent() {
                           setLabelStatus(labelStatus.filter(s => s !== status));
                         }
                       }}
-                      className="mr-2 accent-[#00d4ff]"
+                      className="mr-2 accent-[#BAFF5C]"
                     />
-                    <span className="capitalize text-[#9ca3c2]">{status.replace('_', ' ')}</span>
+                    <span className="capitalize text-[#C8D9CF]">{status.replace('_', ' ')}</span>
                   </label>
                 ))}
               </div>
@@ -149,13 +149,13 @@ function ExportContent() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-[#9ca3c2]">
+              <p className="text-[#C8D9CF]">
                 <span className="font-semibold">Images:</span> {exportData.images.length}
               </p>
-              <p className="text-[#9ca3c2]">
+              <p className="text-[#C8D9CF]">
                 <span className="font-semibold">Annotations:</span> {exportData.annotations.length}
               </p>
-              <p className="text-[#9ca3c2]">
+              <p className="text-[#C8D9CF]">
                 <span className="font-semibold">Categories:</span> {exportData.categories.length}
               </p>
             </div>
@@ -164,7 +164,7 @@ function ExportContent() {
               <h3 className="font-semibold text-white mb-2">Categories:</h3>
               <ul className="list-disc list-inside space-y-1">
                 {exportData.categories.map(cat => (
-                  <li key={cat.id} className="text-[#9ca3c2]">
+                  <li key={cat.id} className="text-[#C8D9CF]">
                     {cat.name} (ID: {cat.id})
                   </li>
                 ))}

@@ -112,9 +112,9 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         {/* Onboarding banner for new users */}
         {user && userData?.subscription_status === 'pending' && (
-          <div className="max-w-2xl mx-auto mb-10 rounded-xl px-6 py-5 text-center" style={{ background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
+          <div className="max-w-2xl mx-auto mb-10 rounded-xl px-6 py-5 text-center" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.2)' }}>
             <h3 className="text-lg font-semibold text-white mb-2">Choose a plan to get started</h3>
-            <p className="text-sm text-[#9ca3c2]">
+            <p className="text-sm text-[#C8D9CF]">
               Select a plan below to begin your 5-day free trial. Your payment info is collected now but you will not be charged until the trial ends. Cancel anytime.
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function PricingPage() {
 
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-[#00d4ff] mb-4">Pricing</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">Pricing</h2>
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">
             Simple, transparent<br />
             <span className="gradient-text">pricing</span>
@@ -141,16 +141,16 @@ export default function PricingPage() {
         {/* Existing Subscriber - Show Billing Portal Access */}
         {hasActiveSub ? (
           <div className="max-w-2xl mx-auto">
-            <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(13, 17, 41, 0.7)', border: '1px solid rgba(0, 212, 255, 0.25)' }}>
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(0, 212, 255, 0.1)' }}>
-                <svg className="w-8 h-8" fill="none" stroke="#00d4ff" strokeWidth={2} viewBox="0 0 24 24">
+            <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(13, 17, 41, 0.7)', border: '1px solid rgba(186, 255, 92, 0.25)' }}>
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(186, 255, 92, 0.1)' }}>
+                <svg className="w-8 h-8" fill="none" stroke="#BAFF5C" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">
                 You&apos;re on the {isPro ? 'Pro' : 'Basic'} plan
               </h3>
-              <p className="text-[#9ca3c2] mb-6">
+              <p className="text-[#C8D9CF] mb-6">
                 {isPro 
                   ? 'You have access to unlimited recipes, meal plans, AI chat, and more.'
                   : 'Enjoying your subscription. Upgrade to Pro for unlimited access and AI chat.'}
@@ -159,7 +159,7 @@ export default function PricingPage() {
                 type="button"
                 onClick={handleManageBilling}
                 disabled={loadingPortal}
-                className="inline-block rounded-lg bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold px-8 py-3 text-sm hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] disabled:opacity-50 transition-all duration-200"
+                className="inline-block rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold px-8 py-3 text-sm hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] disabled:opacity-50 transition-all duration-200"
               >
                 {loadingPortal ? 'Opening portal...' : 'Manage subscription & billing'}
               </button>
@@ -173,12 +173,12 @@ export default function PricingPage() {
           <div className="max-w-5xl mx-auto">
             {!user && (
               <div className="mb-8 text-center">
-                <p className="text-[#9ca3c2] mb-4">
+                <p className="text-[#C8D9CF] mb-4">
                   Sign in to get started with your 5-day free trial
                 </p>
                 <button
                   onClick={() => router.push('/sign-in')}
-                  className="inline-block rounded-lg bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold px-8 py-3 text-sm hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition-all duration-200"
+                  className="inline-block rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold px-8 py-3 text-sm hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition-all duration-200"
                 >
                   Sign in to continue
                 </button>
@@ -195,10 +195,10 @@ export default function PricingPage() {
                 <p className="text-[#f87171] mb-4">
                   The pricing table cannot be displayed because Stripe is not configured.
                 </p>
-                <p className="text-sm text-[#9ca3c2] mb-6">
+                <p className="text-sm text-[#C8D9CF] mb-6">
                   Missing environment variables: {getMissingEnvVars()}
                 </p>
-                <div className="text-left bg-black/30 rounded-lg p-4 text-xs font-mono text-[#9ca3c2]">
+                <div className="text-left bg-black/30 rounded-lg p-4 text-xs font-mono text-[#C8D9CF]">
                   <p className="mb-2">For administrators:</p>
                   <p>1. Set GitHub Secrets in repository settings</p>
                   <p>2. Redeploy the application</p>
@@ -215,7 +215,7 @@ export default function PricingPage() {
         {/* FAQ Section */}
         <div className="mt-24 max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-[#00d4ff] mb-4">FAQ</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">FAQ</h2>
             <p className="text-3xl md:text-4xl font-bold text-white">Frequently asked questions</p>
           </div>
           <div className="space-y-4">
@@ -258,7 +258,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       className="rounded-xl overflow-hidden transition-all duration-200"
       style={{
         background: isOpen ? 'rgba(13, 17, 41, 0.8)' : 'rgba(13, 17, 41, 0.5)',
-        border: `1px solid ${isOpen ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
+        border: `1px solid ${isOpen ? 'rgba(186, 255, 92, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
       }}
     >
       <button

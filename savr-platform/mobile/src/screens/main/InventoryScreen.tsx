@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ import ImagePickerComponent from '../../components/ImagePickerComponent';
 import { uploadImage } from '../../utils/imageUtils';
 import { getInventory, addInventoryItem, deleteInventoryItem } from '../../lib/db';
 import { analyzeImage } from '../../utils/api';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 interface LocalInventoryItem {
   id: string;
@@ -27,6 +29,8 @@ interface LocalInventoryItem {
   image_url?: string;
 }
 
+const CATEGORIES = ['pantry', 'fridge', 'freezer', 'other'];
+
 export default function InventoryScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -35,11 +39,12 @@ export default function InventoryScreen() {
   const [items, setItems] = useState<LocalInventoryItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [newItem, setNewItem] = useState({
     name: '',
     quantity: '',
     unit: '',
-    category: '',
+    category: 'pantry',
   });
 
   useEffect(() => {
@@ -52,7 +57,7 @@ export default function InventoryScreen() {
     try {
       const inventoryItems = await getInventory(user.id);
       setItems(inventoryItems);
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to load inventory');
     } finally {
       setLoading(false);
@@ -70,7 +75,6 @@ export default function InventoryScreen() {
 
     try {
       setScanning(true);
-      // Use the image picker to get a photo
       const ImagePicker = require('expo-image-picker');
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -90,15 +94,10 @@ export default function InventoryScreen() {
       }
 
       const uri = result.assets[0].uri;
-
-      // Upload the image first
       const imageUrl = await uploadImage(uri, user.id, `scan_${Date.now()}`);
-
-      // Call the AI analysis API route
       const data = await analyzeImage(imageUrl);
 
       if (data.success && data.ingredients && data.ingredients.length > 0) {
-        // Add each detected ingredient to inventory
         const addPromises = data.ingredients.map((ingredient: any) =>
           addInventoryItem(user.id, {
             name: ingredient.name,
@@ -111,15 +110,14 @@ export default function InventoryScreen() {
         await Promise.all(addPromises);
         Alert.alert(
           'Scan Complete',
-          `Found ${data.ingredients.length} item${data.ingredients.length !== 1 ? 's' : ''}. They have been added to your pantry.`
+          `Found ${data.ingredients.length} item${data.ingredients.length !== 1 ? 's' : ''}. Added to your pantry.`
         );
         loadInventory();
       } else {
-        Alert.alert('No Items Found', 'Could not detect any food items in the photo. Try taking a clearer picture.');
+        Alert.alert('No Items Found', 'Could not detect food items in the photo. Try a clearer picture.');
       }
     } catch (error: any) {
-      const msg = error?.message || 'Failed to scan image';
-      Alert.alert('Scan Error', msg);
+      Alert.alert('Scan Error', error?.message || 'Failed to scan image');
     } finally {
       setScanning(false);
     }
@@ -127,17 +125,15 @@ export default function InventoryScreen() {
 
   const handleAddItem = async () => {
     if (!user || !newItem.name || !newItem.quantity) {
-      Alert.alert('Error', 'Please fill in required fields');
+      Alert.alert('Error', 'Please fill in name and quantity');
       return;
     }
 
     try {
       setLoading(true);
       let imageUrl = '';
-
       if (imageUri) {
-        const itemId = Date.now().toString();
-        imageUrl = await uploadImage(imageUri, user.id, itemId);
+        imageUrl = await uploadImage(imageUri, user.id, Date.now().toString());
       }
 
       await addInventoryItem(user.id, {
@@ -149,10 +145,10 @@ export default function InventoryScreen() {
       });
 
       setModalVisible(false);
-      setNewItem({ name: '', quantity: '', unit: '', category: '' });
+      setNewItem({ name: '', quantity: '', unit: '', category: 'pantry' });
       setImageUri('');
       loadInventory();
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to add item');
     } finally {
       setLoading(false);
@@ -160,26 +156,26 @@ export default function InventoryScreen() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    Alert.alert(
-      'Delete Item',
-      'Are you sure you want to delete this item?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteInventoryItem(itemId);
-              loadInventory();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete item');
-            }
-          },
+    Alert.alert('Delete Item', 'Remove this item from your pantry?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteInventoryItem(itemId);
+            loadInventory();
+          } catch (_error) {
+            Alert.alert('Error', 'Failed to delete item');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
+
+  const filteredItems = activeCategory === 'all'
+    ? items
+    : items.filter(i => i.category === activeCategory);
 
   if (loading && items.length === 0) {
     return <LoadingSpinner />;
@@ -187,56 +183,82 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Category filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterRow}
+        contentContainerStyle={styles.filterContent}
+      >
+        {['all', ...CATEGORIES].map(cat => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.chip, activeCategory === cat && styles.chipActive]}
+            onPress={() => setActiveCategory(cat)}
+          >
+            <Text style={[styles.chipText, activeCategory === cat && styles.chipTextActive]}>
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <FlatList
-        data={items}
+        data={filteredItems}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#ea580c']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         renderItem={({ item }) => (
           <View style={styles.itemCard}>
+            <View style={styles.itemIconWrap}>
+              <Ionicons name="cube-outline" size={20} color={colors.primary} />
+            </View>
             <View style={styles.itemInfo}>
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemDetails}>
-                {item.quantity} {item.unit} • {item.category}
+                {item.quantity} {item.unit}
+                {item.category ? ` · ${item.category}` : ''}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => handleDeleteItem(item.id)}>
-              <Ionicons name="trash-outline" size={24} color="#ef4444" />
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => handleDeleteItem(item.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
             </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="file-tray-outline" size={64} color="#9ca3af" />
-            <Text style={styles.emptyText}>No items in your pantry</Text>
-            <Text style={styles.emptySubtext}>Scan your pantry or add items manually</Text>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="file-tray-outline" size={40} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyText}>
+              {activeCategory === 'all' ? 'Your pantry is empty' : `No ${activeCategory} items`}
+            </Text>
+            <Text style={styles.emptySubtext}>Scan with the camera or add manually</Text>
           </View>
         }
-        contentContainerStyle={items.length === 0 ? styles.emptyContainer : styles.listContent}
+        contentContainerStyle={filteredItems.length === 0 ? styles.emptyContainer : styles.listContent}
       />
 
-      {/* AI Scan FAB */}
-      <TouchableOpacity
-        style={styles.scanFab}
-        onPress={handleAIScan}
-        disabled={scanning}
-      >
+      {/* Scan FAB */}
+      <TouchableOpacity style={styles.scanFab} onPress={handleAIScan} disabled={scanning}>
         {scanning ? (
-          <LoadingSpinner size="small" color="#fff" />
+          <LoadingSpinner size="small" color={colors.primaryForeground} />
         ) : (
-          <Ionicons name="camera" size={28} color="#fff" />
+          <Ionicons name="camera" size={22} color={colors.primaryForeground} />
         )}
       </TouchableOpacity>
 
-      {/* Manual Add FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
-        <Ionicons name="add" size={32} color="#fff" />
+      {/* Add FAB */}
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+        <Ionicons name="add" size={28} color={colors.primaryForeground} />
       </TouchableOpacity>
 
+      {/* Add Item Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -245,27 +267,27 @@ export default function InventoryScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Item</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#111827" />
+                <Ionicons name="close" size={22} color={colors.foregroundMuted} />
               </TouchableOpacity>
             </View>
 
-            <ImagePickerComponent
-              onImageSelected={setImageUri}
-              currentImageUrl={imageUri}
-            />
+            <ImagePickerComponent onImageSelected={setImageUri} currentImageUrl={imageUri} />
 
             <TextInput
               style={styles.input}
               placeholder="Item name *"
+              placeholderTextColor={colors.foregroundMuted}
               value={newItem.name}
               onChangeText={(text) => setNewItem({ ...newItem, name: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Quantity *"
+              placeholderTextColor={colors.foregroundMuted}
               value={newItem.quantity}
               onChangeText={(text) => setNewItem({ ...newItem, quantity: text })}
               keyboardType="numeric"
@@ -273,21 +295,20 @@ export default function InventoryScreen() {
             <TextInput
               style={styles.input}
               placeholder="Unit (e.g., cups, lbs)"
+              placeholderTextColor={colors.foregroundMuted}
               value={newItem.unit}
               onChangeText={(text) => setNewItem({ ...newItem, unit: text })}
             />
             <TextInput
               style={styles.input}
-              placeholder="Category (e.g., dairy, produce)"
+              placeholder="Category (e.g., pantry, fridge)"
+              placeholderTextColor={colors.foregroundMuted}
               value={newItem.category}
               onChangeText={(text) => setNewItem({ ...newItem, category: text })}
             />
 
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleAddItem}
-            >
-              <Text style={styles.addButtonText}>Add Item</Text>
+            <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+              <Text style={styles.addButtonText}>Add to Pantry</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -299,100 +320,159 @@ export default function InventoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
+  },
+  filterRow: {
+    flexShrink: 0,
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.foregroundSecondary,
+  },
+  chipTextActive: {
+    color: colors.primaryForeground,
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
+    paddingBottom: 120,
   },
   emptyContainer: {
     flex: 1,
-  },
-  itemCard: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    padding: 32,
   },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  itemDetails: {
-    fontSize: 14,
-    color: '#6b7280',
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: radii.xl,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 60,
+    paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
+    color: colors.foreground,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6b7280',
-    marginTop: 8,
+    color: colors.foregroundMuted,
+    textAlign: 'center',
+  },
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: 14,
+    borderRadius: radii.md,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadowElevations.sm,
+    gap: 12,
+  },
+  itemIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.foreground,
+    marginBottom: 3,
+  },
+  itemDetails: {
+    fontSize: 13,
+    color: colors.foregroundMuted,
+  },
+  deleteBtn: {
+    padding: 4,
   },
   scanFab: {
     position: 'absolute',
     bottom: 100,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#7c3aed',
+    width: 52,
+    height: 52,
+    borderRadius: radii.full,
+    backgroundColor: colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...shadowElevations.md,
   },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#ea580c',
+    width: 60,
+    height: 60,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...shadowElevations.md,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.surfaceRaised,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
     padding: 24,
+    paddingTop: 12,
     maxHeight: '90%',
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: radii.full,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -401,30 +481,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.foreground,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    fontSize: 15,
+    marginBottom: 10,
+    backgroundColor: colors.surface,
+    color: colors.foreground,
   },
   addButton: {
-    backgroundColor: '#ea580c',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 15,
+    borderRadius: radii.md,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   addButtonText: {
-    color: '#fff',
+    color: colors.primaryForeground,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

@@ -60,13 +60,13 @@ export default function SignInPage() {
         setError(
           <span>
             Invalid email or password. If you signed up with Google, use the Google button below.
-            Otherwise, <Link href="/forgot-password" className="underline text-[#00d4ff]">reset your password</Link>.
+            Otherwise, <Link href="/forgot-password" className="underline text-[#BAFF5C]">reset your password</Link>.
           </span>
         );
       } else if (message.includes('auth/too-many-requests')) {
         setError(
           <span>
-            Too many failed attempts. Please <Link href="/forgot-password" className="underline text-[#00d4ff]">reset your password</Link> or try again later.
+            Too many failed attempts. Please <Link href="/forgot-password" className="underline text-[#BAFF5C]">reset your password</Link> or try again later.
           </span>
         );
       } else {
@@ -132,7 +132,7 @@ export default function SignInPage() {
             </h2>
             <p className="mt-2 text-center text-sm" style={{ color: '#9ca3c2' }}>
               Or{' '}
-              <Link href="/sign-up" className="font-medium text-[#00d4ff] hover:text-[#00bfa6] transition-colors">
+              <Link href="/sign-up" className="font-medium text-[#BAFF5C] hover:text-[#00bfa6] transition-colors">
                 create a new account
               </Link>
             </p>
@@ -147,7 +147,7 @@ export default function SignInPage() {
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#9ca3c2] mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-[#C8D9CF] mb-1">
                   Email address
                 </label>
                 <input
@@ -160,7 +160,7 @@ export default function SignInPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
                   style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
+                  onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                   placeholder="you@example.com"
                 />
@@ -168,10 +168,10 @@ export default function SignInPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="password" className="block text-sm font-medium text-[#9ca3c2]">
+                  <label htmlFor="password" className="block text-sm font-medium text-[#C8D9CF]">
                     Password
                   </label>
-                  <Link href="/forgot-password" className="text-sm font-medium text-[#00d4ff] hover:text-[#00bfa6] transition-colors">
+                  <Link href="/forgot-password" className="text-sm font-medium text-[#BAFF5C] hover:text-[#00bfa6] transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -186,14 +186,14 @@ export default function SignInPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 pr-12 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
                     style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
+                    onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                     placeholder="Enter your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#9ca3c2] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#C8D9CF] transition-colors"
                     tabIndex={-1}
                   >
                     <EyeIcon show={showPassword} />
