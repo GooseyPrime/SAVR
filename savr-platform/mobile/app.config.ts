@@ -31,8 +31,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: 'com.savr.app',
     versionCode: 1,
-    edgeToEdgeEnabled: true,
-    predictiveBackGestureEnabled: false,
     permissions: [
       'CAMERA',
       'READ_EXTERNAL_STORAGE',
