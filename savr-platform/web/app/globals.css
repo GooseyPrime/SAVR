@@ -171,7 +171,7 @@ body {
   background-clip: text;
 }
 
-/* Gradient text — dual-tone (lime → mint) */
+/* Gradient text — two-tone (lime → mint) */
 .gradient-text-lime {
   background: linear-gradient(135deg, #BAFF5C 0%, #5CFFBA 100%);
   -webkit-background-clip: text;
