@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+    color: colors.foreground,
     backgroundColor: colors.background,
   },
   primaryButton: {

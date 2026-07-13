@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ea580c',
+    borderColor: colors.primary,
   },
   secondaryButtonText: {
     color: colors.primary,
