@@ -56,9 +56,9 @@ Copy `SAVR-old/.env.example` as a reference. Required variables:
 | Phase | Status | Description |
 |---|---|---|
 | 1 — Baseline import | ✅ Complete | Production baseline copied from `SAVR-old/` unchanged |
-| 2 — Validation and contracts | ⏳ Pending | Reproducible validation gates and stale-config cleanup |
-| 3 — Design system | ⏳ Pending | Shared design tokens adapted from premium reference |
-| 4 — Application shells | ⏳ Pending | Production-safe web and mobile shells |
+| 2 — Validation and contracts | ✅ Complete | Reproducible validation gates and stale-config cleanup |
+| 3 — Design system | ✅ Complete | Shared design tokens adapted from premium reference |
+| 4 — Application shells | ✅ Complete | Production-safe web and mobile shells |
 | 5 — Feature migration | ⏳ Pending | Screen-by-screen adaptation against production contracts |
 | 6 — Hardening and release | ⏳ Pending | Security, accessibility, and release-candidate hardening |
 
