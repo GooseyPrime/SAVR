@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 3 — Shared Design System Foundation (in progress)**
+**Phase 4 — Application Shells (complete)**
 
 ---
 
@@ -21,6 +21,7 @@ Tracks the current phase of the SAVR consolidation project.
 | Validation gates documented | ✅ Yes — Phase 2 complete |
 | Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
 | Shared design tokens created | ✅ Yes — Phase 3 |
+| Application shells created | ✅ Yes — Phase 4 |
 | Feature migration started | ❌ No |
 
 ---
@@ -135,12 +136,49 @@ production-safe shared primitives available to both web and mobile platforms.
 
 ---
 
+## Phase 4 Completion Summary
+
+Production-safe web and mobile application shells now consume the shared
+design-token layer while preserving the imported production routes, auth
+boundaries, and backend contracts.
+
+### What was created
+
+- `savr-platform/mobile/src/navigation/MobileTabBar.tsx` — token-driven mobile tab shell for the canonical bottom navigation
+- `savr-platform/mobile/src/navigation/navigationTheme.ts` — shared React Navigation dark theme mapped to the Phase 3 token layer
+
+### What was updated
+
+- `savr-platform/web/components/Navbar.tsx` — rebuilt the web shell navigation around the premium token palette while preserving all production destinations
+- `savr-platform/web/components/ProtectedRoute.tsx` — updated the authenticated loading shell without changing auth or subscription gating rules
+- `savr-platform/web/components/LoadingSpinner.tsx` — aligned shell loading treatment with the shared token layer
+- `savr-platform/mobile/App.tsx` — added `SafeAreaProvider` and token-aligned status-bar handling
+- `savr-platform/mobile/src/components/LoadingSpinner.tsx` — aligned loading shell visuals with the shared token layer
+- `savr-platform/mobile/src/navigation/AuthNavigator.tsx` — set production auth shell background styling without changing auth flow logic
+- `savr-platform/mobile/src/navigation/RootNavigator.tsx` — themed the root shell and auth restoration loading state
+- `savr-platform/mobile/src/navigation/MainNavigator.tsx` — applied the canonical shell theme to tab and stack navigation
+
+### What did NOT change
+
+- No API routes, Supabase schema, Stripe logic, or AI provider wiring changed
+- No production route paths or protected-route access rules changed
+- No feature-specific data shaping or CRUD behavior changed
+- `SAVR-old/` and `savr-premium-mobile-app/` were not modified
+
+### Phase 5 readiness
+
+- Shared design tokens are now wired into both production shells
+- Web and mobile navigation affordances are stable enough for bounded feature-slice work
+- Phase 5 can begin with the recommended Home slice, followed by Pantry, without reopening shell architecture
+
+---
+
 ## Known Remaining Blockers
 
 - Billing tier names conflict — see `docs/decisions/ADR-001-billing-tier-names.md`
 - Firebase Storage backward compat — see `docs/decisions/ADR-002-firebase-storage-compat.md`
 - Mobile Google OAuth requires additional setup; not production-ready for all paths
-- Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
+- Mobile lint configuration is still missing in `savr-platform/mobile/`
 - Supabase migration validation has no committed `db lint` or `db reset` script
 - E2E tests require a running application; cannot run headless in CI without a deployed target
 - No unit/integration test suite for web or mobile
@@ -149,13 +187,13 @@ production-safe shared primitives available to both web and mobile platforms.
 
 ## Next Phase
 
-**Phase 4 — Application Shells**
+**Phase 5 — Feature Migration**
 
-Required outcome:
+Recommended outcome:
 
-1. Production-safe web and mobile application shells in `savr-platform/` that preserve routing, auth boundaries, safe areas, and navigation affordances.
-2. Shells consume the shared design token layer established in Phase 3.
-3. No feature behavior changes beyond presentation and navigation structure.
+1. Migrate bounded feature slices against the now-stable web and mobile shells, starting with Home.
+2. Preserve production contracts while adapting premium UX screen by screen.
+3. Keep each PR scoped to one feature slice or one tightly bounded contract surface.
 
 ---
 
