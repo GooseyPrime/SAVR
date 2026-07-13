@@ -44,10 +44,16 @@ test('normalizeAiIngredients validates inputs and keeps production-safe defaults
     },
   ]);
 
-  assert.throws(
-    () => normalizeAiIngredients([{ quantity: 1 }]),
-    /Ingredient name is required/
-  );
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  try {
+    assert.throws(
+      () => normalizeAiIngredients([{ quantity: 1 }]),
+      /Ingredient name is required/
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test('aiIngredientsToExtracted assigns the production default confidence', () => {

@@ -22,6 +22,9 @@ on:
       - 'MIGRATION_STATUS.md'
       - 'savr-platform/README.md'
 
+permissions:
+  contents: read
+
 jobs:
   web-unit-tests:
     name: Web — Unit tests

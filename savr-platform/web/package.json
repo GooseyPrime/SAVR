@@ -27,7 +27,7 @@
     "tinyglobby@0.2.15": {
       "picomatch": "4.0.4"
     },
-    "postcss": "8.5.10"
+    "postcss": "8.5.19"
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.4",

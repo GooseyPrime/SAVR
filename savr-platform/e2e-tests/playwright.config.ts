@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+const shouldStartWebServer =
+  process.env.PLAYWRIGHT_USE_WEBSERVER === 'true' || (!process.env.CI && !process.env.BASE_URL);
+
 export default defineConfig({
   testDir: './',
   fullyParallel: false,
@@ -8,7 +12,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'html',
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -20,12 +24,11 @@ export default defineConfig({
     },
   ],
 
-  webServer:
-    process.env.PLAYWRIGHT_USE_WEBSERVER === 'true' || (!process.env.CI && !process.env.BASE_URL)
-      ? {
-          command: 'cd ../web && npm run dev',
-          url: process.env.BASE_URL || 'http://localhost:3000',
-          reuseExistingServer: !process.env.CI,
-        }
-      : undefined,
+  webServer: shouldStartWebServer
+    ? {
+        command: 'cd ../web && npm run dev',
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+      }
+    : undefined,
 });

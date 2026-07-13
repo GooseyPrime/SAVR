@@ -24,8 +24,15 @@ test.describe('mobile viewport smoke coverage', () => {
     await page.goto('/sign-in');
 
     await expect(page.getByRole('heading', { name: /sign in to your account/i })).toBeVisible();
-    await expect(page.getByLabel(/email address/i)).toBeVisible();
-    await expect(page.getByLabel(/^password$/i)).toBeVisible();
+    const emailField = page.getByLabel(/email address/i);
+    const passwordField = page.getByLabel(/^password$/i);
+
+    await expect(emailField).toBeVisible();
+    await expect(passwordField).toBeVisible();
+    await emailField.fill('chef@example.com');
+    await passwordField.fill('test-password');
+    await expect(emailField).toHaveValue('chef@example.com');
+    await expect(passwordField).toHaveValue('test-password');
     await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
   });
 });
