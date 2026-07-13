@@ -81,7 +81,7 @@ function SharedRecipeContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" >
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-28 pb-16 text-center">
           <p className="text-foreground-muted">Loading recipe...</p>
@@ -92,7 +92,7 @@ function SharedRecipeContent() {
 
   if (error || !recipe) {
     return (
-      <div className="min-h-screen" >
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-28 pb-16 text-center">
           <p className="text-red-400 mb-4">{error || 'Recipe not found.'}</p>
@@ -105,7 +105,7 @@ function SharedRecipeContent() {
   }
 
   return (
-    <div className="min-h-screen" >
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 pt-24 pb-8 max-w-2xl">
         <p className="text-sm text-foreground-muted mb-2">Shared recipe from SAVR</p>
@@ -168,7 +168,7 @@ function SharedRecipeContent() {
 export default function SharedRecipePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen" >
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-28 pb-16 text-center">
           <p className="text-foreground-muted">Loading...</p>

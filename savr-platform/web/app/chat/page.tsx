@@ -115,7 +115,7 @@ function ChatContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" >
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
       <div className="flex-1 container mx-auto px-4 pt-24 pb-8 flex flex-col max-w-4xl">
