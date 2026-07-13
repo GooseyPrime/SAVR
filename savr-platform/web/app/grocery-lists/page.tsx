@@ -174,7 +174,7 @@ function GroceryListsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: '#000000' }}>
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-8 flex justify-center">
           <LoadingSpinner size="lg" />
@@ -184,21 +184,21 @@ function GroceryListsContent() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 pt-24 pb-8">
         <div className="flex flex-col gap-6 mb-8 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Grocery Lists</h1>
-            <p className="mt-2 text-sm text-[#9ca3c2]">
+            <h1 className="text-3xl font-bold text-foreground">Grocery Lists</h1>
+            <p className="mt-2 text-sm text-foreground-muted">
               Select recipes to generate a smart grocery list from your saved meals.
             </p>
           </div>
           <button
             onClick={handleGenerateList}
             disabled={generating || selectedRecipeIds.length === 0}
-            className="w-full md:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition disabled:opacity-50 text-sm sm:text-base"
+            className="w-full md:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary-hover transition disabled:opacity-50 text-sm sm:text-base"
           >
             {generating ? 'Generating...' : 'Generate List'}
           </button>
@@ -206,9 +206,9 @@ function GroceryListsContent() {
 
         {/* Recipe selection */}
         <div className="mb-8 rounded-lg glass-card p-6 shadow">
-          <h2 className="mb-3 text-lg font-semibold text-white">Select recipes</h2>
+          <h2 className="mb-3 text-lg font-semibold text-foreground">Select recipes</h2>
           {recipes.length === 0 ? (
-            <p className="text-sm text-[#9ca3c2]">
+            <p className="text-sm text-foreground-muted">
               You don&apos;t have any saved recipes yet. Generate recipes first to build grocery lists.
             </p>
           ) : (
@@ -226,8 +226,8 @@ function GroceryListsContent() {
                     }
                     className={`flex w-full items-start rounded-lg border p-3 text-left transition ${
                       selected
-                        ? 'border-[#00d4ff] bg-[#00d4ff]/20'
-                        : 'border-white/6 hover:border-[#00d4ff]/30 hover:bg-[#00d4ff]/10'
+                        ? 'border-primary bg-primary/20'
+                        : 'border-border hover:border-primary/30 hover:bg-primary/10'
                     }`}
                   >
                     <input
@@ -238,9 +238,9 @@ function GroceryListsContent() {
                           selected ? prev.filter((id) => id !== recipe.id) : [...prev, recipe.id]
                         )
                       }
-                      className="mt-1 mr-3 h-4 w-4 accent-[#00d4ff]"
+                      className="mt-1 mr-3 h-4 w-4 accent-primary"
                     />
-                    <span className="text-sm font-medium text-white">{recipe.title}</span>
+                    <span className="text-sm font-medium text-foreground">{recipe.title}</span>
                   </button>
                 );
               })}
@@ -257,14 +257,14 @@ function GroceryListsContent() {
         {lists.length === 0 ? (
           <div className="glass-card rounded-lg shadow p-12 text-center">
             <div className="text-6xl mb-4">🛒</div>
-            <h2 className="text-2xl font-semibold text-white mb-2">No grocery lists yet</h2>
-            <p className="text-[#9ca3c2] mb-6">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">No grocery lists yet</h2>
+            <p className="text-foreground-muted mb-6">
               Generate a smart grocery list based on your meal plans and current inventory!
             </p>
             <button
               onClick={handleGenerateList}
               disabled={generating}
-              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary-hover transition text-sm sm:text-base"
             >
               Generate Grocery List
             </button>
@@ -309,18 +309,18 @@ function GroceryListCard({
 
   return (
     <div className="glass-card rounded-lg shadow hover:shadow-lg transition p-6">
-      <h3 className="text-xl font-semibold text-white mb-2">{list.name}</h3>
-      <p className="text-sm text-[#9ca3c2] mb-4">
+      <h3 className="text-xl font-semibold text-foreground mb-2">{list.name}</h3>
+      <p className="text-sm text-foreground-muted mb-4">
         Created {new Date(list.createdAt).toLocaleDateString()}
       </p>
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-[#9ca3c2]">Progress</span>
-          <span className="text-white font-medium">{checkedCount}/{totalCount}</span>
+          <span className="text-foreground-muted">Progress</span>
+          <span className="text-foreground font-medium">{checkedCount}/{totalCount}</span>
         </div>
         <div className="w-full bg-white/10 rounded-full h-2">
           <div 
-            className="bg-gradient-to-r from-[#00d4ff] to-[#0099cc] h-2 rounded-full transition-all"
+            className="bg-primary h-2 rounded-full transition-all"
             style={{ width: `${(checkedCount / totalCount) * 100}%` }}
           />
         </div>
@@ -329,13 +329,13 @@ function GroceryListCard({
       <div className="flex space-x-2">
         <button
           onClick={() => onView(list)}
-          className="flex-1 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition"
+          className="flex-1 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded hover:bg-primary-hover transition"
         >
           View List
         </button>
         <button
           onClick={() => onDelete(list.id)}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          className="px-4 py-2 bg-red-600 text-foreground rounded hover:bg-red-700 transition"
         >
           Delete
         </button>
@@ -359,10 +359,10 @@ function GroceryListDetailsModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div className="glass-card rounded-lg p-6 max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-start mb-6">
-          <h2 className="text-3xl font-bold text-white">{list.name}</h2>
+          <h2 className="text-3xl font-bold text-foreground">{list.name}</h2>
           <button
             onClick={onClose}
-            className="text-[#9ca3c2] hover:text-white text-2xl"
+            className="text-foreground-muted hover:text-foreground text-2xl"
           >
             ×
           </button>
@@ -375,23 +375,23 @@ function GroceryListDetailsModal({
 
           return (
             <div key={category} className="mb-6">
-              <h3 className="text-lg font-semibold text-white mb-3 capitalize">{category}</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-3 capitalize">{category}</h3>
               <div className="space-y-2">
                 {categoryItems.map((item) => (
                   <label
                     key={item.originalIndex}
-                    className="flex items-center p-3 border border-white/6 rounded-lg hover:bg-white/5 cursor-pointer"
+                    className="flex items-center p-3 border border-border rounded-lg hover:bg-surface-raised/50 cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={item.checked}
                       onChange={() => onToggleItem(list.id, item.originalIndex)}
-                      className="w-5 h-5 rounded mr-3 accent-[#00d4ff]"
+                      className="w-5 h-5 rounded mr-3 accent-primary"
                     />
-                    <span className={`flex-1 ${item.checked ? 'line-through text-[#9ca3c2]' : 'text-white'}`}>
+                    <span className={`flex-1 ${item.checked ? 'line-through text-foreground-muted' : 'text-foreground'}`}>
                       {item.name}
                     </span>
-                    <span className="text-[#9ca3c2] text-sm">
+                    <span className="text-foreground-muted text-sm">
                       {item.quantity} {item.unit}
                     </span>
                   </label>
@@ -403,7 +403,7 @@ function GroceryListDetailsModal({
 
         <button
           onClick={onClose}
-          className="w-full mt-6 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(0,212,255,0.4)]"
+          className="w-full mt-6 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary-hover"
         >
           Close
         </button>

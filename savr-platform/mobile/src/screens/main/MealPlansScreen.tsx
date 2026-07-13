@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { getMealPlans } from '../../lib/db';
 import { generateMealPlan } from '../../utils/api';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 interface MealPlanMeal {
   date: string;
@@ -18,9 +19,17 @@ interface LocalMealPlan {
   meals: MealPlanMeal[];
 }
 
+const MEAL_TYPE_ICONS: Record<string, string> = {
+  breakfast: '🌅',
+  lunch: '☀️',
+  dinner: '🌙',
+  snack: '🍎',
+};
+
 export default function MealPlansScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [mealPlans, setMealPlans] = useState<LocalMealPlan[]>([]);
 
@@ -38,7 +47,13 @@ export default function MealPlansScreen() {
       Alert.alert('Error', 'Failed to load meal plans');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadMealPlans();
   };
 
   const handleGenerateMealPlan = async () => {
@@ -65,65 +80,74 @@ export default function MealPlansScreen() {
       <FlatList
         data={mealPlans}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.mealPlanCard}>
-            <View style={styles.dateContainer}>
-              <Ionicons name="calendar" size={20} color="#ea580c" />
-              <Text style={styles.date}>
-                {new Date(item.start_date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric',
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        renderItem={({ item }) => {
+          const mealsByType = item.meals?.reduce((acc, meal) => {
+            if (!acc[meal.meal_type]) acc[meal.meal_type] = meal;
+            return acc;
+          }, {} as Record<string, MealPlanMeal>);
+
+          return (
+            <View style={styles.mealPlanCard}>
+              <View style={styles.dateRow}>
+                <Ionicons name="calendar" size={18} color={colors.primary} />
+                <Text style={styles.dateText}>
+                  {new Date(item.start_date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+              </View>
+              <View style={styles.mealsContainer}>
+                {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((type) => {
+                  const meal = mealsByType?.[type];
+                  if (!meal) return null;
+                  return (
+                    <View key={type} style={styles.mealRow}>
+                      <Text style={styles.mealTypeIcon}>{MEAL_TYPE_ICONS[type] || '🍽️'}</Text>
+                      <View style={styles.mealInfo}>
+                        <Text style={styles.mealType}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </Text>
+                        <Text style={styles.mealTitle} numberOfLines={1}>
+                          {meal.recipe_title || 'Planned meal'}
+                        </Text>
+                      </View>
+                    </View>
+                  );
                 })}
-              </Text>
+              </View>
             </View>
-            <View style={styles.meals}>
-              {item.meals?.find((meal) => meal.meal_type === 'breakfast') && (
-                <View style={styles.mealItem}>
-                  <Text style={styles.mealType}>🌅 Breakfast</Text>
-                  <Text style={styles.mealTitle}>
-                    {item.meals.find((meal) => meal.meal_type === 'breakfast')?.recipe_title || 'Planned meal'}
-                  </Text>
-                </View>
-              )}
-              {item.meals?.find((meal) => meal.meal_type === 'lunch') && (
-                <View style={styles.mealItem}>
-                  <Text style={styles.mealType}>☀️ Lunch</Text>
-                  <Text style={styles.mealTitle}>
-                    {item.meals.find((meal) => meal.meal_type === 'lunch')?.recipe_title || 'Planned meal'}
-                  </Text>
-                </View>
-              )}
-              {item.meals?.find((meal) => meal.meal_type === 'dinner') && (
-                <View style={styles.mealItem}>
-                  <Text style={styles.mealType}>🌙 Dinner</Text>
-                  <Text style={styles.mealTitle}>
-                    {item.meals.find((meal) => meal.meal_type === 'dinner')?.recipe_title || 'Planned meal'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={64} color="#9ca3af" />
+            <Ionicons name="calendar-outline" size={56} color={colors.foregroundMuted} />
             <Text style={styles.emptyText}>No meal plans yet</Text>
-            <Text style={styles.emptySubtext}>Generate a meal plan to get started</Text>
+            <Text style={styles.emptySubtext}>Generate a 7-day meal plan to get started</Text>
           </View>
         }
         contentContainerStyle={mealPlans.length === 0 ? styles.emptyContainer : styles.listContent}
       />
 
+      {/* Generate Meal Plan FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={handleGenerateMealPlan}
         disabled={generating}
       >
         {generating ? (
-          <LoadingSpinner size="small" color="#fff" />
+          <LoadingSpinner size="small" color={colors.primaryForeground} />
         ) : (
-          <Ionicons name="add" size={32} color="#fff" />
+          <Ionicons name="sparkles" size={28} color={colors.primaryForeground} />
         )}
       </TouchableOpacity>
     </View>
@@ -133,86 +157,94 @@ export default function MealPlansScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   listContent: {
     padding: 16,
+    paddingBottom: 100,
   },
   emptyContainer: {
     flex: 1,
   },
   mealPlanCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: 16,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...shadowElevations.sm,
   },
-  dateContainer: {
+  dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border,
   },
-  date: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
+  dateText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.foreground,
   },
-  meals: {
-    gap: 12,
+  mealsContainer: {
+    gap: 10,
   },
-  mealItem: {
-    marginBottom: 8,
+  mealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  mealTypeIcon: {
+    fontSize: 20,
+    width: 28,
+    textAlign: 'center',
+  },
+  mealInfo: {
+    flex: 1,
   },
   mealType: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    fontSize: 12,
+    color: colors.foregroundMuted,
+    marginBottom: 2,
   },
   mealTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.foreground,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 80,
+    paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
+    color: colors.foreground,
+    marginTop: 14,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6b7280',
-    marginTop: 8,
+    color: colors.foregroundMuted,
+    marginTop: 6,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#ea580c',
+    width: 60,
+    height: 60,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...shadowElevations.md,
   },
 });

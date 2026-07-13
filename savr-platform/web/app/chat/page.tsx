@@ -115,7 +115,7 @@ function ChatContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#000000' }}>
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
       <div className="flex-1 container mx-auto px-4 pt-24 pb-8 flex flex-col max-w-4xl">
@@ -137,8 +137,8 @@ function ChatContent() {
             <div className="h-full flex items-center justify-center text-center">
               <div>
                 <div className="text-6xl mb-4">👨‍🍳</div>
-                <h3 className="text-xl font-semibold text-white mb-2">Start a conversation</h3>
-                <p className="text-[#9ca3c2]">
+                <h3 className="text-xl font-semibold text-foreground mb-2">Start a conversation</h3>
+                <p className="text-foreground-muted">
                   Ask me about cooking techniques, recipe ideas, ingredient substitutions, and more!
                 </p>
               </div>
@@ -153,13 +153,13 @@ function ChatContent() {
                   <div
                     className={`max-w-[80%] rounded-lg p-4 ${
                       message.role === 'user'
-                        ? 'bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold'
-                        : 'bg-white/5 text-white'
+                        ? 'bg-primary text-primary-foreground font-semibold'
+                        : 'bg-surface-raised/50 text-foreground'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
                     <p className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-black/60' : 'text-[#9ca3c2]'
+                      message.role === 'user' ? 'text-primary-foreground/60' : 'text-foreground-muted'
                     }`}>
                       {new Date(message.timestamp).toLocaleTimeString()}
                     </p>
@@ -168,11 +168,11 @@ function ChatContent() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-white/5 rounded-lg p-4">
+                  <div className="bg-surface-raised/50 rounded-lg p-4">
                     <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-[#9ca3c2] rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-[#9ca3c2] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-[#9ca3c2] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-foreground-muted rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-foreground-muted rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-foreground-muted rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -191,12 +191,12 @@ function ChatContent() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me anything about cooking..."
               disabled={loading}
-              className="flex-1 px-4 py-2 border border-white/6 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d4ff] disabled:bg-white/5 bg-white/5 text-white"
+              className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-surface-raised/50 bg-surface-raised/50 text-foreground"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition disabled:opacity-50"
+              className="px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary-hover transition disabled:opacity-50"
             >
               Send
             </button>

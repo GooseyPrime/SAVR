@@ -14,6 +14,7 @@ import { pickImageFromCamera, pickImageFromLibrary } from '../../utils/imageUtil
 import { uploadLabelingImage, getPublicUrl } from '../../utils/storage';
 import PolygonAnnotation from '../../components/PolygonAnnotation';
 import { callApi, callApiGet } from '../../utils/api';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 interface AnnotationObject {
   id: string;
@@ -45,9 +46,11 @@ export default function LabelingScreen() {
   }, []);
 
   const loadCategories = () => {
-    // Default categories
+    // Annotation categories use distinct colors across the spectrum for visual differentiation.
+    // The jar category now uses the brand primary token, while other categories maintain
+    // their unique hues for annotation legibility.
     const defaultCategories: Category[] = [
-      { id: 'jar', name: 'Jar', color: '#3b82f6' },
+      { id: 'jar', name: 'Jar', color: colors.primary },
       { id: 'can', name: 'Can', color: '#ef4444' },
       { id: 'box_cereal', name: 'Cereal Box', color: '#10b981' },
       { id: 'bottle', name: 'Bottle', color: '#f59e0b' },
@@ -314,11 +317,11 @@ export default function LabelingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
   },
@@ -331,14 +334,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 8,
     minWidth: 200,
     alignItems: 'center',
   },
   uploadButtonText: {
-    color: '#fff',
+    color: colors.foreground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -352,16 +355,16 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   saveButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.foreground,
     fontWeight: '600',
   },
   categorySection: {
@@ -378,13 +381,13 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: 8,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: colors.border,
   },
   categoryChipSelected: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   colorDot: {
     width: 12,
@@ -397,12 +400,12 @@ const styles = StyleSheet.create({
   },
   categoryTextSelected: {
     fontWeight: '600',
-    color: '#3b82f6',
+    color: colors.primary,
   },
   infoSection: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
   },
   infoText: {
