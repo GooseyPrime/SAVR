@@ -59,8 +59,8 @@ Copy `SAVR-old/.env.example` as a reference. Required variables:
 | 2 — Validation and contracts | ✅ Complete | Reproducible validation gates and stale-config cleanup |
 | 3 — Design system | ✅ Complete | Shared design tokens adapted from premium reference |
 | 4 — Application shells | ✅ Complete | Production-safe web and mobile shells |
-| 5 — Feature migration | ⏳ Pending | Screen-by-screen adaptation against production contracts |
-| 6 — Hardening and release | ⏳ Pending | Security, accessibility, and release-candidate hardening |
+| 5 — Feature migration | ✅ Complete | Screen-by-screen adaptation against production contracts |
+| 6 — Hardening and release | ✅ Complete | Security, accessibility, validation, and release-candidate hardening |
 
 ---
 

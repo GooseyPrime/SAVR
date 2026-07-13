@@ -8,8 +8,11 @@
     "web:build": "npm run build --prefix web",
     "web:lint": "npm run lint --prefix web",
     "web:typecheck": "npm run typecheck --prefix web",
+    "web:test:unit": "npm run test:unit --prefix web",
     "web:start": "npm run start --prefix web",
-    "mobile:typecheck": "npm run typecheck --prefix mobile"
+    "mobile:typecheck": "npm run typecheck --prefix mobile",
+    "mobile:test:unit": "npm run test:unit --prefix mobile",
+    "supabase:reset": "npx supabase@latest db reset"
   },
   "repository": {
     "type": "git",

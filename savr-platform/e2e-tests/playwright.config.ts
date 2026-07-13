@@ -20,9 +20,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: process.env.CI ? undefined : {
-    command: 'cd ../web && npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer:
+    process.env.PLAYWRIGHT_USE_WEBSERVER === 'true' || (!process.env.CI && !process.env.BASE_URL)
+      ? {
+          command: 'cd ../web && npm run dev',
+          url: process.env.BASE_URL || 'http://localhost:3000',
+          reuseExistingServer: !process.env.CI,
+        }
+      : undefined,
 });

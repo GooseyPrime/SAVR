@@ -116,7 +116,11 @@ export function normalizeAiIngredient(ingredient: {
   };
 }
 
-export function normalizeAiIngredients(ingredients: Array<Partial<AiIngredient>>): AiIngredient[] {
+type PartialAiIngredientInput = Omit<Partial<AiIngredient>, 'quantity'> & {
+  quantity?: number | string;
+};
+
+export function normalizeAiIngredients(ingredients: PartialAiIngredientInput[]): AiIngredient[] {
   if (!Array.isArray(ingredients)) return [];
   return ingredients.map((ing) => {
     // Validate required fields
@@ -142,4 +146,3 @@ export function aiIngredientsToExtracted(ingredients: AiIngredient[]): Extracted
     confidence: ing.confidence ?? DEFAULT_AI_CONFIDENCE,
   }));
 }
-
