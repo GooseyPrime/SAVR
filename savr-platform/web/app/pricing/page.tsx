@@ -159,7 +159,7 @@ export default function PricingPage() {
                 type="button"
                 onClick={handleManageBilling}
                 disabled={loadingPortal}
-                className="inline-block rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover disabled:opacity-50 transition-all duration-200"
+                className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover disabled:opacity-50 transition-all duration-200"
               >
                 {loadingPortal ? 'Opening portal...' : 'Manage subscription & billing'}
               </button>
@@ -178,7 +178,7 @@ export default function PricingPage() {
                 </p>
                 <button
                   onClick={() => router.push('/sign-in')}
-                  className="inline-block rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
+                  className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
                 >
                   Sign in to continue
                 </button>

@@ -33,7 +33,7 @@ export default function Home() {
   }, [loading, user, hasActiveSub]);
 
   return (
-    <div className="min-h-screen" >
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       {/* Hero Section */}
