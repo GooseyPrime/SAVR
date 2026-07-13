@@ -14,7 +14,7 @@ import { pickImageFromCamera, pickImageFromLibrary } from '../../utils/imageUtil
 import { uploadLabelingImage, getPublicUrl } from '../../utils/storage';
 import PolygonAnnotation from '../../components/PolygonAnnotation';
 import { callApi, callApiGet } from '../../utils/api';
-import { colors, radii } from '../../theme/index';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 interface AnnotationObject {
   id: string;
@@ -46,9 +46,11 @@ export default function LabelingScreen() {
   }, []);
 
   const loadCategories = () => {
-    // Default categories
+    // Annotation categories use distinct colors across the spectrum for visual differentiation.
+    // The jar category now uses the brand primary token, while other categories maintain
+    // their unique hues for annotation legibility.
     const defaultCategories: Category[] = [
-      { id: 'jar', name: 'Jar', color: '#3b82f6' },
+      { id: 'jar', name: 'Jar', color: colors.primary },
       { id: 'can', name: 'Can', color: '#ef4444' },
       { id: 'box_cereal', name: 'Cereal Box', color: '#10b981' },
       { id: 'bottle', name: 'Bottle', color: '#f59e0b' },
@@ -334,12 +336,12 @@ const styles = StyleSheet.create({
   uploadButton: {
     backgroundColor: colors.primary,
     padding: 16,
-    borderRadius: radii.sm,
+    borderRadius: 8,
     minWidth: 200,
     alignItems: 'center',
   },
   uploadButtonText: {
-    color: colors.primaryForeground,
+    color: colors.foreground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -355,14 +357,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.primary,
     padding: 12,
-    borderRadius: radii.sm,
+    borderRadius: 8,
     alignItems: 'center',
   },
   saveButton: {
     backgroundColor: colors.success,
   },
   buttonText: {
-    color: colors.primaryForeground,
+    color: colors.foreground,
     fontWeight: '600',
   },
   categorySection: {
@@ -398,17 +400,17 @@ const styles = StyleSheet.create({
   },
   categoryTextSelected: {
     fontWeight: '600',
-    color: '#3b82f6',
+    color: colors.primary,
   },
   infoSection: {
     marginTop: 16,
     padding: 12,
     backgroundColor: colors.surface,
-    borderRadius: radii.sm,
+    borderRadius: 8,
   },
   infoText: {
     fontSize: 14,
-    color: colors.foregroundMuted,
+    color: '#666',
   },
   loadingOverlay: {
     position: 'absolute',

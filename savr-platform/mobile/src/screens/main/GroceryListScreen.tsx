@@ -30,12 +30,6 @@ interface DbGroceryList {
   items: DbGroceryItem[];
 }
 
-const CATEGORY_ORDER = ['produce', 'protein', 'dairy', 'grains', 'other'];
-
-function capitalized(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 export default function GroceryListScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -67,7 +61,7 @@ export default function GroceryListScreen() {
           createdAt: new Date().toISOString(),
         });
       }
-    } catch (_error) {
+    } catch (error) {
       Alert.alert('Error', 'Failed to load grocery list');
     } finally {
       setLoading(false);
@@ -98,7 +92,7 @@ export default function GroceryListScreen() {
         })),
       } as any);
       setGroceryList({ ...groceryList, items: updatedItems });
-    } catch (_error) {
+    } catch (error) {
       Alert.alert('Error', 'Failed to update item');
     }
   };
@@ -110,17 +104,16 @@ export default function GroceryListScreen() {
   if (!groceryList || groceryList.items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <View style={styles.emptyIcon}>
-          <Ionicons name="cart-outline" size={40} color={colors.primary} />
-        </View>
+        <Ionicons name="cart-outline" size={56} color={colors.foregroundMuted} />
         <Text style={styles.emptyText}>Your grocery list is empty</Text>
         <Text style={styles.emptySubtext}>
-          Generate recipes to populate your grocery list
+          Generate recipes to add items to your list
         </Text>
       </View>
     );
   }
 
+  // Group by category
   const groupedItems = groceryList.items.reduce((acc, item) => {
     const cat = item.category || 'other';
     if (!acc[cat]) acc[cat] = [];
@@ -128,171 +121,141 @@ export default function GroceryListScreen() {
     return acc;
   }, {} as Record<string, GroceryItem[]>);
 
-  const categories = [
-    ...CATEGORY_ORDER.filter(c => groupedItems[c]),
-    ...Object.keys(groupedItems).filter(c => !CATEGORY_ORDER.includes(c)),
-  ];
-
-  const checkedCount = groceryList.items.filter(i => i.checked).length;
-  const totalCount = groceryList.items.length;
+  // Checked count for progress
+  const checkedCount = groceryList.items.filter((i) => i.checked).length;
+  const total = groceryList.items.length;
 
   return (
-    <FlatList
-      data={categories}
-      keyExtractor={(category) => category}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-      }
-      ListHeaderComponent={
-        <View style={styles.progressBar}>
-          <View style={styles.progressInfo}>
-            <Text style={styles.progressLabel}>Progress</Text>
-            <Text style={styles.progressCount}>{checkedCount}/{totalCount}</Text>
+    <View style={styles.container}>
+      {/* Progress indicator */}
+      <View style={styles.progressRow}>
+        <Ionicons name="cart" size={16} color={colors.foregroundMuted} />
+        <Text style={styles.progressText}>
+          {checkedCount} of {total} items
+        </Text>
+        {checkedCount === total && total > 0 && (
+          <View style={styles.doneBadge}>
+            <Text style={styles.doneBadgeText}>Done!</Text>
           </View>
-          <View style={styles.progressTrack}>
-            <View
-              style={[styles.progressFill, { width: `${(checkedCount / totalCount) * 100}%` as any }]}
-            />
+        )}
+      </View>
+
+      <FlatList
+        data={Object.keys(groupedItems)}
+        keyExtractor={(category) => category}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        renderItem={({ item: category }) => (
+          <View style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </Text>
+            {groupedItems[category].map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.itemRow, item.checked && styles.itemRowChecked]}
+                onPress={() => toggleItem(item.id)}
+                accessibilityLabel={`${item.checked ? 'Uncheck' : 'Check'} ${item.name}`}
+              >
+                <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
+                  {item.checked && (
+                    <Ionicons name="checkmark" size={16} color={colors.primaryForeground} />
+                  )}
+                </View>
+                <View style={styles.itemInfo}>
+                  <Text style={[styles.itemName, item.checked && styles.itemNameChecked]}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.itemQuantity}>
+                    {item.quantity} {item.unit}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
-        </View>
-      }
-      renderItem={({ item: category }) => (
-        <View style={styles.categorySection}>
-          <Text style={styles.categoryTitle}>{capitalized(category)}</Text>
-          {groupedItems[category].map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.itemRow, item.checked && styles.itemRowChecked]}
-              onPress={() => toggleItem(item.id)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
-                {item.checked && <Ionicons name="checkmark" size={16} color={colors.primaryForeground} />}
-              </View>
-              <View style={styles.itemInfo}>
-                <Text style={[styles.itemName, item.checked && styles.checkedText]}>
-                  {item.name}
-                </Text>
-                <Text style={styles.itemQuantity}>
-                  {item.quantity} {item.unit}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-      contentContainerStyle={styles.listContent}
-    />
+        )}
+        contentContainerStyle={styles.listContent}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  emptyContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: colors.background,
-    padding: 32,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: radii.xl,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
+  progressRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.foreground,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
+  progressText: {
+    fontSize: 13,
     color: colors.foregroundMuted,
-    textAlign: 'center',
-    lineHeight: 20,
+    flex: 1,
+  },
+  doneBadge: {
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: radii.full,
+  },
+  doneBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.success,
   },
   listContent: {
     padding: 16,
-    backgroundColor: colors.background,
-    paddingBottom: 32,
-  },
-  progressBar: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  progressLabel: {
-    fontSize: 13,
-    color: colors.foregroundSecondary,
-    fontWeight: '500',
-  },
-  progressCount: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: radii.full,
-    backgroundColor: colors.muted,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: radii.full,
+    paddingBottom: 40,
   },
   categorySection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   categoryTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
-    color: colors.foregroundMuted,
+    color: colors.foreground,
+    marginBottom: 10,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
-    paddingHorizontal: 4,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    padding: 14,
-    borderRadius: radii.md,
-    marginBottom: 6,
     borderWidth: 1,
     borderColor: colors.border,
+    padding: 14,
+    borderRadius: radii.md,
+    marginBottom: 8,
     ...shadowElevations.sm,
   },
   itemRowChecked: {
     opacity: 0.6,
+    backgroundColor: colors.muted,
   },
   checkbox: {
     width: 26,
     height: 26,
     borderRadius: radii.sm,
     borderWidth: 2,
-    borderColor: colors.borderStrong,
+    borderColor: colors.border,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: colors.surfaceRaised,
   },
   checkboxChecked: {
     backgroundColor: colors.primary,
@@ -307,12 +270,31 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     marginBottom: 2,
   },
-  checkedText: {
+  itemNameChecked: {
     textDecorationLine: 'line-through',
     color: colors.foregroundMuted,
   },
   itemQuantity: {
     fontSize: 13,
     color: colors.foregroundMuted,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: 24,
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.foreground,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.foregroundMuted,
+    textAlign: 'center',
   },
 });

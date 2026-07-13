@@ -39,15 +39,15 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="flex items-center justify-center pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 p-8 rounded-2xl" style={{ background: 'rgba(10, 10, 10, 0.7)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
           <div>
-            <h2 className="text-center text-3xl font-bold text-white">
+            <h2 className="text-center text-3xl font-bold text-foreground">
               Reset your password
             </h2>
-            <p className="mt-2 text-center text-sm" style={{ color: '#9ca3c2' }}>
+            <p className="mt-2 text-center text-sm text-foreground-muted">
               Enter your email and we&apos;ll send you a link to reset your password.
             </p>
           </div>
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
 
           {success ? (
             <div className="space-y-6">
-              <div className="px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(186, 255, 92, 0.08)', border: '1px solid rgba(186, 255, 92, 0.2)', color: '#BAFF5C' }}>
+              <div className="px-4 py-3 rounded-xl text-sm bg-primary/[0.08] border border-primary/20 text-primary">
                 If an account exists with that email, you&apos;ll receive a password reset link shortly. Check your inbox and spam folder.
               </div>
               <Link
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
           ) : (
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#C8D9CF] mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-foreground-muted mb-1">
                   Email address
                 </label>
                 <input
@@ -84,9 +84,9 @@ export default function ForgotPasswordPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
+                  className="w-full px-4 py-3 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
                   style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
+                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                   placeholder="you@example.com"
                 />
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <div className="text-center">
-                <Link href="/sign-in" className="text-sm font-medium text-[#BAFF5C] hover:text-[#00bfa6] transition-colors">
+                <Link href="/sign-in" className="text-sm font-medium text-primary hover:text-[#00bfa6] transition-colors">
                   Back to sign in
                 </Link>
               </div>

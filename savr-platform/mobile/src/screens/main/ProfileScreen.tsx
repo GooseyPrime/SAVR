@@ -7,35 +7,8 @@ import { colors, radii, shadowElevations } from '../../theme/index';
 
 const APP_URL = 'https://savr.cam';
 
-interface MenuItemProps {
-  icon: string;
-  label: string;
-  onPress?: () => void;
-  accent?: boolean;
-  danger?: boolean;
-}
-
-function MenuItem({ icon, label, onPress, accent, danger }: MenuItemProps) {
-  return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.menuIconWrap, accent && styles.menuIconAccent, danger && styles.menuIconDanger]}>
-        <Ionicons
-          name={icon as any}
-          size={18}
-          color={danger ? colors.error : accent ? colors.primary : colors.foregroundSecondary}
-        />
-      </View>
-      <Text style={[styles.menuItemText, accent && styles.menuItemAccent, danger && styles.menuItemDanger]}>
-        {label}
-      </Text>
-      {!danger && <Ionicons name="chevron-forward" size={16} color={colors.foregroundMuted} />}
-    </TouchableOpacity>
-  );
-}
-
 export default function ProfileScreen() {
   const { user, userData, signOut } = useAuth();
-  const isPro = isPaidTier(userData?.subscriptionTier);
 
   const handleSignOut = async () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -46,7 +19,7 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await signOut();
-          } catch (_error) {
+          } catch (error) {
             Alert.alert('Error', 'Failed to sign out');
           }
         },
@@ -54,73 +27,99 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const isPro = isPaidTier(userData?.subscriptionTier);
+  const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
+  const tierLabel = isPro ? 'Pro' : 'Basic';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Profile header */}
-      <View style={styles.header}>
+      <View style={styles.profileHeader}>
         <View style={styles.avatar}>
-          <Ionicons name="person" size={40} color={colors.primary} />
+          <Ionicons name="person" size={44} color={colors.primaryForeground} />
         </View>
-        <Text style={styles.name}>{userData?.displayName || 'Chef'}</Text>
+        <Text style={styles.name}>{displayName}</Text>
         <Text style={styles.email}>{user?.email}</Text>
-        <View style={[styles.badge, isPro && styles.badgePro]}>
-          <Ionicons
-            name={isPro ? 'star' : 'cube-outline'}
-            size={13}
-            color={isPro ? colors.primaryForeground : colors.foregroundMuted}
-          />
-          <Text style={[styles.badgeText, isPro && styles.badgeTextPro]}>
-            {isPro ? 'Pro' : 'Basic'}
+        <View style={[styles.tierBadge, isPro && styles.tierBadgePro]}>
+          <Text style={[styles.tierText, isPro && styles.tierTextPro]}>
+            {isPro ? '⭐ Pro' : '📦 Basic'}
           </Text>
         </View>
       </View>
 
-      {/* Upgrade banner for free users */}
-      {!isPro && (
-        <TouchableOpacity
-          style={styles.upgradeBanner}
-          onPress={() => Linking.openURL(`${APP_URL}/pricing`)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.upgradeBannerContent}>
-            <Ionicons name="star" size={20} color={colors.primaryForeground} />
-            <View style={styles.upgradeText}>
-              <Text style={styles.upgradeBannerTitle}>Upgrade to Pro</Text>
-              <Text style={styles.upgradeBannerSub}>Unlimited recipes, AI meal plans &amp; more</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.primaryForeground} />
-        </TouchableOpacity>
-      )}
-
       {/* Account section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
-        <MenuItem icon="person-outline" label="Edit Profile" />
-        <MenuItem icon="key-outline" label="Change Password" />
+
+        <TouchableOpacity style={styles.menuItem}>
+          <Ionicons name="person-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Edit Profile</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
+
+        {!isPro && (
+          <TouchableOpacity style={[styles.menuItem, styles.upgradeItem]}>
+            <Ionicons name="star-outline" size={22} color={colors.primary} />
+            <Text style={[styles.menuItemText, styles.upgradeText]}>Upgrade to Pro</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Preferences section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences</Text>
-        <MenuItem icon="notifications-outline" label="Notifications" />
-        <MenuItem icon="language-outline" label="Language" />
-        <MenuItem icon="color-palette-outline" label="Appearance" />
+
+        <TouchableOpacity style={styles.menuItem}>
+          <Ionicons name="notifications-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Notifications</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem}>
+          <Ionicons name="language-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Language</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
       </View>
 
       {/* Support section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Support</Text>
-        <MenuItem icon="help-circle-outline" label="Help Center" onPress={() => Linking.openURL(`${APP_URL}/help`)} />
-        <MenuItem icon="mail-outline" label="Contact Us" onPress={() => Linking.openURL('mailto:support@savr.cam')} />
-        <MenuItem icon="document-text-outline" label="Privacy Policy" onPress={() => Linking.openURL(`${APP_URL}/privacy`)} />
-        <MenuItem icon="shield-checkmark-outline" label="Terms of Service" onPress={() => Linking.openURL(`${APP_URL}/terms`)} />
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(`${APP_URL}/help`)}>
+          <Ionicons name="help-circle-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Help Center</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL('mailto:support@savr.cam')}>
+          <Ionicons name="mail-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Contact Support</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(`${APP_URL}/privacy`)}>
+          <Ionicons name="document-text-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Privacy Policy</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemLast]}
+          onPress={() => Linking.openURL(`${APP_URL}/terms`)}
+        >
+          <Ionicons name="shield-checkmark-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Terms of Service</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+        </TouchableOpacity>
       </View>
 
       {/* Sign out */}
-      <View style={styles.section}>
-        <MenuItem icon="log-out-outline" label="Sign Out" onPress={handleSignOut} danger />
-      </View>
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Ionicons name="log-out-outline" size={20} color={colors.error} />
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
 
       <Text style={styles.version}>SAVR v1.0.0</Text>
     </ScrollView>
@@ -133,12 +132,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
-  header: {
+  profileHeader: {
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    paddingTop: 32,
-    paddingBottom: 24,
+    paddingVertical: 32,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -146,17 +145,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 88,
     height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.primaryLight,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
-    borderWidth: 2,
-    borderColor: colors.borderStrong,
+    ...shadowElevations.md,
   },
   name: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: colors.foreground,
     marginBottom: 4,
   },
@@ -165,114 +163,90 @@ const styles = StyleSheet.create({
     color: colors.foregroundMuted,
     marginBottom: 12,
   },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+  tierBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: radii.full,
-    backgroundColor: colors.muted,
-    gap: 5,
+    backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  badgePro: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  tierBadgePro: {
+    backgroundColor: colors.primaryLight,
+    borderColor: `${colors.primary}44`,
   },
-  badgeText: {
+  tierText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.foregroundSecondary,
   },
-  badgeTextPro: {
-    color: colors.primaryForeground,
-  },
-  upgradeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    margin: 16,
-    padding: 16,
-    borderRadius: radii.lg,
-    backgroundColor: colors.primary,
-    ...shadowElevations.md,
-  },
-  upgradeBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  upgradeText: {
-    flex: 1,
-  },
-  upgradeBannerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primaryForeground,
-  },
-  upgradeBannerSub: {
-    fontSize: 12,
-    color: colors.primaryForeground,
-    opacity: 0.8,
+  tierTextPro: {
+    color: colors.primary,
   },
   section: {
-    marginTop: 8,
-    paddingHorizontal: 16,
+    marginTop: 20,
+    marginHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadowElevations.sm,
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.foregroundMuted,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 16,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    letterSpacing: 0.8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     gap: 12,
   },
-  menuIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.sm,
-    backgroundColor: colors.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuIconAccent: {
+  menuItemLast: {},
+  upgradeItem: {
     backgroundColor: colors.primaryLight,
-  },
-  menuIconDanger: {
-    backgroundColor: colors.errorLight,
   },
   menuItemText: {
     flex: 1,
     fontSize: 15,
     color: colors.foreground,
-    fontWeight: '500',
   },
-  menuItemAccent: {
+  upgradeText: {
     color: colors.primary,
+    fontWeight: '600',
   },
-  menuItemDanger: {
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 20,
+    marginHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: `${colors.error}44`,
+    backgroundColor: colors.errorLight,
+  },
+  signOutText: {
+    fontSize: 15,
     color: colors.error,
+    fontWeight: '600',
   },
   version: {
     textAlign: 'center',
-    fontSize: 13,
+    fontSize: 12,
     color: colors.foregroundMuted,
-    marginTop: 24,
+    marginTop: 20,
   },
 });

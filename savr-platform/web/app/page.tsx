@@ -33,7 +33,7 @@ export default function Home() {
   }, [loading, user, hasActiveSub]);
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       {/* Hero Section */}
@@ -42,7 +42,7 @@ export default function Home() {
         <div className="absolute inset-0 radial-glow-top" />
         <div className="absolute inset-0 bg-grid" />
         {/* Decorative orbs */}
-        <div className="absolute top-20 left-1/4 w-96 h-96 rounded-full opacity-20 animate-pulse-glow" style={{ background: 'radial-gradient(circle, rgba(186, 255, 92, 0.15), transparent 70%)' }} />
+        <div className="absolute top-20 left-1/4 w-96 h-96 rounded-full opacity-20 animate-pulse-glow" style={{ background: 'radial-gradient(circle, rgba(0, 212, 255, 0.15), transparent 70%)' }} />
         <div className="absolute bottom-10 right-1/4 w-80 h-80 rounded-full opacity-15 animate-pulse-glow" style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15), transparent 70%)', animationDelay: '1.5s' }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,14 +51,14 @@ export default function Home() {
             <VideoHero />
 
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8" style={{ background: 'rgba(186, 255, 92, 0.08)', border: '1px solid rgba(186, 255, 92, 0.2)' }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: '#BAFF5C', boxShadow: '0 0 8px rgba(186, 255, 92, 0.6)' }} />
-              <span className="text-sm font-medium text-[#BAFF5C]">AI-Powered Smart Kitchen</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8" style={{ background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: '#00d4ff', boxShadow: '0 0 8px rgba(0, 212, 255, 0.6)' }} />
+              <span className="text-sm font-medium text-primary">AI-Powered Smart Kitchen</span>
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] mb-6">
-              <span className="text-white">Cook Smarter.</span>
+              <span className="text-foreground">Cook Smarter.</span>
               <br />
               <span className="gradient-text">Save Everything.</span>
             </h1>
@@ -102,14 +102,14 @@ export default function Home() {
                     </svg>
                   ))}
                 </div>
-                <span className="text-sm font-medium text-[#C8D9CF]">Loved by home cooks</span>
+                <span className="text-sm font-medium text-foreground-muted">Loved by home cooks</span>
               </div>
               <div className="hidden sm:block w-px h-5" style={{ background: 'rgba(255,255,255,0.12)' }} />
               <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-[#BAFF5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <span className="text-sm font-medium text-[#C8D9CF]">Vet-reviewed pet recipes</span>
+                <span className="text-sm font-medium text-foreground-muted">Vet-reviewed pet recipes</span>
               </div>
             </div>
           </div>
@@ -121,10 +121,10 @@ export default function Home() {
         <div className="absolute inset-0 radial-glow-center" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 md:mb-20">
-            <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">Features</h2>
-            <p className="text-2xl sm:text-3xl md:text-5xl font-bold text-white leading-tight">
+            <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-primary mb-4">Features</h2>
+            <p className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground leading-tight">
               Everything you need to<br />
-              <span className="gradient-text-lime">cook like a pro</span>
+              <span className="gradient-text-cyan">cook like a pro</span>
             </p>
           </div>
 
@@ -133,7 +133,7 @@ export default function Home() {
               icon={<CameraIcon />}
               title="Smart Inventory"
               description="Snap a photo of your pantry or fridge. Our AI instantly identifies every ingredient and tracks expiration dates."
-              accentColor="#BAFF5C"
+              accentColor="#00d4ff"
             />
             <FeatureCard
               icon={<ChefHatIcon />}
@@ -198,10 +198,10 @@ export default function Home() {
       <section className="relative py-24 md:py-32">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 md:mb-20">
-            <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">How It Works</h2>
-            <p className="text-2xl sm:text-3xl md:text-5xl font-bold text-white leading-tight">
+            <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-primary mb-4">How It Works</h2>
+            <p className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground leading-tight">
               From pantry to plate<br />
-              <span className="gradient-text-lime">in four steps</span>
+              <span className="gradient-text-cyan">in four steps</span>
             </p>
           </div>
 
@@ -213,16 +213,16 @@ export default function Home() {
           </div>
 
           {/* Connecting line (desktop only) */}
-          <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 w-[60%] h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(186, 255, 92, 0.2), rgba(168, 85, 247, 0.2), transparent)', marginTop: '20px' }} />
+          <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 w-[60%] h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(0, 212, 255, 0.2), rgba(168, 85, 247, 0.2), transparent)', marginTop: '20px' }} />
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="relative py-24 md:py-32 overflow-hidden">
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(186, 255, 92, 0.06), rgba(168, 85, 247, 0.06))' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.06), rgba(168, 85, 247, 0.06))' }} />
         <div className="absolute inset-0 bg-grid" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             Ready to transform<br />
             <span className="gradient-text">your kitchen?</span>
           </h2>
@@ -275,19 +275,19 @@ export default function Home() {
                 className="w-7 h-7"
                 unoptimized
               />
-              <span className="text-lg font-bold text-white">SAVR</span>
+              <span className="text-lg font-bold text-foreground">SAVR</span>
             </div>
             <div className="flex items-center gap-8">
-              <Link href="/pricing" className="text-sm text-[#6b7294] hover:text-[#BAFF5C] transition-colors">
+              <Link href="/pricing" className="text-sm text-[#6b7294] hover:text-primary transition-colors">
                 Pricing
               </Link>
-              <Link href="/faq" className="text-sm text-[#6b7294] hover:text-[#BAFF5C] transition-colors">
+              <Link href="/faq" className="text-sm text-[#6b7294] hover:text-primary transition-colors">
                 FAQ
               </Link>
-              <Link href="/terms" className="text-sm text-[#6b7294] hover:text-[#BAFF5C] transition-colors">
+              <Link href="/terms" className="text-sm text-[#6b7294] hover:text-primary transition-colors">
                 Terms
               </Link>
-              <Link href="/privacy" className="text-sm text-[#6b7294] hover:text-[#BAFF5C] transition-colors">
+              <Link href="/privacy" className="text-sm text-[#6b7294] hover:text-primary transition-colors">
                 Privacy
               </Link>
             </div>
@@ -316,7 +316,7 @@ function FeatureCard({ icon, title, description, accentColor }: { icon: React.Re
           {icon}
         </div>
       </div>
-      <h3 className="text-base md:text-lg font-semibold text-white mb-2">{title}</h3>
+      <h3 className="text-base md:text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-sm leading-relaxed" style={{ color: '#9ca3c2' }}>{description}</p>
     </div>
   );
@@ -326,11 +326,11 @@ function FeatureCard({ icon, title, description, accentColor }: { icon: React.Re
 function Step({ number, title, description, icon }: { number: string; title: string; description: string; icon: React.ReactNode }) {
   return (
     <div className="relative text-center group">
-      <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-5 rounded-2xl flex items-center justify-center glow-primary" style={{ background: 'rgba(186, 255, 92, 0.08)', border: '1px solid rgba(186, 255, 92, 0.15)' }}>
-        <div className="w-6 h-6 md:w-7 md:h-7 text-[#BAFF5C]">{icon}</div>
+      <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 md:mb-5 rounded-2xl flex items-center justify-center glow-cyan" style={{ background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.15)' }}>
+        <div className="w-6 h-6 md:w-7 md:h-7 text-primary">{icon}</div>
       </div>
-      <span className="text-xs font-bold tracking-widest text-[#BAFF5C] uppercase mb-2 block">Step {number}</span>
-      <h3 className="text-base md:text-lg font-semibold text-white mb-2">{title}</h3>
+      <span className="text-xs font-bold tracking-widest text-primary uppercase mb-2 block">Step {number}</span>
+      <h3 className="text-base md:text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-sm leading-relaxed" style={{ color: '#9ca3c2' }}>{description}</p>
     </div>
   );

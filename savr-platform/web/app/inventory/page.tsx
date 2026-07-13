@@ -215,7 +215,7 @@ function InventoryContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: '#000000' }}>
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-8 flex justify-center">
           <LoadingSpinner size="lg" />
@@ -225,21 +225,21 @@ function InventoryContent() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 pt-24 pb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Inventory Management</h1>
-        <p className="text-[#C8D9CF] text-sm mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-2">Inventory Management</h1>
+        <p className="text-foreground-muted text-sm mb-4">
           Your ingredients are listed below. You can add items manually, scan a barcode, or{' '}
-          <a href="/upload" className="text-[#BAFF5C] hover:underline">upload a photo</a> for AI detection.
-          Tap <span className="font-semibold text-white">Edit</span> on any item to correct its name, quantity, or category.
+          <a href="/upload" className="text-primary hover:underline">upload a photo</a> for AI detection.
+          Tap <span className="font-semibold text-foreground">Edit</span> on any item to correct its name, quantity, or category.
         </p>
-        <div className="rounded-xl px-5 py-4 mb-6 text-sm" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.15)' }}>
-          <p className="font-semibold text-[#BAFF5C] mb-1">AI import not quite right?</p>
-          <p className="text-[#C8D9CF]">
-            If an uploaded photo missed items or got quantities wrong, just use the <span className="font-semibold text-white">Edit</span> button
-            to fix them, or <span className="font-semibold text-white">Add Item Manually</span> below to fill in anything that was missed.
+        <div className="rounded-xl px-5 py-4 mb-6 text-sm bg-primary/5 border border-primary/20">
+          <p className="font-semibold text-primary mb-1">AI import not quite right?</p>
+          <p className="text-foreground-muted">
+            If an uploaded photo missed items or got quantities wrong, just use the <span className="font-semibold text-foreground">Edit</span> button
+            to fix them, or <span className="font-semibold text-foreground">Add Item Manually</span> below to fill in anything that was missed.
             You can also delete incorrect entries and re-add them.
           </p>
         </div>
@@ -252,10 +252,10 @@ function InventoryContent() {
 
         {/* Add by barcode */}
         <div className="glass-card rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
             Add by barcode
           </h2>
-          <p className="text-sm text-[#C8D9CF] mb-3">
+          <p className="text-sm text-foreground-muted mb-3">
             Enter a product barcode to add it from the Open Food Facts database.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -264,13 +264,13 @@ function InventoryContent() {
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
               placeholder="e.g. 3017620422003"
-              className="rounded-md border border-white/6 px-3 py-2 w-48 bg-white/5 text-white"
+              className="rounded-md border border-border px-3 py-2 w-48 bg-surface-raised/50 text-foreground"
             />
             <button
               type="button"
               onClick={handleBarcodeLookup}
               disabled={barcodeLoading || !barcodeInput.trim()}
-              className="rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] px-4 py-2 text-sm font-semibold text-black hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] disabled:opacity-50"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
               {barcodeLoading ? 'Looking up...' : 'Look up & add'}
             </button>
@@ -282,22 +282,22 @@ function InventoryContent() {
 
         {/* Manual Add Section */}
         <div className="glass-card rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
             Add Item Manually
           </h2>
           <div className="grid gap-4 md:grid-cols-4">
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Name</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-muted">Name</label>
               <input
                 type="text"
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                className="w-full rounded-md border border-white/6 px-3 py-2 bg-white/5 text-white"
+                className="w-full rounded-md border border-border px-3 py-2 bg-surface-raised/50 text-foreground"
                 placeholder="e.g., Chicken breast"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Quantity</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-muted">Quantity</label>
               <input
                 type="number"
                 min={0}
@@ -305,23 +305,23 @@ function InventoryContent() {
                 onChange={(e) =>
                   setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })
                 }
-                className="w-full rounded-md border border-white/6 px-3 py-2 bg-white/5 text-white"
+                className="w-full rounded-md border border-border px-3 py-2 bg-surface-raised/50 text-foreground"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Unit</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-muted">Unit</label>
               <input
                 type="text"
                 value={newItem.unit}
                 onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                className="w-full rounded-md border border-white/6 px-3 py-2 bg-white/5 text-white"
+                className="w-full rounded-md border border-border px-3 py-2 bg-surface-raised/50 text-foreground"
                 placeholder="e.g., pcs, kg"
               />
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="md:w-48">
-              <label className="mb-1 block text-sm font-medium text-[#C8D9CF]">Category</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-muted">Category</label>
               <select
                 value={newItem.category}
                 onChange={(e) =>
@@ -330,7 +330,7 @@ function InventoryContent() {
                     category: e.target.value as InventoryItem['category'],
                   })
                 }
-                className="w-full rounded-md border border-white/6 px-3 py-2 bg-white/5 text-white"
+                className="w-full rounded-md border border-border px-3 py-2 bg-surface-raised/50 text-foreground"
               >
                 <option value="pantry">Pantry</option>
                 <option value="fridge">Fridge</option>
@@ -340,7 +340,7 @@ function InventoryContent() {
             <button
               type="button"
               onClick={handleAddItem}
-              className="mt-2 inline-flex items-center rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] px-6 py-2 text-sm font-semibold text-black hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] md:mt-0"
+              className="mt-2 inline-flex items-center rounded-lg bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover md:mt-0"
             >
               Add Item
             </button>
@@ -349,12 +349,12 @@ function InventoryContent() {
 
         {/* Inventory List */}
         <div className="glass-card rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
             Current Inventory ({items.length} items)
           </h2>
           
           {items.length === 0 ? (
-            <div className="text-center py-12 text-[#C8D9CF]">
+            <div className="text-center py-12 text-foreground-muted">
               <p className="text-lg mb-2">No items in inventory yet</p>
               <p className="text-sm">Upload a photo to get started!</p>
             </div>
@@ -398,10 +398,10 @@ function InventoryCard({
   onQuickAdjust: (id: string, delta: number) => void;
 }) {
   return (
-    <div className="border border-white/6 rounded-lg p-4 hover:border-[#BAFF5C]/30 transition glass-card">
+    <div className="border border-border rounded-lg p-4 hover:border-primary/30 transition glass-card">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold text-white">{item.name}</h3>
-        <span className="text-xs px-2 py-1 bg-[#BAFF5C]/20 text-[#BAFF5C] rounded">
+        <h3 className="font-semibold text-foreground">{item.name}</h3>
+        <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded">
           {item.category}
         </span>
       </div>
@@ -410,35 +410,35 @@ function InventoryCard({
         <button
           onClick={() => onQuickAdjust(item.id, -1)}
           disabled={item.quantity <= 0}
-          className="w-8 h-8 flex items-center justify-center rounded-md bg-white/10 text-white font-bold hover:bg-red-500/30 hover:text-red-300 disabled:opacity-30 transition"
+          className="w-8 h-8 flex items-center justify-center rounded-md bg-white/10 text-foreground font-bold hover:bg-red-500/30 hover:text-red-300 disabled:opacity-30 transition"
         >
           -
         </button>
-        <span className="text-white font-medium min-w-[60px] text-center">
+        <span className="text-foreground font-medium min-w-[60px] text-center">
           {item.quantity} {item.unit}
         </span>
         <button
           onClick={() => onQuickAdjust(item.id, 1)}
-          className="w-8 h-8 flex items-center justify-center rounded-md bg-white/10 text-white font-bold hover:bg-green-500/30 hover:text-green-300 transition"
+          className="w-8 h-8 flex items-center justify-center rounded-md bg-white/10 text-foreground font-bold hover:bg-green-500/30 hover:text-green-300 transition"
         >
           +
         </button>
       </div>
       {item.expiryDate && (
-        <p className="text-sm text-[#C8D9CF] mb-3">
+        <p className="text-sm text-foreground-muted mb-3">
           Expires: {new Date(item.expiryDate).toLocaleDateString()}
         </p>
       )}
       <div className="flex space-x-2">
         <button
           onClick={() => onEdit(item)}
-          className="flex-1 px-3 py-1 text-sm bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition"
+          className="flex-1 px-3 py-1 text-sm bg-primary text-primary-foreground font-semibold rounded hover:bg-primary-hover transition"
         >
           Edit
         </button>
         <button
           onClick={() => onDelete(item.id)}
-          className="flex-1 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+          className="flex-1 px-3 py-1 text-sm bg-red-600 text-foreground rounded hover:bg-red-700 transition"
         >
           Delete
         </button>
@@ -461,46 +461,46 @@ function EditModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="glass-card rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-xl font-bold text-white mb-4">Edit Item</h3>
+        <h3 className="text-xl font-bold text-foreground mb-4">Edit Item</h3>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Name</label>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+              className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
             />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Quantity</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-1">Quantity</label>
               <input
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) })}
-                className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+                className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Unit</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-1">Unit</label>
               <input
                 type="text"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+                className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Category</label>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Category</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value as 'pantry' | 'fridge' | 'freezer' })}
-              className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+              className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
             >
               <option value="pantry">Pantry</option>
               <option value="fridge">Fridge</option>
@@ -509,12 +509,12 @@ function EditModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#C8D9CF] mb-1">Expiry Date (optional)</label>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Expiry Date (optional)</label>
             <input
               type="date"
               value={formData.expiryDate || ''}
               onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+              className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
             />
           </div>
         </div>
@@ -522,13 +522,13 @@ function EditModal({
         <div className="flex space-x-3 mt-6">
           <button
             onClick={() => onSave(formData)}
-            className="flex-1 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(186,255,92,0.4)]"
+            className="flex-1 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary-hover"
           >
             Save
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/20"
+            className="flex-1 px-4 py-2 bg-gray-700 text-foreground rounded-md hover:bg-gray-600"
           >
             Cancel
           </button>

@@ -154,7 +154,7 @@ function MealPlansContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: '#000000' }}>
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-8 flex justify-center">
           <LoadingSpinner size="lg" />
@@ -164,21 +164,21 @@ function MealPlansContent() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <div className="container mx-auto px-4 pt-24 pb-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Meal Plans</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Meal Plans</h1>
           <button
             onClick={() => setShowForm(true)}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition text-sm sm:text-base"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary-hover transition text-sm sm:text-base"
           >
             Create Meal Plan
           </button>
         </div>
 
-        <p className="text-[#C8D9CF] text-sm mb-6">
+        <p className="text-foreground-muted text-sm mb-6">
           AI-generated meal schedules with full nutritional tracking. Set dietary preferences and SAVR will
           plan balanced meals that comply with your dietary goals and minimize food waste.
         </p>
@@ -192,13 +192,13 @@ function MealPlansContent() {
         {mealPlans.length === 0 ? (
           <div className="glass-card rounded-lg shadow p-12 text-center">
             <div className="text-6xl mb-4">📅</div>
-            <h2 className="text-2xl font-semibold text-white mb-2">No meal plans yet</h2>
-            <p className="text-[#C8D9CF] mb-6">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">No meal plans yet</h2>
+            <p className="text-foreground-muted mb-6">
               Create your first meal plan with nutritional tracking and never wonder what&apos;s for dinner!
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-lg hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary-hover transition text-sm sm:text-base"
             >
               Create Meal Plan
             </button>
@@ -220,11 +220,11 @@ function MealPlansContent() {
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="glass-card rounded-lg p-6 max-w-md w-full">
-              <h3 className="text-2xl font-bold text-white mb-6">Create Meal Plan</h3>
+              <h3 className="text-2xl font-bold text-foreground mb-6">Create Meal Plan</h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#C8D9CF] mb-1">
+                  <label className="block text-sm font-medium text-foreground-muted mb-1">
                     Number of Days
                   </label>
                   <input
@@ -233,18 +233,18 @@ function MealPlansContent() {
                     onChange={(e) => setFormData({ ...formData, days: parseInt(e.target.value) })}
                     min="1"
                     max="14"
-                    className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#C8D9CF] mb-1">
+                  <label className="block text-sm font-medium text-foreground-muted mb-1">
                     Meals Per Day
                   </label>
                   <select
                     value={formData.mealsPerDay}
                     onChange={(e) => setFormData({ ...formData, mealsPerDay: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-white/6 rounded-md bg-white/5 text-white"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-surface-raised/50 text-foreground"
                   >
                     <option value="1">1 meal</option>
                     <option value="2">2 meals</option>
@@ -253,7 +253,7 @@ function MealPlansContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#C8D9CF] mb-2">
+                  <label className="block text-sm font-medium text-foreground-muted mb-2">
                     Dietary Preferences
                   </label>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 max-h-40 overflow-y-auto">
@@ -283,7 +283,7 @@ function MealPlansContent() {
                               });
                             }
                           }}
-                          className="mr-2 accent-[#BAFF5C]"
+                          className="mr-2 accent-primary"
                         />
                         <span className="text-sm capitalize">{option}</span>
                       </label>
@@ -291,7 +291,7 @@ function MealPlansContent() {
                   </div>
                 </div>
 
-                <div className="rounded-lg px-4 py-3 text-xs text-[#C8D9CF]" style={{ background: 'rgba(186, 255, 92, 0.04)', border: '1px solid rgba(186, 255, 92, 0.1)' }}>
+                <div className="rounded-lg px-4 py-3 text-xs text-foreground-muted bg-primary/[0.04] border border-primary/10">
                   Nutritional data (calories, macros, sodium) will be calculated for every meal and summarized per day to help you track dietary compliance.
                 </div>
               </div>
@@ -300,14 +300,14 @@ function MealPlansContent() {
                 <button
                   onClick={handleGenerateMealPlan}
                   disabled={generating}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary-hover disabled:opacity-50"
                 >
                   {generating ? 'Creating...' : 'Create Plan'}
                 </button>
                 <button
                   onClick={() => setShowForm(false)}
                   disabled={generating}
-                  className="flex-1 px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/20"
+                  className="flex-1 px-4 py-2 bg-surface-raised text-foreground rounded-md hover:bg-muted border border-border"
                 >
                   Cancel
                 </button>
@@ -344,20 +344,20 @@ function MealPlanCard({
 
   return (
     <div className="glass-card rounded-lg shadow hover:shadow-lg transition p-6">
-      <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
-      <p className="text-sm text-[#C8D9CF] mb-2">
+      <h3 className="text-xl font-semibold text-foreground mb-2">{plan.name}</h3>
+      <p className="text-sm text-foreground-muted mb-2">
         {new Date(plan.startDate).toLocaleDateString()} - {new Date(plan.endDate).toLocaleDateString()}
       </p>
-      <p className="text-[#C8D9CF] mb-3">{plan.meals.length} meals planned</p>
+      <p className="text-foreground-muted mb-3">{plan.meals.length} meals planned</p>
 
       {avgDailyCalories && (
-        <div className="flex items-center gap-3 text-xs text-[#C8D9CF] mb-4 flex-wrap">
-          <span className="px-2 py-1 rounded bg-white/5">~{avgDailyCalories} cal/day</span>
+        <div className="flex items-center gap-3 text-xs text-foreground-muted mb-4 flex-wrap">
+          <span className="px-2 py-1 rounded bg-surface-raised/50">~{avgDailyCalories} cal/day</span>
           {plan.dailyNutritionSummary && plan.dailyNutritionSummary[0] && (
             <>
-              <span className="px-2 py-1 rounded bg-white/5">P {Math.round(plan.dailyNutritionSummary[0].totals.protein)}g</span>
-              <span className="px-2 py-1 rounded bg-white/5">C {Math.round(plan.dailyNutritionSummary[0].totals.carbs)}g</span>
-              <span className="px-2 py-1 rounded bg-white/5">F {Math.round(plan.dailyNutritionSummary[0].totals.fat)}g</span>
+              <span className="px-2 py-1 rounded bg-surface-raised/50">P {Math.round(plan.dailyNutritionSummary[0].totals.protein)}g</span>
+              <span className="px-2 py-1 rounded bg-surface-raised/50">C {Math.round(plan.dailyNutritionSummary[0].totals.carbs)}g</span>
+              <span className="px-2 py-1 rounded bg-surface-raised/50">F {Math.round(plan.dailyNutritionSummary[0].totals.fat)}g</span>
             </>
           )}
         </div>
@@ -366,13 +366,13 @@ function MealPlanCard({
       <div className="flex space-x-2">
         <button
           onClick={() => onView(plan)}
-          className="flex-1 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition"
+          className="flex-1 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded hover:bg-primary-hover transition"
         >
           View Plan
         </button>
         <button
           onClick={() => onDelete(plan.id)}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          className="px-4 py-2 bg-red-600 text-foreground rounded hover:bg-red-700 transition"
         >
           Delete
         </button>
@@ -388,19 +388,19 @@ function DailyNutritionBar({ totals, label }: { totals: NutritionalInfo; label?:
   const fatPct = macroTotal > 0 ? Math.round((totals.fat / macroTotal) * 100) : 0;
 
   return (
-    <div className="rounded-lg p-3" style={{ background: 'rgba(186, 255, 92, 0.04)', border: '1px solid rgba(186, 255, 92, 0.08)' }}>
-      {label && <div className="text-xs font-medium text-[#C8D9CF] mb-2">{label}</div>}
+    <div className="rounded-lg p-3 bg-primary/[0.04] border border-primary/[0.08]">
+      {label && <div className="text-xs font-medium text-foreground-muted mb-2">{label}</div>}
       <div className="flex items-center gap-4 mb-2">
         <div className="text-center">
-          <div className="text-base font-bold text-white">{Math.round(totals.calories)}</div>
+          <div className="text-base font-bold text-foreground">{Math.round(totals.calories)}</div>
           <div className="text-[10px] text-[#6b7294]">cal</div>
         </div>
         <div className="text-center">
-          <div className="text-sm font-semibold text-[#BAFF5C]">{Math.round(totals.protein)}g</div>
+          <div className="text-sm font-semibold text-primary">{Math.round(totals.protein)}g</div>
           <div className="text-[10px] text-[#6b7294]">protein</div>
         </div>
         <div className="text-center">
-          <div className="text-sm font-semibold text-[#a855f7]">{Math.round(totals.carbs)}g</div>
+          <div className="text-sm font-semibold text-secondary">{Math.round(totals.carbs)}g</div>
           <div className="text-[10px] text-[#6b7294]">carbs</div>
         </div>
         <div className="text-center">
@@ -408,17 +408,17 @@ function DailyNutritionBar({ totals, label }: { totals: NutritionalInfo; label?:
           <div className="text-[10px] text-[#6b7294]">fat</div>
         </div>
         <div className="text-center">
-          <div className="text-sm text-[#C8D9CF]">{Math.round(totals.fiber)}g</div>
+          <div className="text-sm text-foreground-muted">{Math.round(totals.fiber)}g</div>
           <div className="text-[10px] text-[#6b7294]">fiber</div>
         </div>
         <div className="text-center">
-          <div className="text-sm text-[#C8D9CF]">{Math.round(totals.sodium)}mg</div>
+          <div className="text-sm text-foreground-muted">{Math.round(totals.sodium)}mg</div>
           <div className="text-[10px] text-[#6b7294]">sodium</div>
         </div>
       </div>
       <div className="flex h-1.5 rounded-full overflow-hidden">
-        <div className="bg-[#BAFF5C]" style={{ width: `${proteinPct}%` }} />
-        <div className="bg-[#a855f7]" style={{ width: `${carbsPct}%` }} />
+        <div className="bg-primary" style={{ width: `${proteinPct}%` }} />
+        <div className="bg-secondary" style={{ width: `${carbsPct}%` }} />
         <div className="bg-[#f59e0b]" style={{ width: `${fatPct}%` }} />
       </div>
       <div className="flex justify-between text-[10px] text-[#6b7294] mt-1">
@@ -501,14 +501,14 @@ function MealPlanDetailsModal({
       <div className="glass-card rounded-lg p-6 max-w-4xl w-full my-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-3xl font-bold text-white">{plan.name}</h2>
-            <p className="text-[#C8D9CF]">
+            <h2 className="text-3xl font-bold text-foreground">{plan.name}</h2>
+            <p className="text-foreground-muted">
               {new Date(plan.startDate).toLocaleDateString()} - {new Date(plan.endDate).toLocaleDateString()}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-[#C8D9CF] hover:text-white text-2xl"
+            className="text-foreground-muted hover:text-foreground text-2xl"
           >
             ×
           </button>
@@ -520,8 +520,8 @@ function MealPlanDetailsModal({
             onClick={() => setActiveTab('schedule')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
               activeTab === 'schedule'
-                ? 'bg-[#BAFF5C]/15 text-[#BAFF5C]'
-                : 'text-[#C8D9CF] hover:text-white'
+                ? 'bg-primary/15 text-primary'
+                : 'text-foreground-muted hover:text-foreground'
             }`}
           >
             Meal Schedule
@@ -530,8 +530,8 @@ function MealPlanDetailsModal({
             onClick={() => setActiveTab('nutrition')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
               activeTab === 'nutrition'
-                ? 'bg-[#BAFF5C]/15 text-[#BAFF5C]'
-                : 'text-[#C8D9CF] hover:text-white'
+                ? 'bg-primary/15 text-primary'
+                : 'text-foreground-muted hover:text-foreground'
             }`}
           >
             Nutrition Tracker
@@ -542,10 +542,10 @@ function MealPlanDetailsModal({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-white/6">
-                  <th className="text-left py-2 pr-4 font-semibold text-white">Day</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 pr-4 font-semibold text-foreground">Day</th>
                   {mealTypes.map((mt) => (
-                    <th key={mt} className="text-left py-2 px-2 font-semibold text-white capitalize">
+                    <th key={mt} className="text-left py-2 px-2 font-semibold text-foreground capitalize">
                       {mt}
                     </th>
                   ))}
@@ -553,8 +553,8 @@ function MealPlanDetailsModal({
               </thead>
               <tbody>
                 {days.map((date) => (
-                  <tr key={date} className="border-b border-white/6">
-                    <td className="py-3 pr-4 font-medium text-[#C8D9CF] whitespace-nowrap">
+                  <tr key={date} className="border-b border-border">
+                    <td className="py-3 pr-4 font-medium text-foreground-muted whitespace-nowrap">
                       {new Date(date).toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
@@ -567,7 +567,7 @@ function MealPlanDetailsModal({
                         <td key={mt} className="py-3 px-2">
                           {meal ? (
                             <div>
-                              <div className="text-[#C8D9CF]">{meal.recipeName}</div>
+                              <div className="text-foreground-muted">{meal.recipeName}</div>
                               {meal.nutrition && (
                                 <div className="text-[10px] text-[#6b7294] mt-0.5">
                                   {meal.nutrition.calories} cal | P{meal.nutrition.protein}g C{meal.nutrition.carbs}g F{meal.nutrition.fat}g
@@ -591,36 +591,36 @@ function MealPlanDetailsModal({
           <div className="space-y-4">
             {/* Weekly average summary */}
             {weeklyAvg && (
-              <div className="rounded-xl p-4 mb-2" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.15)' }}>
-                <h3 className="text-sm font-semibold text-white mb-3">Daily Average</h3>
+              <div className="rounded-xl p-4 mb-2 bg-primary/[0.06] border border-primary/15">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Daily Average</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-7 gap-3">
                   <div className="text-center">
-                    <div className="text-xl font-bold text-white">{weeklyAvg.calories}</div>
-                    <div className="text-xs text-[#C8D9CF]">Calories</div>
+                    <div className="text-xl font-bold text-foreground">{weeklyAvg.calories}</div>
+                    <div className="text-xs text-foreground-muted">Calories</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-[#BAFF5C]">{weeklyAvg.protein}g</div>
-                    <div className="text-xs text-[#C8D9CF]">Protein</div>
+                    <div className="text-lg font-bold text-primary">{weeklyAvg.protein}g</div>
+                    <div className="text-xs text-foreground-muted">Protein</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-[#a855f7]">{weeklyAvg.carbs}g</div>
-                    <div className="text-xs text-[#C8D9CF]">Carbs</div>
+                    <div className="text-lg font-bold text-secondary">{weeklyAvg.carbs}g</div>
+                    <div className="text-xs text-foreground-muted">Carbs</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-[#f59e0b]">{weeklyAvg.fat}g</div>
-                    <div className="text-xs text-[#C8D9CF]">Fat</div>
+                    <div className="text-xs text-foreground-muted">Fat</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg text-[#C8D9CF]">{weeklyAvg.fiber}g</div>
-                    <div className="text-xs text-[#C8D9CF]">Fiber</div>
+                    <div className="text-lg text-foreground-muted">{weeklyAvg.fiber}g</div>
+                    <div className="text-xs text-foreground-muted">Fiber</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg text-[#C8D9CF]">{weeklyAvg.sugar}g</div>
-                    <div className="text-xs text-[#C8D9CF]">Sugar</div>
+                    <div className="text-lg text-foreground-muted">{weeklyAvg.sugar}g</div>
+                    <div className="text-xs text-foreground-muted">Sugar</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg text-[#C8D9CF]">{weeklyAvg.sodium}mg</div>
-                    <div className="text-xs text-[#C8D9CF]">Sodium</div>
+                    <div className="text-lg text-foreground-muted">{weeklyAvg.sodium}mg</div>
+                    <div className="text-xs text-foreground-muted">Sodium</div>
                   </div>
                 </div>
               </div>
@@ -632,7 +632,7 @@ function MealPlanDetailsModal({
                 <DailyNutritionBar key={idx} totals={day.totals} label={day.dayLabel} />
               ))
             ) : (
-              <div className="text-center py-8 text-[#C8D9CF]">
+              <div className="text-center py-8 text-foreground-muted">
                 <p>No nutritional data available for this meal plan.</p>
                 <p className="text-sm text-[#6b7294] mt-1">
                   Generate a new meal plan to get per-meal and daily nutritional tracking.
@@ -644,7 +644,7 @@ function MealPlanDetailsModal({
 
         <button
           onClick={onClose}
-          className="w-full mt-6 px-4 py-2 bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold rounded-md hover:shadow-[0_0_30px_rgba(186,255,92,0.4)]"
+          className="w-full mt-6 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary-hover"
         >
           Close
         </button>

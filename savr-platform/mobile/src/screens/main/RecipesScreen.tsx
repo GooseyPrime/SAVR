@@ -1,5 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, TouchableOpacity, Text, RefreshControl, TextInput } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  TextInput,
+  RefreshControl,
+} from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Recipe } from '../../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,6 +53,14 @@ function mapDbRecipeToMobile(recipe: any): Recipe {
   };
 }
 
+type RecipeFilter = 'all' | 'ai' | 'quick';
+
+const FILTER_LABELS: Record<RecipeFilter, string> = {
+  all: 'All',
+  ai: 'AI Generated',
+  quick: 'Quick (<30m)',
+};
+
 export default function RecipesScreen({ navigation }: RecipesScreenProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -51,6 +68,7 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
   const [generating, setGenerating] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<RecipeFilter>('all');
 
   useEffect(() => {
     loadRecipes();
@@ -62,7 +80,7 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
     try {
       const recipeList = await getRecipes(user.id);
       setRecipes(recipeList.map(mapDbRecipeToMobile));
-    } catch (_error) {
+    } catch (error) {
       Alert.alert('Error', 'Failed to load recipes');
     } finally {
       setLoading(false);
@@ -75,6 +93,16 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
     loadRecipes();
   };
 
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter((recipe) => {
+      const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+      if (activeFilter === 'ai') return (recipe as any).isAiGenerated ?? false;
+      if (activeFilter === 'quick') return ((recipe.prepTime ?? 0) + recipe.cookTime) <= 30;
+      return true;
+    });
+  }, [recipes, searchQuery, activeFilter]);
+
   const handleGenerateRecipes = async () => {
     if (!user) return;
 
@@ -84,13 +112,9 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
       const ingredients = inventoryItems.map((item) => item.name).filter(Boolean);
       if (ingredients.length === 0) {
         Alert.alert('No ingredients', 'Add items to your pantry first.');
-        setGenerating(false);
         return;
       }
-      await generateRecipes({
-        ingredients,
-        preferences: { difficulty: 'medium' }
-      });
+      await generateRecipes({ ingredients, preferences: { difficulty: 'medium' } });
       Alert.alert('Success', 'Recipe generated!');
       loadRecipes();
     } catch (error: any) {
@@ -101,10 +125,6 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
     }
   };
 
-  const filteredRecipes = recipes.filter(r =>
-    r.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -112,29 +132,55 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
   return (
     <View style={styles.container}>
       {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={colors.foregroundMuted} />
+      <View style={styles.searchRow}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={18} color={colors.foregroundMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search recipes…"
+            placeholder="Search recipes..."
             placeholderTextColor={colors.foregroundMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={colors.foregroundMuted} />
+              <Ionicons name="close" size={18} color={colors.foregroundMuted} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
+      {/* Filter chips */}
+      <View style={styles.filterRow}>
+        {(['all', 'ai', 'quick'] as RecipeFilter[]).map((filter) => (
+          <TouchableOpacity
+            key={filter}
+            style={[styles.chip, activeFilter === filter && styles.chipActive]}
+            onPress={() => setActiveFilter(filter)}
+          >
+            <Text style={[styles.chipText, activeFilter === filter && styles.chipTextActive]}>
+              {FILTER_LABELS[filter]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {(searchQuery || activeFilter !== 'all') && (
+        <Text style={styles.resultsCount}>
+          {filteredRecipes.length} {filteredRecipes.length === 1 ? 'recipe' : 'recipes'} found
+        </Text>
+      )}
+
       <FlatList
         data={filteredRecipes}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
         renderItem={({ item }) => (
           <RecipeCard
@@ -144,29 +190,26 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="restaurant-outline" size={40} color={colors.primary} />
-            </View>
+            <Ionicons name="restaurant-outline" size={56} color={colors.foregroundMuted} />
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No matching recipes' : 'No recipes yet'}
+              {recipes.length === 0 ? 'No recipes yet' : 'No matching recipes'}
             </Text>
             <Text style={styles.emptySubtext}>
-              {searchQuery ? 'Try a different search term' : 'Tap ✦ to generate recipes from your pantry'}
+              {recipes.length === 0
+                ? 'Generate your first recipe from your pantry'
+                : 'Try adjusting your search or filter'}
             </Text>
           </View>
         }
         contentContainerStyle={filteredRecipes.length === 0 ? styles.emptyContainer : styles.listContent}
       />
 
-      <TouchableOpacity
-        style={[styles.fab, generating && styles.fabDisabled]}
-        onPress={handleGenerateRecipes}
-        disabled={generating}
-      >
+      {/* Generate Recipe FAB */}
+      <TouchableOpacity style={styles.fab} onPress={handleGenerateRecipes} disabled={generating}>
         {generating ? (
           <LoadingSpinner size="small" color={colors.primaryForeground} />
         ) : (
-          <Ionicons name="sparkles" size={26} color={colors.primaryForeground} />
+          <Ionicons name="sparkles" size={28} color={colors.primaryForeground} />
         )}
       </TouchableOpacity>
     </View>
@@ -178,46 +221,67 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  searchContainer: {
+  searchRow: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
   },
-  searchBar: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: 10,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
     color: colors.foreground,
+    fontSize: 15,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    color: colors.foregroundSecondary,
+  },
+  chipTextActive: {
+    color: colors.primaryForeground,
+    fontWeight: '600',
+  },
+  resultsCount: {
+    fontSize: 13,
+    color: colors.foregroundMuted,
+    paddingHorizontal: 16,
+    marginBottom: 6,
   },
   listContent: {
     padding: 16,
+    paddingBottom: 100,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: radii.xl,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
   },
   emptyState: {
     flex: 1,
@@ -227,17 +291,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.foreground,
-    marginBottom: 8,
+    marginTop: 14,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     color: colors.foregroundMuted,
+    marginTop: 6,
     textAlign: 'center',
-    lineHeight: 20,
   },
   fab: {
     position: 'absolute',
@@ -250,8 +314,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadowElevations.md,
-  },
-  fabDisabled: {
-    opacity: 0.6,
   },
 });

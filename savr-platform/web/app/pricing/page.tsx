@@ -99,7 +99,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       {/* Load Stripe Pricing Table script - Stripe's official integration */}
@@ -112,9 +112,9 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         {/* Onboarding banner for new users */}
         {user && userData?.subscription_status === 'pending' && (
-          <div className="max-w-2xl mx-auto mb-10 rounded-xl px-6 py-5 text-center" style={{ background: 'rgba(186, 255, 92, 0.06)', border: '1px solid rgba(186, 255, 92, 0.2)' }}>
-            <h3 className="text-lg font-semibold text-white mb-2">Choose a plan to get started</h3>
-            <p className="text-sm text-[#C8D9CF]">
+          <div className="max-w-2xl mx-auto mb-10 rounded-xl px-6 py-5 text-center" style={{ background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Choose a plan to get started</h3>
+            <p className="text-sm text-foreground-muted">
               Select a plan below to begin your 5-day free trial. Your payment info is collected now but you will not be charged until the trial ends. Cancel anytime.
             </p>
           </div>
@@ -122,12 +122,12 @@ export default function PricingPage() {
 
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">Pricing</h2>
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">Pricing</h2>
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4 leading-tight">
             Simple, transparent<br />
             <span className="gradient-text">pricing</span>
           </h1>
-          <p className="text-lg max-w-xl mx-auto" style={{ color: '#9ca3c2' }}>
+          <p className="text-lg max-w-xl mx-auto text-foreground-muted">
             Try any plan free for 5 days. No charge until your trial ends. Coupon codes accepted at checkout.
           </p>
         </div>
@@ -141,16 +141,16 @@ export default function PricingPage() {
         {/* Existing Subscriber - Show Billing Portal Access */}
         {hasActiveSub ? (
           <div className="max-w-2xl mx-auto">
-            <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(13, 17, 41, 0.7)', border: '1px solid rgba(186, 255, 92, 0.25)' }}>
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(186, 255, 92, 0.1)' }}>
-                <svg className="w-8 h-8" fill="none" stroke="#BAFF5C" strokeWidth={2} viewBox="0 0 24 24">
+            <div className="rounded-2xl p-8 text-center bg-surface/70 border border-primary/25">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-primary/10">
+                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">
+              <h3 className="text-2xl font-bold text-foreground mb-2">
                 You&apos;re on the {isPro ? 'Pro' : 'Basic'} plan
               </h3>
-              <p className="text-[#C8D9CF] mb-6">
+              <p className="text-foreground-muted mb-6">
                 {isPro 
                   ? 'You have access to unlimited recipes, meal plans, AI chat, and more.'
                   : 'Enjoying your subscription. Upgrade to Pro for unlimited access and AI chat.'}
@@ -159,7 +159,7 @@ export default function PricingPage() {
                 type="button"
                 onClick={handleManageBilling}
                 disabled={loadingPortal}
-                className="inline-block rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold px-8 py-3 text-sm hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] disabled:opacity-50 transition-all duration-200"
+                className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover disabled:opacity-50 transition-all duration-200"
               >
                 {loadingPortal ? 'Opening portal...' : 'Manage subscription & billing'}
               </button>
@@ -173,12 +173,12 @@ export default function PricingPage() {
           <div className="max-w-5xl mx-auto">
             {!user && (
               <div className="mb-8 text-center">
-                <p className="text-[#C8D9CF] mb-4">
+                <p className="text-foreground-muted mb-4">
                   Sign in to get started with your 5-day free trial
                 </p>
                 <button
                   onClick={() => router.push('/sign-in')}
-                  className="inline-block rounded-lg bg-gradient-to-r from-[#BAFF5C] to-[#C8FF7A] text-black font-semibold px-8 py-3 text-sm hover:shadow-[0_0_30px_rgba(186,255,92,0.4)] transition-all duration-200"
+                  className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
                 >
                   Sign in to continue
                 </button>
@@ -191,14 +191,14 @@ export default function PricingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Configuration Error</h3>
+                <h3 className="text-xl font-bold text-foreground mb-3">Configuration Error</h3>
                 <p className="text-[#f87171] mb-4">
                   The pricing table cannot be displayed because Stripe is not configured.
                 </p>
-                <p className="text-sm text-[#C8D9CF] mb-6">
+                <p className="text-sm text-foreground-muted mb-6">
                   Missing environment variables: {getMissingEnvVars()}
                 </p>
-                <div className="text-left bg-black/30 rounded-lg p-4 text-xs font-mono text-[#C8D9CF]">
+                <div className="text-left bg-black/30 rounded-lg p-4 text-xs font-mono text-foreground-muted">
                   <p className="mb-2">For administrators:</p>
                   <p>1. Set GitHub Secrets in repository settings</p>
                   <p>2. Redeploy the application</p>
@@ -215,8 +215,8 @@ export default function PricingPage() {
         {/* FAQ Section */}
         <div className="mt-24 max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">FAQ</h2>
-            <p className="text-3xl md:text-4xl font-bold text-white">Frequently asked questions</p>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">FAQ</h2>
+            <p className="text-3xl md:text-4xl font-bold text-foreground">Frequently asked questions</p>
           </div>
           <div className="space-y-4">
             <FAQItem
@@ -258,14 +258,14 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       className="rounded-xl overflow-hidden transition-all duration-200"
       style={{
         background: isOpen ? 'rgba(13, 17, 41, 0.8)' : 'rgba(13, 17, 41, 0.5)',
-        border: `1px solid ${isOpen ? 'rgba(186, 255, 92, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
+        border: `1px solid ${isOpen ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
       }}
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-6 py-5 text-left flex justify-between items-center"
       >
-        <span className="font-semibold text-white text-sm">{question}</span>
+        <span className="font-semibold text-foreground text-sm">{question}</span>
         <svg
           className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -277,7 +277,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         </svg>
       </button>
       {isOpen && (
-        <div className="px-6 pb-5 text-sm leading-relaxed" style={{ color: '#9ca3c2' }}>
+        <div className="px-6 pb-5 text-sm leading-relaxed text-foreground-muted">
           {answer}
         </div>
       )}

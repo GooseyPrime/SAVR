@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -19,25 +19,17 @@ interface LocalMealPlan {
   meals: MealPlanMeal[];
 }
 
-const MEAL_ICONS: Record<string, string> = {
-  breakfast: 'sunny-outline',
-  lunch: 'partly-sunny-outline',
-  dinner: 'moon-outline',
-  snack: 'cafe-outline',
+const MEAL_TYPE_ICONS: Record<string, string> = {
+  breakfast: '🌅',
+  lunch: '☀️',
+  dinner: '🌙',
+  snack: '🍎',
 };
-
-const MEAL_LABELS: Record<string, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-};
-
-const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 export default function MealPlansScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [mealPlans, setMealPlans] = useState<LocalMealPlan[]>([]);
 
@@ -51,11 +43,17 @@ export default function MealPlansScreen() {
     try {
       const plans = await getMealPlans(user.id);
       setMealPlans(plans as LocalMealPlan[]);
-    } catch (_error) {
+    } catch (error) {
       Alert.alert('Error', 'Failed to load meal plans');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadMealPlans();
   };
 
   const handleGenerateMealPlan = async () => {
@@ -66,7 +64,7 @@ export default function MealPlansScreen() {
       await generateMealPlan({ days: 7 });
       Alert.alert('Success', 'Meal plan generated successfully!');
       loadMealPlans();
-    } catch (_error) {
+    } catch (error) {
       Alert.alert('Error', 'Failed to generate meal plan');
     } finally {
       setGenerating(false);
@@ -82,28 +80,25 @@ export default function MealPlansScreen() {
       <FlatList
         data={mealPlans}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="calendar-outline" size={40} color={colors.primary} />
-            </View>
-            <Text style={styles.emptyText}>No meal plans yet</Text>
-            <Text style={styles.emptySubtext}>Tap ✦ to generate a weekly meal plan</Text>
-          </View>
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
-        contentContainerStyle={mealPlans.length === 0 ? styles.emptyContainer : styles.listContent}
         renderItem={({ item }) => {
-          const mealsOrdered = MEAL_ORDER
-            .map(type => item.meals?.find(m => m.meal_type === type))
-            .filter(Boolean) as MealPlanMeal[];
+          const mealsByType = item.meals?.reduce((acc, meal) => {
+            if (!acc[meal.meal_type]) acc[meal.meal_type] = meal;
+            return acc;
+          }, {} as Record<string, MealPlanMeal>);
 
           return (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.calendarDot}>
-                  <Ionicons name="calendar" size={16} color={colors.primary} />
-                </View>
-                <Text style={styles.date}>
+            <View style={styles.mealPlanCard}>
+              <View style={styles.dateRow}>
+                <Ionicons name="calendar" size={18} color={colors.primary} />
+                <Text style={styles.dateText}>
                   {new Date(item.start_date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'short',
@@ -111,39 +106,48 @@ export default function MealPlansScreen() {
                   })}
                 </Text>
               </View>
-              <View style={styles.meals}>
-                {mealsOrdered.map(meal => (
-                  <View key={meal.meal_type} style={styles.mealRow}>
-                    <View style={styles.mealIconWrap}>
-                      <Ionicons
-                        name={(MEAL_ICONS[meal.meal_type] || 'restaurant-outline') as any}
-                        size={14}
-                        color={colors.primary}
-                      />
+              <View style={styles.mealsContainer}>
+                {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((type) => {
+                  const meal = mealsByType?.[type];
+                  if (!meal) return null;
+                  return (
+                    <View key={type} style={styles.mealRow}>
+                      <Text style={styles.mealTypeIcon}>{MEAL_TYPE_ICONS[type] || '🍽️'}</Text>
+                      <View style={styles.mealInfo}>
+                        <Text style={styles.mealType}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </Text>
+                        <Text style={styles.mealTitle} numberOfLines={1}>
+                          {meal.recipe_title || 'Planned meal'}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.mealInfo}>
-                      <Text style={styles.mealType}>{MEAL_LABELS[meal.meal_type] || meal.meal_type}</Text>
-                      <Text style={styles.mealTitle} numberOfLines={1}>
-                        {meal.recipe_title || 'Planned meal'}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </View>
           );
         }}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-outline" size={56} color={colors.foregroundMuted} />
+            <Text style={styles.emptyText}>No meal plans yet</Text>
+            <Text style={styles.emptySubtext}>Generate a 7-day meal plan to get started</Text>
+          </View>
+        }
+        contentContainerStyle={mealPlans.length === 0 ? styles.emptyContainer : styles.listContent}
       />
 
+      {/* Generate Meal Plan FAB */}
       <TouchableOpacity
-        style={[styles.fab, generating && styles.fabDisabled]}
+        style={styles.fab}
         onPress={handleGenerateMealPlan}
         disabled={generating}
       >
         {generating ? (
           <LoadingSpinner size="small" color={colors.primaryForeground} />
         ) : (
-          <Ionicons name="sparkles" size={26} color={colors.primaryForeground} />
+          <Ionicons name="sparkles" size={28} color={colors.primaryForeground} />
         )}
       </TouchableOpacity>
     </View>
@@ -157,24 +161,59 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 96,
+    paddingBottom: 100,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: radii.xl,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+  mealPlanCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: colors.border,
+    padding: 16,
+    marginBottom: 16,
+    ...shadowElevations.sm,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dateText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.foreground,
+  },
+  mealsContainer: {
+    gap: 10,
+  },
+  mealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  mealTypeIcon: {
+    fontSize: 20,
+    width: 28,
+    textAlign: 'center',
+  },
+  mealInfo: {
+    flex: 1,
+  },
+  mealType: {
+    fontSize: 12,
+    color: colors.foregroundMuted,
+    marginBottom: 2,
+  },
+  mealTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.foreground,
   },
   emptyState: {
     flex: 1,
@@ -184,78 +223,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.foreground,
-    marginBottom: 8,
+    marginTop: 14,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     color: colors.foregroundMuted,
+    marginTop: 6,
     textAlign: 'center',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadowElevations.sm,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  calendarDot: {
-    width: 30,
-    height: 30,
-    borderRadius: radii.md,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  date: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.foreground,
-  },
-  meals: {
-    gap: 10,
-  },
-  mealRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  mealIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.sm,
-    backgroundColor: colors.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  mealInfo: {
-    flex: 1,
-  },
-  mealType: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.foregroundMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  mealTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.foregroundSecondary,
   },
   fab: {
     position: 'absolute',
@@ -268,8 +246,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadowElevations.md,
-  },
-  fabDisabled: {
-    opacity: 0.6,
   },
 });

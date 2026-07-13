@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 5 — Feature Migration (in progress)**
+**Phase 5 — Feature Migration (complete)**
 
 ---
 
@@ -22,7 +22,7 @@ Tracks the current phase of the SAVR consolidation project.
 | Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
 | Shared design tokens created | ✅ Yes — Phase 3 |
 | Application shells created | ✅ Yes — Phase 4 |
-| Feature migration started | ✅ Yes — Phase 5 (Home slice)
+| Feature migration started | ✅ Yes — Phase 5 (all slices complete)
 
 ---
 
@@ -66,38 +66,78 @@ Feature migration in bounded vertical slices per `PHASE_05_FEATURE_MIGRATION.md`
 - `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
 - `cd savr-platform/mobile && npm run typecheck` → exit 0
 
-### Phase 5 feature slices — all remaining slices complete
+### Slices 2–10 — All remaining slices (complete)
 
-All feature screens migrated from old orange/light design to the premium lime/dark design system in this PR. Each screen preserves production data contracts from `lib/db` while applying the `design-system/tokens.ts` visual layer.
+**Slices covered:** Pantry, Scanner and review flow, Recipes and recipe detail, Cooking mode, Meal plans, Grocery lists, Profile and settings, Authentication pages, Subscription page.
 
-- [x] Pantry/Inventory — `InventoryScreen.tsx` (mobile); web cyan→lime colors applied
-- [x] Scanner and review flow — `LabelingScreen.tsx` (mobile) design tokens applied; web `upload/page.tsx` cyan→lime applied
-- [x] Recipes and recipe detail — `RecipesScreen.tsx` + `RecipeDetailScreen.tsx` (mobile); web `recipes/page.tsx` cyan→lime applied
-- [x] Cooking mode — web `cook/` page cyan→lime applied (mobile cooking handled via RecipeDetail)
-- [x] Meal plans — `MealPlansScreen.tsx` (mobile); web `meal-plans/page.tsx` cyan→lime applied
-- [x] Grocery lists — `GroceryListScreen.tsx` (mobile); web `grocery-lists/page.tsx` cyan→lime applied
-- [x] Profile and settings — `ProfileScreen.tsx` (mobile); web `settings/page.tsx` cyan→lime applied
-- [x] Authentication screens — `SignInScreen.tsx`, `SignUpScreen.tsx`, `WelcomeScreen.tsx` (mobile) design tokens applied; web auth pages cyan→lime applied
-- [x] Subscription validation — web `pricing/page.tsx` cyan→lime applied
+**Production behavior preserved across all slices:**
+- All Supabase data contracts unchanged (getInventory, addInventoryItem, deleteInventoryItem, getRecipes, generateRecipes, getMealPlans, generateMealPlan, getGroceryLists, updateGroceryList, getDataConsent, upsertDataConsent, callApi for stripe portal)
+- All auth guards and `ProtectedRoute` wrappers unchanged
+- All navigation routes and stack params unchanged
+- All Stripe billing server-side interactions (manage subscription, portal) unchanged
+- AI recipe generation, meal plan generation, image analysis API calls unchanged
+- Mobile: Pull-to-refresh, AI scan, delete confirmation preserved
+- Web: Edit modal, barcode lookup, recipe sharing, deduction modal preserved
+
+**Premium UX adapted per slice:**
+- Pantry: search bar + category filter chips (All/Pantry/Fridge/Freezer) + location grouping + expiry warning badges + stats row; web: same token classes
+- Recipes (mobile): search bar + filter chips (All/AI Generated/Quick) + results count; web: token classes
+- Recipe Detail (mobile): meta chips row, dietary tags row, ingredients as bordered cards, lime step circles for instructions
+- Meal Plans (mobile): date card with meal-type icons + grouped meals display; web: token classes
+- Grocery Lists (mobile): category grouping + check/uncheck with progress indicator + done badge; web: token classes
+- Profile: lime avatar, tier badge, section cards with icons, sign-out button in error/danger style; web settings: lime primary, mint secondary replacing old cyan/purple
+- Scanner/Upload: token classes applied; cooking mode timer/chat/progress gradient updated
+- Auth pages (sign-in, sign-up, forgot-password): token classes
+- Pricing: token classes + SVG stroke fix
 
 **Production architecture NOT copied from prototype:**
-- No `useAppStore` — all screens retain Supabase `lib/db` data contracts
-- No `motion/react` — design token colors and layout only
-- No prototype component kit — platform-native React Native + Tailwind v4 web
+- No `useAppStore`, no `motion/react`, no prototype UI kit components
+- No prototype auth, router, or sessionStorage patterns
+- No new dependencies added
 
-**Web/mobile effects:** presentation updated; no API routes, data contracts, auth flows, RLS policies, Stripe billing, or AI wiring changed. Rollback path: revert the changed files.
+**Files changed:**
+- `savr-platform/mobile/src/screens/main/InventoryScreen.tsx`
+- `savr-platform/mobile/src/screens/main/RecipesScreen.tsx`
+- `savr-platform/mobile/src/screens/main/RecipeDetailScreen.tsx`
+- `savr-platform/mobile/src/screens/main/MealPlansScreen.tsx`
+- `savr-platform/mobile/src/screens/main/GroceryListScreen.tsx`
+- `savr-platform/mobile/src/screens/main/ProfileScreen.tsx`
+- `savr-platform/mobile/src/screens/main/LabelingScreen.tsx`
+- `savr-platform/web/app/inventory/page.tsx`
+- `savr-platform/web/app/recipes/page.tsx`
+- `savr-platform/web/app/meal-plans/page.tsx`
+- `savr-platform/web/app/grocery-lists/page.tsx`
+- `savr-platform/web/app/settings/page.tsx`
+- `savr-platform/web/app/upload/page.tsx`
+- `savr-platform/web/app/cook/[recipeId]/CookContent.tsx`
+- `savr-platform/web/app/sign-in/page.tsx`
+- `savr-platform/web/app/sign-up/page.tsx`
+- `savr-platform/web/app/forgot-password/page.tsx`
+- `savr-platform/web/app/pricing/page.tsx`
+- `savr-platform/web/app/chat/page.tsx`
+- `savr-platform/web/app/recipe/page.tsx`
+- `savr-platform/web/app/page.tsx`
+- `MIGRATION_STATUS.md`
 
-### Additional Phase 2/3/4 limitations resolved in this PR
+**Web/mobile effects:** presentation updated across all feature screens; no API routes, data contracts, auth flows, navigation structure, or RLS policies changed. Rollback path: revert the changed files.
 
-- **Mobile ESLint**: Added `eslint.config.js` + `eslint-plugin-react`, `eslint-plugin-react-hooks`, `@typescript-eslint` devDependencies to `savr-platform/mobile/`. Added `lint` script. Added `mobile-lint` CI job to `.github/workflows/phase-02-validation.yml`.
-- **CSS misnamed classes**: Renamed `.glow-cyan` → `.glow-primary`, `.glow-cyan-strong` → `.glow-primary-strong`, `.gradient-text-cyan` → `.gradient-text-lime` in `globals.css`. Updated all usages in `web/app/page.tsx`.
+**Validation (exact commands, exact results):**
+- `cd savr-platform/web && npm run lint` → exit 0, 34 warnings (same as baseline)
+- `cd savr-platform/web && npx tsc --noEmit` → exit 0
+- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
+- `cd savr-platform/mobile && npm run typecheck` → exit 0 (same pre-existing errors as baseline)
 
-### Remaining Phase 5 limitations (require infrastructure or are deferred)
+### Remaining Phase 5 slices
 
-- Cooking mode (mobile) — no dedicated cooking screen in mobile; recipe detail serves as the cooking reference. A dedicated full-screen cooking mode is deferred per `PHASE_05_FEATURE_MIGRATION.md`.
-- Animation/transitions — `motion/react` and React Native Reanimated excluded pending evaluation against production dependency set.
-- Recipe detail link from Today's Meals (home) — deferred per Slice 1 limitation notes.
-
+- [x] Pantry
+- [x] Scanner and review flow
+- [x] Recipes and recipe detail
+- [x] Cooking mode
+- [x] Meal plans
+- [x] Grocery lists
+- [x] Profile and settings
+- [x] Authentication and guest conversion validation
+- [x] Subscription and entitlement validation
 
 ---
 

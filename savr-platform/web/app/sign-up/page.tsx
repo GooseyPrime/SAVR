@@ -51,7 +51,7 @@ export default function SignUpPage() {
         setError(
           <span>
             An account with this email already exists. You may have previously signed up with Google.{' '}
-            <Link href="/sign-in" className="underline text-[#BAFF5C]">Sign in instead</Link>
+            <Link href="/sign-in" className="underline text-primary">Sign in instead</Link>
           </span>
         );
       } else {
@@ -80,14 +80,14 @@ export default function SignUpPage() {
         setError(
           <span>
             An account with this email already exists using email and password.{' '}
-            <Link href="/sign-in" className="underline text-[#BAFF5C]">Sign in with your password</Link>, then link your Google account in Settings.
+            <Link href="/sign-in" className="underline text-primary">Sign in with your password</Link>, then link your Google account in Settings.
           </span>
         );
       } else if (message.includes('auth/email-already-in-use')) {
         setError(
           <span>
             This email is already registered.{' '}
-            <Link href="/sign-in" className="underline text-[#BAFF5C]">Sign in instead</Link>
+            <Link href="/sign-in" className="underline text-primary">Sign in instead</Link>
           </span>
         );
       } else {
@@ -119,17 +119,17 @@ export default function SignUpPage() {
   );
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="flex items-center justify-center pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 p-8 rounded-2xl" style={{ background: 'rgba(10, 10, 10, 0.7)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
           <div>
-            <h2 className="text-center text-3xl font-bold text-white">
+            <h2 className="text-center text-3xl font-bold text-foreground">
               Create your account
             </h2>
-            <p className="mt-2 text-center text-sm" style={{ color: '#9ca3c2' }}>
+            <p className="mt-2 text-center text-sm text-foreground-muted">
               Start your 5-day free trial. Or{' '}
-              <Link href="/sign-in" className="font-medium text-[#BAFF5C] hover:text-[#00bfa6] transition-colors">
+              <Link href="/sign-in" className="font-medium text-primary hover:text-[#00bfa6] transition-colors">
                 sign in to existing account
               </Link>
             </p>
@@ -144,7 +144,7 @@ export default function SignUpPage() {
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#C8D9CF] mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-foreground-muted mb-1">
                   Email address
                 </label>
                 <input
@@ -155,16 +155,16 @@ export default function SignUpPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
+                  className="w-full px-4 py-3 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
                   style={inputStyle}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
+                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                   placeholder="you@example.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-[#C8D9CF] mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground-muted mb-1">
                   Password
                 </label>
                 <div className="relative">
@@ -176,16 +176,16 @@ export default function SignUpPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
+                    className="w-full px-4 py-3 pr-12 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
                     style={inputStyle}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
+                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                     placeholder="At least 6 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#C8D9CF] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-foreground-muted transition-colors"
                     tabIndex={-1}
                   >
                     <EyeIcon show={showPassword} />
@@ -194,7 +194,7 @@ export default function SignUpPage() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#C8D9CF] mb-1">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground-muted mb-1">
                   Confirm Password
                 </label>
                 <div className="relative">
@@ -206,16 +206,16 @@ export default function SignUpPage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200"
+                    className="w-full px-4 py-3 pr-12 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
                     style={inputStyle}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)'}
+                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
                     placeholder="Confirm your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-[#C8D9CF] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7294] hover:text-foreground-muted transition-colors"
                     tabIndex={-1}
                   >
                     <EyeIcon show={showConfirmPassword} />
@@ -249,7 +249,7 @@ export default function SignUpPage() {
               <button
                 onClick={handleGoogleSignUp}
                 disabled={loading}
-                className="w-full flex justify-center items-center py-3 px-4 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center items-center py-3 px-4 rounded-xl text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'; }}
