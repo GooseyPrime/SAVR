@@ -122,7 +122,7 @@ export default function Navbar() {
                 SAVR
               </p>
               <p className="text-xs text-[var(--color-foreground-muted)]">
-                Smart kitchen shell
+                Production workspace
               </p>
             </div>
           </Link>
