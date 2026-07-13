@@ -8,13 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
-  newArchEnabled: true,
   scheme: 'savr',
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff',
-  },
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.savr.app',
@@ -31,7 +25,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: 'com.savr.app',
     versionCode: 1,
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     permissions: [
       'CAMERA',

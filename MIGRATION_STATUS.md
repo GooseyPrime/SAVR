@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 2 — Validation and Contract Reconciliation (complete)**
+**Phase 3 — Shared Design System Foundation (in progress)**
 
 ---
 
@@ -18,8 +18,9 @@ Tracks the current phase of the SAVR consolidation project.
 | Source roles established | ✅ Yes |
 | Architecture discovery complete | ✅ Yes, with explicit verification limitations and unresolved conflicts documented |
 | Canonical application initialized | ✅ Yes — Phase 1 PR merged |
-| Validation gates established | ✅ Yes — Phase 2 complete |
+| Validation gates documented | ✅ Yes — Phase 2 complete |
 | Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
+| Shared design tokens created | ✅ Yes — Phase 3 |
 | Feature migration started | ❌ No |
 
 ---
@@ -83,11 +84,63 @@ The production baseline from `SAVR-old/` was copied into `savr-platform/` withou
 
 ---
 
+## Phase 2 Completion Summary
+
+Phase 2 (Validation and Contract Reconciliation) exit criteria were met through
+documentation established across Phase 1 and subsequent cleanup. No dedicated
+Phase 2 PR was needed because all required artifacts already existed.
+
+### Exit criteria met
+
+- Validation gates documented in `docs/validation/required-gates.md`
+- Source-of-truth conflicts documented in `docs/architecture/source-of-truth.md`
+- Production architecture reference documented in `docs/architecture/production-reference.md`
+- Stale Firebase-era root scripts removed from `savr-platform/package.json`
+- CI workflow established for web lint, typecheck, and production build (`phase-01-baseline.yml`)
+- `typecheck` npm script added to `savr-platform/web/package.json` (closes Phase 1 gap)
+
+### Remaining validation gaps (documented, not blocking Phase 3)
+
+- Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
+- Supabase migration validation has no committed `db lint` or `db reset` script
+- E2E tests require a running application; cannot run headless in CI without a deployed target
+- No non-E2E unit/integration test commands
+
+---
+
+## Phase 3 Completion Summary
+
+Shared design tokens ported from `savr-premium-mobile-app/src/theme.css` into
+production-safe shared primitives available to both web and mobile platforms.
+
+### What was created
+
+- `savr-platform/design-system/tokens.ts` — canonical TypeScript source of all token values
+- `savr-platform/design-system/web/theme.css` — Tailwind v4 `@theme` CSS block (mirrors tokens.ts)
+- `savr-platform/design-system/README.md` — per-platform usage documentation
+- `savr-platform/mobile/src/theme/index.ts` — React Native–compatible token constants
+
+### What was updated
+
+- `savr-platform/web/app/globals.css` — replaced old cyan/purple theme with premium lime/dark-green design system tokens via Tailwind v4 `@theme` block; updated utility classes and global styles to use CSS variables
+- `savr-platform/web/package.json` — added `typecheck` npm script
+- `.github/workflows/phase-01-baseline.yml` — updated typecheck job to use `npm run typecheck`
+
+### What did NOT change
+
+- No API routes, data contracts, or auth flows modified
+- No navigation structure or routing changed
+- No database or RLS changes
+- `SAVR-old/` and `savr-premium-mobile-app/` not modified
+
+---
+
 ## Known Remaining Blockers
 
 - Billing tier names conflict — see `docs/decisions/ADR-001-billing-tier-names.md`
 - Firebase Storage backward compat — see `docs/decisions/ADR-002-firebase-storage-compat.md`
 - Mobile Google OAuth requires additional setup; not production-ready for all paths
+- Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
 - Supabase migration validation has no committed `db lint` or `db reset` script
 - E2E tests require a running application; cannot run headless in CI without a deployed target
 - No unit/integration test suite for web or mobile
@@ -96,13 +149,13 @@ The production baseline from `SAVR-old/` was copied into `savr-platform/` withou
 
 ## Next Phase
 
-**Phase 3 — Design System**
+**Phase 4 — Application Shells**
 
 Required outcome:
 
-1. Adapt design tokens, typography, color, and component primitives from `savr-premium-mobile-app/` into `savr-platform/`.
-2. Preserve production data contracts; change only presentation.
-3. Do not introduce a second auth state, local-only persistence, or prototype architecture.
+1. Production-safe web and mobile application shells in `savr-platform/` that preserve routing, auth boundaries, safe areas, and navigation affordances.
+2. Shells consume the shared design token layer established in Phase 3.
+3. No feature behavior changes beyond presentation and navigation structure.
 
 ---
 
