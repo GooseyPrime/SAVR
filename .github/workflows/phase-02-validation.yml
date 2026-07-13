@@ -1,0 +1,35 @@
+name: Phase 02 — Validation and Contracts
+
+on:
+  push:
+    paths:
+      - 'savr-platform/mobile/**'
+      - '.github/workflows/phase-02-validation.yml'
+  pull_request:
+    paths:
+      - 'savr-platform/mobile/**'
+      - '.github/workflows/phase-02-validation.yml'
+
+jobs:
+  mobile-typecheck:
+    name: Mobile — TypeScript check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npm run typecheck
