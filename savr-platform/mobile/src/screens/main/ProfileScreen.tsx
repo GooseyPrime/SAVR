@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } 
 import { useAuth } from '../../contexts/AuthContext';
 import { isPaidTier } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 const APP_URL = 'https://savr.cam';
 
@@ -26,103 +27,101 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const isPro = isPaidTier(userData?.subscriptionTier);
+  const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
+  const tierLabel = isPro ? 'Pro' : 'Basic';
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Profile header */}
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
-          <Ionicons name="person" size={48} color="#ea580c" />
+          <Ionicons name="person" size={44} color={colors.primaryForeground} />
         </View>
-        <Text style={styles.name}>{userData?.displayName || 'Chef'}</Text>
+        <Text style={styles.name}>{displayName}</Text>
         <Text style={styles.email}>{user?.email}</Text>
-        
-        <View style={styles.subscriptionBadge}>
-          <Text style={[
-            styles.subscriptionText,
-            isPaidTier(userData?.subscriptionTier) && styles.proText
-          ]}>
-            {userData?.subscriptionTier === 'pro' || userData?.subscriptionTier === 'plus' || userData?.subscriptionTier === 'premium' ? '⭐ Pro' : '📦 Basic'}
+        <View style={[styles.tierBadge, isPro && styles.tierBadgePro]}>
+          <Text style={[styles.tierText, isPro && styles.tierTextPro]}>
+            {isPro ? '⭐ Pro' : '📦 Basic'}
           </Text>
         </View>
       </View>
 
+      {/* Account section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
-        
+
         <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="person-outline" size={24} color="#6b7280" />
+          <Ionicons name="person-outline" size={22} color={colors.foregroundMuted} />
           <Text style={styles.menuItemText}>Edit Profile</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
-        {!isPaidTier(userData?.subscriptionTier) && (
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="star-outline" size={24} color="#7c3aed" />
-            <Text style={[styles.menuItemText, styles.upgradeText]}>Upgrade to Plus or Premium</Text>
-            <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+        {!isPro && (
+          <TouchableOpacity style={[styles.menuItem, styles.upgradeItem]}>
+            <Ionicons name="star-outline" size={22} color={colors.primary} />
+            <Text style={[styles.menuItemText, styles.upgradeText]}>Upgrade to Pro</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
           </TouchableOpacity>
         )}
       </View>
 
+      {/* Preferences section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences</Text>
-        
+
         <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="notifications-outline" size={24} color="#6b7280" />
+          <Ionicons name="notifications-outline" size={22} color={colors.foregroundMuted} />
           <Text style={styles.menuItemText}>Notifications</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="language-outline" size={24} color="#6b7280" />
+          <Ionicons name="language-outline" size={22} color={colors.foregroundMuted} />
           <Text style={styles.menuItemText}>Language</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="color-palette-outline" size={24} color="#6b7280" />
-          <Text style={styles.menuItemText}>Theme</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
       </View>
 
+      {/* Support section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Support</Text>
-        
+
         <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(`${APP_URL}/help`)}>
-          <Ionicons name="help-circle-outline" size={24} color="#6b7280" />
+          <Ionicons name="help-circle-outline" size={22} color={colors.foregroundMuted} />
           <Text style={styles.menuItemText}>Help Center</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL('mailto:support@savr.cam')}>
-          <Ionicons name="mail-outline" size={24} color="#6b7280" />
-          <Text style={styles.menuItemText}>Contact Us</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="mail-outline" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.menuItemText}>Contact Support</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(`${APP_URL}/privacy`)}>
-          <Ionicons name="document-text-outline" size={24} color="#6b7280" />
+          <Ionicons name="document-text-outline" size={22} color={colors.foregroundMuted} />
           <Text style={styles.menuItemText}>Privacy Policy</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(`${APP_URL}/terms`)}>
-          <Ionicons name="shield-checkmark-outline" size={24} color="#6b7280" />
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemLast]}
+          onPress={() => Linking.openURL(`${APP_URL}/terms`)}
+        >
+          <Ionicons name="shield-checkmark-outline" size={22} color={colors.foregroundMuted} />
           <Text style={styles.menuItemText}>Terms of Service</Text>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Sign out */}
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Ionicons name="log-out-outline" size={20} color={colors.error} />
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
 
-      <View style={styles.footer}>
-        <Text style={styles.version}>SAVR v1.0.0</Text>
-      </View>
+      <Text style={styles.version}>SAVR v1.0.0</Text>
     </ScrollView>
   );
 }
@@ -130,98 +129,124 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
+  },
+  contentContainer: {
+    paddingBottom: 48,
   },
   profileHeader: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    padding: 32,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#fff5f2',
+    width: 88,
+    height: 88,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: '#ea580c',
+    marginBottom: 14,
+    ...shadowElevations.md,
   },
   name: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.foreground,
     marginBottom: 4,
   },
   email: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 14,
+    color: colors.foregroundMuted,
     marginBottom: 12,
   },
-  subscriptionBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+  tierBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  subscriptionText: {
-    fontSize: 14,
+  tierBadgePro: {
+    backgroundColor: colors.primaryLight,
+    borderColor: `${colors.primary}44`,
+  },
+  tierText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.foregroundSecondary,
   },
-  proText: {
-    color: '#7c3aed',
+  tierTextPro: {
+    color: colors.primary,
   },
   section: {
-    marginTop: 24,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
+    marginTop: 20,
+    marginHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadowElevations.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.foregroundMuted,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: 12,
+  },
+  menuItemLast: {},
+  upgradeItem: {
+    backgroundColor: colors.primaryLight,
   },
   menuItemText: {
     flex: 1,
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 16,
+    fontSize: 15,
+    color: colors.foreground,
   },
   upgradeText: {
-    color: '#7c3aed',
+    color: colors.primary,
     fontWeight: '600',
   },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    gap: 8,
+    marginTop: 20,
+    marginHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: `${colors.error}44`,
+    backgroundColor: colors.errorLight,
   },
   signOutText: {
-    fontSize: 16,
-    color: '#ef4444',
+    fontSize: 15,
+    color: colors.error,
     fontWeight: '600',
-    marginLeft: 8,
-  },
-  footer: {
-    alignItems: 'center',
-    padding: 24,
   },
   version: {
-    fontSize: 14,
-    color: '#9ca3af',
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.foregroundMuted,
+    marginTop: 20,
   },
 });

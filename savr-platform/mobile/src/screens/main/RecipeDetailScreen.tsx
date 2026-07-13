@@ -7,6 +7,7 @@ import { MainStackParamList } from '../../navigation/MainNavigator';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { Ionicons } from '@expo/vector-icons';
 import { getRecipe } from '../../lib/db';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 type RecipeDetailScreenRouteProp = RouteProp<MainStackParamList, 'RecipeDetail'>;
 
@@ -72,6 +73,7 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
   if (!recipe) {
     return (
       <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.foregroundMuted} />
         <Text style={styles.errorText}>Recipe not found</Text>
       </View>
     );
@@ -85,51 +87,90 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
     : [];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {recipe.imageUrl && (
         <Image source={{ uri: recipe.imageUrl }} style={styles.image} />
       )}
 
       <View style={styles.content}>
         <Text style={styles.title}>{recipe.title}</Text>
+
         {recipe.recipeType === 'pet' && (
           <View style={styles.petBanner}>
+            <Ionicons name="paw" size={16} color={colors.pet} style={{ marginRight: 8 }} />
             <Text style={styles.petBannerText}>
-              Safe for {recipe.species === 'cat' ? 'cats' : 'dogs'}. Always consult your vet. These are occasional supplements, not a complete diet.
+              Safe for {recipe.species === 'cat' ? 'cats' : 'dogs'}. Always consult your vet.
+              These are occasional supplements, not a complete diet.
             </Text>
           </View>
         )}
-        <Text style={styles.description}>{recipe.description}</Text>
 
-        <View style={styles.meta}>
-          <View style={styles.metaItem}>
-            <Ionicons name="time" size={20} color="#ea580c" />
-            <Text style={styles.metaText}>{totalTime} min</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="people" size={20} color="#ea580c" />
-            <Text style={styles.metaText}>{recipe.servings} servings</Text>
-          </View>
+        {recipe.description ? (
+          <Text style={styles.description}>{recipe.description}</Text>
+        ) : null}
+
+        {/* Meta row */}
+        <View style={styles.metaRow}>
+          {totalTime > 0 && (
+            <View style={styles.metaChip}>
+              <Ionicons name="time-outline" size={16} color={colors.foregroundMuted} />
+              <Text style={styles.metaText}>{totalTime} min</Text>
+            </View>
+          )}
+          {recipe.servings > 0 && (
+            <View style={styles.metaChip}>
+              <Ionicons name="people-outline" size={16} color={colors.foregroundMuted} />
+              <Text style={styles.metaText}>{recipe.servings} servings</Text>
+            </View>
+          )}
+          {recipe.difficulty && (
+            <View style={styles.metaChip}>
+              <Ionicons name="bar-chart-outline" size={16} color={colors.foregroundMuted} />
+              <Text style={styles.metaText}>{recipe.difficulty}</Text>
+            </View>
+          )}
         </View>
 
+        {/* Dietary tags */}
+        {recipe.dietaryTags && recipe.dietaryTags.length > 0 && (
+          <View style={styles.tagsRow}>
+            {recipe.dietaryTags.map((tag) => (
+              <View key={tag} style={styles.tag}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Start Cooking button (web-only feature — links to full cook mode) */}
+
+        {/* Ingredients */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ingredients</Text>
-          {ingredientsList.map((line, index) => (
-            <View key={index} style={styles.listItem}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.listItemText}>{line}</Text>
-            </View>
-          ))}
+          <View style={styles.card}>
+            {ingredientsList.map((line, index) => (
+              <View
+                key={index}
+                style={[styles.listRow, index < ingredientsList.length - 1 && styles.listRowBorder]}
+              >
+                <View style={styles.bulletDot} />
+                <Text style={styles.listItemText}>{line}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
+        {/* Instructions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Instructions</Text>
           {recipe.instructions.map((instruction, index) => (
             <View key={index} style={styles.instructionItem}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
+              <View style={styles.stepCircle}>
+                <Text style={styles.stepNumber}>{index + 1}</Text>
               </View>
-              <Text style={styles.instructionText}>{instruction}</Text>
+              <View style={styles.instructionBody}>
+                <Text style={styles.instructionText}>{instruction}</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -141,110 +182,164 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
+  },
+  contentContainer: {
+    paddingBottom: 40,
   },
   image: {
     width: '100%',
-    height: 250,
+    height: 240,
     resizeMode: 'cover',
   },
   content: {
     padding: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.foreground,
     marginBottom: 12,
+  },
+  petBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.petLight,
+    borderWidth: 1,
+    borderColor: `${colors.pet}44`,
+    borderRadius: radii.md,
+    padding: 12,
+    marginBottom: 12,
+  },
+  petBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.pet,
+    lineHeight: 18,
   },
   description: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 20,
-    lineHeight: 24,
-  },
-  meta: {
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 24,
-  },
-  metaText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#374151',
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: 15,
+    color: colors.foregroundSecondary,
     marginBottom: 16,
+    lineHeight: 22,
   },
-  listItem: {
+  metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 12,
   },
-  bullet: {
-    fontSize: 20,
-    color: '#ea580c',
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surfaceRaised,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  metaText: {
+    fontSize: 13,
+    color: colors.foregroundSecondary,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 16,
+  },
+  tag: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.full,
+  },
+  tagText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.foreground,
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadowElevations.sm,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  listRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginTop: 7,
     marginRight: 12,
+    flexShrink: 0,
   },
   listItemText: {
     flex: 1,
-    fontSize: 16,
-    color: '#374151',
-    lineHeight: 24,
+    fontSize: 15,
+    color: colors.foregroundSecondary,
+    lineHeight: 22,
   },
   instructionItem: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#ea580c',
+  stepCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    flexShrink: 0,
   },
-  stepNumberText: {
-    color: '#fff',
-    fontSize: 16,
+  stepNumber: {
+    color: colors.primaryForeground,
+    fontSize: 14,
     fontWeight: 'bold',
   },
-  instructionText: {
+  instructionBody: {
     flex: 1,
-    fontSize: 16,
-    color: '#374151',
-    lineHeight: 24,
+    paddingTop: 4,
+  },
+  instructionText: {
+    fontSize: 15,
+    color: colors.foregroundSecondary,
+    lineHeight: 23,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
+    gap: 12,
   },
   errorText: {
-    fontSize: 18,
-    color: '#6b7280',
-  },
-  petBanner: {
-    backgroundColor: '#fef3c7',
-    borderWidth: 1,
-    borderColor: '#fcd34d',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  petBannerText: {
-    fontSize: 14,
-    color: '#92400e',
+    fontSize: 17,
+    color: colors.foregroundMuted,
   },
 });
