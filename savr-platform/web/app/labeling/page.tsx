@@ -254,7 +254,7 @@ function LabelingContent() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-[#9ca3c2] mb-2">Select Category for New Polygons</label>
+                <label className="block text-sm font-medium text-[#C8D9CF] mb-2">Select Category for New Polygons</label>
                 <select
                   value={selectedCategoryId}
                   onChange={e => setSelectedCategoryId(e.target.value)}
@@ -283,10 +283,10 @@ function LabelingContent() {
               )}
 
               <div className="mt-4">
-                <p className="text-sm text-[#9ca3c2]">
+                <p className="text-sm text-[#C8D9CF]">
                   Status: <span className="font-semibold">{image.labelStatus}</span>
                 </p>
-                <p className="text-sm text-[#9ca3c2]">
+                <p className="text-sm text-[#C8D9CF]">
                   Objects labeled: {currentObjects.length}
                 </p>
               </div>

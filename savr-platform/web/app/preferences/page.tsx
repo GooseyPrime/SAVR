@@ -126,7 +126,7 @@ function PreferencesContent() {
       <div className="min-h-screen" style={{ background: '#000000' }}>
         <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-8 flex justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00d4ff]" />
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#BAFF5C]" />
         </div>
       </div>
     );
@@ -142,7 +142,7 @@ function PreferencesContent() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
             Food Preferences
           </h1>
-          <p className="text-[#9ca3c2] text-base max-w-2xl">
+          <p className="text-[#C8D9CF] text-base max-w-2xl">
             Tell us what you love and what to avoid. These preferences are used by the AI when generating recipes and meal plans so every suggestion fits your taste and dietary needs.
           </p>
         </div>
@@ -177,11 +177,11 @@ function PreferencesContent() {
                     type="button"
                     onClick={() => toggleOption('cuisines', cuisine)}
                     className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      selected ? 'text-black' : 'text-[#9ca3c2] hover:text-white'
+                      selected ? 'text-black' : 'text-[#C8D9CF] hover:text-white'
                     }`}
                     style={
                       selected
-                        ? { background: 'linear-gradient(135deg, #00d4ff, #0099cc)' }
+                        ? { background: 'linear-gradient(135deg, #BAFF5C, #C8FF7A)' }
                         : { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }
                     }
                   >
@@ -211,7 +211,7 @@ function PreferencesContent() {
                     type="button"
                     onClick={() => toggleOption('diets', diet)}
                     className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      selected ? 'text-black' : 'text-[#9ca3c2] hover:text-white'
+                      selected ? 'text-black' : 'text-[#C8D9CF] hover:text-white'
                     }`}
                     style={
                       selected
@@ -245,7 +245,7 @@ function PreferencesContent() {
                     type="button"
                     onClick={() => toggleOption('restrictions', restriction)}
                     className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      selected ? 'text-white' : 'text-[#9ca3c2] hover:text-white'
+                      selected ? 'text-white' : 'text-[#C8D9CF] hover:text-white'
                     }`}
                     style={
                       selected
@@ -279,7 +279,7 @@ function PreferencesContent() {
               placeholder="e.g., I prefer quick 30-min meals, cooking for a family of 4, I don't like cilantro, trying to eat under 2000 calories/day, prefer baking over frying..."
               className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200 resize-none text-sm"
               style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-              onFocus={(e) => (e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)')}
+              onFocus={(e) => (e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)')}
               onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
             />
           </div>
@@ -292,7 +292,7 @@ function PreferencesContent() {
             onClick={handleSave}
             disabled={saving}
             className="px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', color: '#000000' }}
+            style={{ background: 'linear-gradient(135deg, #BAFF5C, #C8FF7A)', color: '#000000' }}
           >
             {saving ? 'Saving...' : 'Save Preferences'}
           </button>

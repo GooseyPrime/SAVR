@@ -140,11 +140,11 @@ body {
 }
 
 /* Glow effect utilities */
-.glow-cyan {
+.glow-primary {
   box-shadow: 0 0 20px rgba(186, 255, 92, 0.15), 0 0 60px rgba(186, 255, 92, 0.05);
 }
 
-.glow-cyan-strong {
+.glow-primary-strong {
   box-shadow: 0 0 30px rgba(186, 255, 92, 0.25), 0 0 80px rgba(186, 255, 92, 0.1);
 }
 
@@ -171,7 +171,8 @@ body {
   background-clip: text;
 }
 
-.gradient-text-cyan {
+/* Gradient text — two-tone (lime → mint) */
+.gradient-text-lime {
   background: linear-gradient(135deg, #BAFF5C 0%, #5CFFBA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

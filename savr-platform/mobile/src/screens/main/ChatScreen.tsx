@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { chatWithAI } from '../../utils/api';
+import { colors, radii } from '../../theme';
 
 interface Message {
   id: string;
@@ -82,7 +83,7 @@ export default function ChatScreen() {
   if (userData?.subscriptionTier !== 'pro') {
     return (
       <View style={styles.proOnlyContainer}>
-        <Ionicons name="lock-closed" size={64} color="#9ca3af" />
+        <Ionicons name="lock-closed" size={64} color={colors.foregroundMuted} />
         <Text style={styles.proOnlyTitle}>Pro Feature</Text>
         <Text style={styles.proOnlyText}>
           Upgrade to Pro to chat with our AI Chef and get personalized cooking advice!
@@ -138,6 +139,7 @@ export default function ChatScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ask the AI Chef..."
+          placeholderTextColor={colors.foregroundMuted}
           value={inputText}
           onChangeText={setInputText}
           multiline
@@ -149,9 +151,9 @@ export default function ChatScreen() {
           disabled={loading || !inputText.trim()}
         >
           {loading ? (
-            <Ionicons name="hourglass-outline" size={24} color="#fff" />
+            <Ionicons name="hourglass-outline" size={24} color={colors.primaryForeground} />
           ) : (
-            <Ionicons name="send" size={24} color="#fff" />
+            <Ionicons name="send" size={24} color={colors.primaryForeground} />
           )}
         </TouchableOpacity>
       </View>
@@ -162,7 +164,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   messagesContent: {
     padding: 16,
@@ -172,27 +174,27 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     marginBottom: 12,
     padding: 12,
-    borderRadius: 16,
+    borderRadius: radii.lg,
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#ea580c',
+    backgroundColor: colors.primary,
   },
   aiMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
   },
   userMessageText: {
-    color: '#fff',
+    color: colors.primaryForeground,
   },
   aiMessageText: {
-    color: '#111827',
+    color: colors.foreground,
   },
   emptyState: {
     flex: 1,
@@ -207,38 +209,40 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.foreground,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.foregroundMuted,
     textAlign: 'center',
     paddingHorizontal: 32,
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 24,
+    borderColor: colors.border,
+    borderRadius: radii.full,
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontSize: 16,
     maxHeight: 100,
     marginRight: 8,
+    color: colors.foreground,
+    backgroundColor: colors.background,
   },
   sendButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#ea580c',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -250,30 +254,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   proOnlyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.foreground,
     marginTop: 16,
     marginBottom: 8,
   },
   proOnlyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.foregroundMuted,
     textAlign: 'center',
     marginBottom: 24,
   },
   upgradeButton: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: radii.full,
   },
   upgradeButtonText: {
-    color: '#fff',
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: 'bold',
   },
 });
+

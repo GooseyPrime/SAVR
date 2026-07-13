@@ -13,17 +13,17 @@ This file records the exact commands that are available in `savr-platform/` and 
 | Web production build | `cd savr-platform/web && npm run build` | ✅ Available | `savr-platform/web/package.json`; CI job `web-build` in `phase-01-baseline.yml` |
 | Mobile TypeScript check | `cd savr-platform/mobile && npm run typecheck` | ✅ Available | `savr-platform/mobile/package.json` (`tsc --noEmit`); CI job `mobile-typecheck` in `phase-02-validation.yml` |
 | Playwright E2E | `cd savr-platform/e2e-tests && npm run test:e2e` | ⚠️ Available locally; blocked in CI | `savr-platform/e2e-tests/package.json`; requires a running application target |
-| Mobile lint | No committed ESLint configuration in `savr-platform/mobile/` | ❌ Gap | no `eslint.config.*` file in mobile directory |
+| Mobile lint | `cd savr-platform/mobile && npm run lint` | ✅ Available | `savr-platform/mobile/eslint.config.js`; CI job `mobile-lint` in `phase-02-validation.yml` |
 | Mobile Expo validation | No committed validation script beyond `expo start` and `tsc --noEmit` | ⚠️ Partial | `savr-platform/mobile/package.json` |
 | Existing unit/integration tests | No committed non-E2E test command found | ❌ Gap | no test script in root/web/mobile packages |
 | Supabase migration validation | No committed `db lint`, `db reset`, or migration CI gate | ❌ Gap | migration SQL present; Supabase CLI not wired into CI |
 | Security scanning | No committed dependency or code security scanning script | ❌ Gap | no script or workflow present |
 
-## Remaining gaps (Phase 2 exit state)
+## Remaining gaps (Phase 2 exit state — updated)
 
-The following gaps are explicitly documented and deferred to later phases:
+The mobile lint gap was closed in the Phase 5 limitations PR. The following gaps remain explicitly documented and deferred:
 
-- **Mobile lint**: No ESLint config exists in `savr-platform/mobile/`. Add in a dedicated future PR.
+- **Mobile lint**: ~~No ESLint config exists in `savr-platform/mobile/`.~~ **Closed** — `eslint.config.js` added; `mobile-lint` CI job active.
 - **Unit/integration tests**: No non-E2E test suite. Add in Phase 6 (hardening and release).
 - **Supabase migration CI gate**: Requires either a Supabase project with service key or Supabase CLI Docker-based reset. Defer to Phase 5 or Phase 6.
 - **E2E CI gate**: Requires a deployed application target. Defer to Phase 6 (hardening and release).
