@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 4 — Application Shells (complete)**
+**Phase 5 — Feature Migration (in progress)**
 
 ---
 
@@ -22,7 +22,82 @@ Tracks the current phase of the SAVR consolidation project.
 | Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
 | Shared design tokens created | ✅ Yes — Phase 3 |
 | Application shells created | ✅ Yes — Phase 4 |
-| Feature migration started | ❌ No |
+| Feature migration started | ✅ Yes — Phase 5 (Home slice)
+
+---
+
+## Phase 5 Progress (in progress)
+
+Feature migration in bounded vertical slices per `PHASE_05_FEATURE_MIGRATION.md`.
+
+### Slice 1 — Home (complete)
+
+**Production behavior preserved:**
+- Auth guard via `ProtectedRoute` / `useAuth`
+- Stats (inventory, recipe, meal-plan counts) from Supabase via `getInventory`, `getRecipes`, `getMealPlans`
+- Stripe checkout success banner and `trackCheckoutIntentIfReturning` (web only)
+- Subscription tier display and upgrade link (web only)
+- Pro-gated AI Chat access (mobile only)
+- Pull-to-refresh (mobile only)
+
+**Premium UX adapted (from `savr-premium-mobile-app/src/pages/Home.tsx`):**
+- Time-based greeting (Good morning/afternoon/evening)
+- 2-column primary action buttons: Scan Ingredients (primary/lime) + What Can I Make? (secondary)
+- 3-column stat badges (Pantry, Recipes, Planned)
+- Expiring soon items section (inventory items with `expiry_date` within 3 days)
+- Today's meals section from meal plans (`meals` array filtered to today's date)
+- Recent recipes section (last 5, most recent first)
+- Design token CSS classes replacing hardcoded legacy hex values
+
+**Production architecture NOT copied from prototype:**
+- No `useAppStore` — data fetches from Supabase production contracts only
+- No `motion/react` animation dependency — React Native theme tokens used instead
+- No prototype `MobileLayout`, `Card`, `Button` UI kit — standalone platform-native components
+
+**Files changed:**
+- `savr-platform/web/app/dashboard/page.tsx`
+- `savr-platform/mobile/src/screens/main/HomeScreen.tsx`
+
+**Web/mobile effects:** presentation updated; no API routes, data contracts, auth flows, or navigation structure changed. Rollback path: revert the two changed files.
+
+**Validation (exact commands, exact results):**
+- `cd savr-platform/web && npm run lint` → exit 0, 34 warnings (same as baseline)
+- `cd savr-platform/web && npm run typecheck` → exit 0
+- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
+- `cd savr-platform/mobile && npm run typecheck` → exit 0
+
+### Remaining Phase 5 slices
+
+- [ ] Pantry
+- [ ] Scanner and review flow
+- [ ] Recipes and recipe detail
+- [ ] Cooking mode
+- [ ] Meal plans
+- [ ] Grocery lists
+- [ ] Profile and settings
+- [ ] Authentication and guest conversion validation
+- [ ] Subscription and entitlement validation
+
+---
+
+## Phase 4 Completion Summary
+
+Production-safe web and mobile application shells created in `savr-platform/`. Both shells use the shared design token layer from Phase 3 and are ready for bounded feature migration.
+
+### What was added
+
+- `savr-platform/mobile/App.tsx` — root Expo entry point
+- `savr-platform/mobile/src/components/LoadingSpinner.tsx` — shared loading indicator using design tokens
+- `savr-platform/mobile/src/navigation/` — `AuthNavigator`, `MainNavigator`, `MobileTabBar`, `RootNavigator`, `navigationTheme`
+- `savr-platform/web/components/LoadingSpinner.tsx` — web loading indicator
+- `savr-platform/web/components/Navbar.tsx` — web navigation shell
+- `savr-platform/web/components/ProtectedRoute.tsx` — web auth guard
+
+### What did NOT change
+
+- No API routes, data contracts, or auth flows modified
+- No database or RLS changes
+- `SAVR-old/` and `savr-premium-mobile-app/` not modified
 
 ---
 

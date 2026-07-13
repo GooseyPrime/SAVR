@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import { MainStackParamList } from '../../navigation/MainNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { getInventory, getRecipes, getMealPlans } from '../../lib/db';
+import { getInventory, getRecipes, getMealPlans, type InventoryItem, type Recipe, type MealPlan } from '../../lib/db';
+import { colors, radii, shadowElevations } from '../../theme/index';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<MainStackParamList, 'MainTabs'>;
 
@@ -20,33 +21,34 @@ interface HomeScreenProps {
   navigation: HomeScreenNavigationProp;
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    inventoryCount: 0,
-    recipesCount: 0,
-    mealPlansCount: 0,
-  });
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
 
-  const loadStats = async () => {
+  const loadData = async () => {
     if (!user) return;
-
     try {
-      const [inventory, recipes, mealPlans] = await Promise.all([
+      const [inv, rec, plans] = await Promise.all([
         getInventory(user.id),
         getRecipes(user.id),
         getMealPlans(user.id),
       ]);
-
-      setStats({
-        inventoryCount: inventory.length,
-        recipesCount: recipes.length,
-        mealPlansCount: mealPlans.length,
-      });
+      setInventory(inv);
+      setRecipes(rec);
+      setMealPlans(plans);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('Error loading home data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,13 +56,38 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   };
 
   useEffect(() => {
-    loadStats();
+    loadData();
   }, [user]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadStats();
+    loadData();
   };
+
+  // Items expiring within 3 days
+  const expiringItems = useMemo(() => {
+    const now = new Date();
+    const threeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    return inventory
+      .filter((item) => {
+        if (!item.expiry_date) return false;
+        const exp = new Date(item.expiry_date);
+        return exp >= now && exp <= threeDays;
+      })
+      .sort((a, b) => new Date(a.expiry_date!).getTime() - new Date(b.expiry_date!).getTime())
+      .slice(0, 5);
+  }, [inventory]);
+
+  // Today's meal plan entries
+  const todaysMeals = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return mealPlans.flatMap((plan) => plan.meals).filter((meal) => meal.date === today);
+  }, [mealPlans]);
+
+  // Last 5 saved recipes
+  const recentRecipes = useMemo(() => recipes.slice(-5).reverse(), [recipes]);
+
+  const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
 
   if (loading) {
     return <LoadingSpinner />;
@@ -70,96 +97,235 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#ea580c']} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
       }
     >
+      {/* Greeting */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hello, {userData?.displayName || 'Chef'}! 👋</Text>
+        <Text style={styles.greeting}>{getGreeting()}, {displayName}</Text>
         <Text style={styles.subgreeting}>What would you like to cook today?</Text>
       </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Ionicons name="file-tray-full" size={32} color="#ea580c" />
-          <Text style={styles.statNumber}>{stats.inventoryCount}</Text>
-          <Text style={styles.statLabel}>Items in Pantry</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Ionicons name="restaurant" size={32} color="#ea580c" />
-          <Text style={styles.statNumber}>{stats.recipesCount}</Text>
-          <Text style={styles.statLabel}>Saved Recipes</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Ionicons name="calendar" size={32} color="#ea580c" />
-          <Text style={styles.statNumber}>{stats.mealPlansCount}</Text>
-          <Text style={styles.statLabel}>Meal Plans</Text>
-        </View>
+      {/* Primary Actions */}
+      <View style={styles.primaryActions}>
+        <TouchableOpacity
+          style={[styles.primaryActionBtn, styles.primaryActionBtnHighlight]}
+          onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Inventory' })}
+          accessibilityLabel="Scan Ingredients"
+        >
+          <Ionicons name="camera" size={28} color={colors.primaryForeground} />
+          <Text style={styles.primaryActionBtnText}>Scan Ingredients</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.primaryActionBtn, styles.primaryActionBtnSecondary]}
+          onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Recipes' })}
+          accessibilityLabel="What Can I Make?"
+        >
+          <Ionicons name="sparkles" size={28} color={colors.primary} />
+          <Text style={styles.primaryActionBtnTextSecondary}>What Can I Make?</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        
+      {/* Quick Stats */}
+      <View style={styles.statsContainer}>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.statCard}
           onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Inventory' })}
         >
-          <View style={styles.actionIconContainer}>
-            <Ionicons name="camera" size={24} color="#fff" />
-          </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>Scan Pantry</Text>
-            <Text style={styles.actionDescription}>Add items with your camera</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="file-tray-full" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.statNumber}>{inventory.length}</Text>
+          <Text style={styles.statLabel}>Pantry</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.statCard}
           onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Recipes' })}
         >
-          <View style={styles.actionIconContainer}>
-            <Ionicons name="search" size={24} color="#fff" />
-          </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>Find Recipes</Text>
-            <Text style={styles.actionDescription}>Discover recipes from your pantry</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="restaurant" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.statNumber}>{recipes.length}</Text>
+          <Text style={styles.statLabel}>Recipes</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('GroceryList')}
+          style={styles.statCard}
+          onPress={() => navigation.navigate('MealPlans' as any)}
         >
-          <View style={styles.actionIconContainer}>
-            <Ionicons name="cart" size={24} color="#fff" />
-          </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>Grocery List</Text>
-            <Text style={styles.actionDescription}>View your shopping list</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+          <Ionicons name="calendar" size={22} color={colors.foregroundMuted} />
+          <Text style={styles.statNumber}>{mealPlans.length}</Text>
+          <Text style={styles.statLabel}>Planned</Text>
         </TouchableOpacity>
+      </View>
 
-        {userData?.subscriptionTier === 'pro' && (
+      {/* Expiring Soon */}
+      {expiringItems.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="warning" size={16} color={colors.warning} />
+              <Text style={styles.sectionTitle}>Expiring Soon</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Inventory' })}>
+              <Text style={styles.sectionLink}>View all</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.card}>
+            {expiringItems.map((item, idx) => {
+              const exp = new Date(item.expiry_date!);
+              const daysLeft = Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              return (
+                <View
+                  key={item.id}
+                  style={[styles.listRow, idx < expiringItems.length - 1 && styles.listRowBorder]}
+                >
+                  <View>
+                    <Text style={styles.listRowTitle}>{item.name}</Text>
+                    <Text style={styles.listRowSub}>{item.quantity} {item.unit}</Text>
+                  </View>
+                  <Text style={[styles.expiryBadge, daysLeft <= 1 ? styles.expiryUrgent : styles.expiryWarning]}>
+                    {daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft} days`}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      {/* Today's Meals */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="calendar" size={16} color={colors.foregroundMuted} />
+            <Text style={styles.sectionTitle}>Today&apos;s Meals</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('MealPlans' as any)}>
+            <Text style={styles.sectionLink}>Plan week</Text>
+          </TouchableOpacity>
+        </View>
+        {todaysMeals.length === 0 ? (
+          <View style={[styles.card, styles.emptyCard]}>
+            <Text style={styles.emptyText}>No meals planned for today</Text>
+            <TouchableOpacity
+              style={styles.emptyAction}
+              onPress={() => navigation.navigate('MealPlans' as any)}
+            >
+              <Text style={styles.emptyActionText}>+ Add meal</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            {todaysMeals.map((meal, idx) => (
+              <View
+                key={idx}
+                style={[styles.listRow, idx < todaysMeals.length - 1 && styles.listRowBorder]}
+              >
+                <View style={styles.mealIcon}>
+                  <Ionicons name="restaurant" size={20} color={colors.foregroundMuted} />
+                </View>
+                <View style={styles.listRowContent}>
+                  <Text style={styles.listRowTitle}>{meal.recipe_title || 'Unnamed meal'}</Text>
+                  <Text style={styles.listRowSub} numberOfLines={1}>{meal.meal_type}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Recent Recipes */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="restaurant" size={16} color={colors.foregroundMuted} />
+            <Text style={styles.sectionTitle}>Recent Recipes</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Recipes' })}>
+            <Text style={styles.sectionLink}>All recipes</Text>
+          </TouchableOpacity>
+        </View>
+        {recentRecipes.length === 0 ? (
+          <View style={[styles.card, styles.emptyCard]}>
+            <Text style={styles.emptyText}>No saved recipes yet</Text>
+            <TouchableOpacity
+              style={styles.emptyAction}
+              onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Recipes' })}
+            >
+              <Text style={styles.emptyActionText}>✨ Generate recipe</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.recipesContainer}>
+            {recentRecipes.map((recipe) => (
+              <TouchableOpacity
+                key={recipe.id}
+                style={styles.recipeRow}
+                onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Recipes' })}
+              >
+                <View style={styles.recipeIcon}>
+                  <Ionicons name="restaurant" size={22} color={colors.foregroundMuted} />
+                </View>
+                <View style={styles.listRowContent}>
+                  <Text style={styles.listRowTitle} numberOfLines={1}>{recipe.title}</Text>
+                  <View style={styles.recipeMetaRow}>
+                    {recipe.cook_time_minutes != null && (
+                      <Text style={styles.recipeMeta}>⏱ {recipe.cook_time_minutes} min</Text>
+                    )}
+                    {recipe.servings != null && (
+                      <Text style={styles.recipeMeta}>{recipe.servings} servings</Text>
+                    )}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* AI Chef Chat — Pro feature */}
+      {userData?.subscriptionTier === 'pro' && (
+        <View style={styles.section}>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.proAction}
             onPress={() => navigation.navigate('Chat')}
           >
-            <View style={[styles.actionIconContainer, styles.proIconContainer]}>
-              <Ionicons name="chatbubbles" size={24} color="#fff" />
+            <View style={styles.proActionIconWrap}>
+              <Ionicons name="chatbubbles" size={22} color={colors.primaryForeground} />
             </View>
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>AI Chef Chat</Text>
-              <Text style={styles.actionDescription}>Ask our AI chef anything</Text>
+            <View style={styles.listRowContent}>
+              <Text style={styles.listRowTitle}>AI Chef Chat</Text>
+              <Text style={styles.listRowSub}>Ask our AI chef anything</Text>
             </View>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>PRO</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+            <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
+
+      {/* Empty Pantry CTA */}
+      {inventory.length === 0 && (
+        <View style={styles.section}>
+          <View style={[styles.card, styles.emptyCard]}>
+            <Ionicons name="file-tray-full" size={40} color={colors.foregroundMuted} />
+            <Text style={[styles.sectionTitle, { marginTop: 12, textAlign: 'center' }]}>Your pantry is empty</Text>
+            <Text style={[styles.emptyText, { marginTop: 4 }]}>Scan your ingredients to get started</Text>
+            <TouchableOpacity
+              style={styles.primaryCta}
+              onPress={() => navigation.navigate('MainTabs' as any, { screen: 'Inventory' })}
+            >
+              <Ionicons name="camera" size={18} color={colors.primaryForeground} />
+              <Text style={styles.primaryCtaText}>Scan Ingredients</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.bottomPad} />
     </ScrollView>
   );
 }
@@ -167,109 +333,260 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   header: {
-    padding: 24,
-    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   greeting: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '600',
+    color: colors.foreground,
     marginBottom: 4,
   },
   subgreeting: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 15,
+    color: colors.foregroundSecondary,
+  },
+  primaryActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 16,
+  },
+  primaryActionBtn: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 20,
+    borderRadius: radii.xl,
+    minHeight: 110,
+  },
+  primaryActionBtnHighlight: {
+    backgroundColor: colors.primary,
+  },
+  primaryActionBtnSecondary: {
+    backgroundColor: colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  primaryActionBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primaryForeground,
+    textAlign: 'center',
+  },
+  primaryActionBtnTextSecondary: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.foreground,
+    textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
-    padding: 16,
-    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 24,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-    marginHorizontal: 4,
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    gap: 4,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginTop: 8,
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.foreground,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 11,
+    color: colors.foregroundMuted,
     textAlign: 'center',
-    marginTop: 4,
   },
-  quickActions: {
-    padding: 16,
+  section: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  actionButton: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  actionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#ea580c',
-    justifyContent: 'center',
+  sectionTitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    gap: 6,
   },
-  proIconContainer: {
-    backgroundColor: '#7c3aed',
-  },
-  actionText: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
+    color: colors.foreground,
   },
-  actionDescription: {
+  sectionLink: {
+    fontSize: 13,
+    color: colors.primary,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadowElevations.sm,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  listRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  listRowContent: {
+    flex: 1,
+    marginLeft: 10,
+    minWidth: 0,
+  },
+  listRowTitle: {
     fontSize: 14,
-    color: '#6b7280',
+    fontWeight: '500',
+    color: colors.foreground,
+  },
+  listRowSub: {
+    fontSize: 12,
+    color: colors.foregroundMuted,
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  expiryBadge: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  expiryUrgent: {
+    color: colors.error,
+  },
+  expiryWarning: {
+    color: colors.warning,
+  },
+  mealIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCard: {
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: colors.foregroundSecondary,
+    textAlign: 'center',
+  },
+  emptyAction: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  emptyActionText: {
+    fontSize: 13,
+    color: colors.foreground,
+  },
+  recipesContainer: {
+    gap: 8,
+  },
+  recipeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  recipeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipeMetaRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 2,
+  },
+  recipeMeta: {
+    fontSize: 11,
+    color: colors.foregroundMuted,
+  },
+  proAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  proActionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   proBadge: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: colors.primary,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
     marginRight: 8,
   },
   proBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.primaryForeground,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  primaryCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
+  },
+  primaryCtaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primaryForeground,
+  },
+  bottomPad: {
+    height: 32,
   },
 });
