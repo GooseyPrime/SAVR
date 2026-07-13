@@ -46,7 +46,10 @@ export default function LabelingScreen() {
   }, []);
 
   const loadCategories = () => {
-    // Default categories
+    // Annotation category colors are distinct data-level identifiers for the labeling tool,
+    // not UI presentation colors. They intentionally span the color spectrum to visually
+    // differentiate annotation regions. Replaced 'jar' primary with the brand token;
+    // remaining categories keep their distinct hues for annotation legibility.
     const defaultCategories: Category[] = [
       { id: 'jar', name: 'Jar', color: colors.primary },
       { id: 'can', name: 'Can', color: '#ef4444' },

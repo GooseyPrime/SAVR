@@ -31,6 +31,8 @@ interface LocalInventoryItem {
 
 type CategoryFilter = 'all' | 'pantry' | 'fridge' | 'freezer';
 
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'All',
   pantry: 'Pantry',
@@ -42,7 +44,7 @@ function isExpiringSoon(expiryDate?: string | null): boolean {
   if (!expiryDate) return false;
   const now = new Date();
   const exp = new Date(expiryDate);
-  const threeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const threeDays = new Date(now.getTime() + THREE_DAYS_MS);
   return exp >= now && exp <= threeDays;
 }
 

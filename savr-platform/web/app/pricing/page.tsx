@@ -141,8 +141,8 @@ export default function PricingPage() {
         {/* Existing Subscriber - Show Billing Portal Access */}
         {hasActiveSub ? (
           <div className="max-w-2xl mx-auto">
-            <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(13, 17, 41, 0.7)', border: '1px solid rgba(0, 212, 255, 0.25)' }}>
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(0, 212, 255, 0.1)' }}>
+            <div className="rounded-2xl p-8 text-center bg-surface/70 border border-primary/25">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-primary/10">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>

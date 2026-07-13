@@ -279,8 +279,8 @@ function UploadContent() {
             onClick={() => setScanMode('receipt')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
               scanMode === 'receipt'
-                ? 'bg-[#f59e0b] text-primary-foreground'
-                : 'border border-white/20 text-foreground-muted hover:text-foreground hover:border-[#f59e0b]/40'
+                ? 'bg-warning text-primary-foreground'
+                : 'border border-white/20 text-foreground-muted hover:text-foreground hover:border-warning/40'
             }`}
           >
             Receipt Scan
@@ -411,7 +411,7 @@ function UploadContent() {
                   key={`${ingredient.name}-${index}`}
                   className={`rounded-lg border p-4 transition ${
                     ingredient.isDuplicate
-                      ? 'border-[#f59e0b]/30 bg-[#f59e0b]/5'
+                      ? 'border-warning/30 bg-warning/5'
                       : 'border-border hover:border-primary/30'
                   }`}
                 >
@@ -431,7 +431,7 @@ function UploadContent() {
                   </div>
 
                   {ingredient.isDuplicate && (
-                    <p className="text-xs text-[#f59e0b] mb-2">May already be in inventory</p>
+                    <p className="text-xs text-warning mb-2">May already be in inventory</p>
                   )}
 
                   <div className="flex items-center gap-2 mb-2">

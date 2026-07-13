@@ -774,7 +774,7 @@ function NutritionPanel({ nutrition, servings }: { nutrition: NutritionalInfo; s
           <div className="text-xs text-foreground-muted">Carbs</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold text-[#f59e0b]">{nutrition.fat}g</div>
+          <div className="text-lg font-bold text-warning">{nutrition.fat}g</div>
           <div className="text-xs text-foreground-muted">Fat</div>
         </div>
       </div>
@@ -782,7 +782,7 @@ function NutritionPanel({ nutrition, servings }: { nutrition: NutritionalInfo; s
       <div className="flex h-2 rounded-full overflow-hidden mb-2">
         <div className="bg-primary" style={{ width: `${proteinPct}%` }} />
         <div className="bg-secondary" style={{ width: `${carbsPct}%` }} />
-        <div className="bg-[#f59e0b]" style={{ width: `${fatPct}%` }} />
+        <div className="bg-warning" style={{ width: `${fatPct}%` }} />
       </div>
       <div className="flex justify-between text-xs text-[#6b7294]">
         <span>Protein {proteinPct}%</span>
