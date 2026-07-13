@@ -572,7 +572,7 @@ function RecipesContent() {
                 <button
                   onClick={() => setShowForm(false)}
                   disabled={generating}
-                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
+                  className="flex-1 px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/20"
                 >
                   Cancel
                 </button>
@@ -670,7 +670,7 @@ function RecipesContent() {
               <button
                 onClick={() => { setShowImportForm(false); setImportUrl(''); setImportPdfText(''); }}
                 disabled={importing}
-                className="mt-6 w-full px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 text-sm"
+                className="mt-6 w-full px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/20 text-sm"
               >
                 Cancel
               </button>
@@ -1238,7 +1238,7 @@ function DeductionModal({
           <button
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 bg-gray-700 text-white rounded-md hover:bg-gray-600"
+            className="flex-1 px-4 py-2.5 bg-white/10 text-white rounded-md hover:bg-white/20"
           >
             Cancel
           </button>

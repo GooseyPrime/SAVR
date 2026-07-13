@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, radii } from '../../theme/index';
 
 type SignUpScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 
@@ -160,7 +161,7 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -176,12 +177,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.foreground,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.foregroundMuted,
   },
   form: {
     flex: 1,
@@ -192,22 +193,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.foregroundSecondary,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   primaryButton: {
-    backgroundColor: '#ea580c',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
     marginTop: 8,
   },
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -227,28 +228,28 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.border,
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#6b7280',
+    color: colors.foregroundMuted,
     fontSize: 14,
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: radii.md,
     marginBottom: 24,
   },
   googleButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    color: '#374151',
+    color: colors.foregroundSecondary,
     fontWeight: '600',
   },
   footer: {
@@ -258,11 +259,11 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   footerText: {
-    color: '#6b7280',
+    color: colors.foregroundMuted,
     fontSize: 14,
   },
   footerLink: {
-    color: '#ea580c',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },

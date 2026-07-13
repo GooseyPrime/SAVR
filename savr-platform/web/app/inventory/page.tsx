@@ -528,7 +528,7 @@ function EditModal({
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
+            className="flex-1 px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/20"
           >
             Cancel
           </button>

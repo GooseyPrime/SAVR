@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, radii } from '../../theme/index';
 
 type SignInScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignIn'>;
 
@@ -36,8 +37,8 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     setLoading(true);
     try {
       await signIn(email, password);
-    } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to sign in');
+    } catch (_error) {
+      Alert.alert('Error', _error instanceof Error ? _error.message : 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -47,7 +48,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     setLoading(true);
     try {
       await signInWithGoogle();
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to sign in with Google');
     } finally {
       setLoading(false);
@@ -61,14 +62,11 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.foreground} />
           </TouchableOpacity>
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+          <Text style={styles.subtitle}>Sign in to your SAVR account</Text>
         </View>
 
         <View style={styles.form}>
@@ -77,6 +75,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
             <TextInput
               style={styles.input}
               placeholder="your@email.com"
+              placeholderTextColor={colors.foregroundMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -90,6 +89,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
             <TextInput
               style={styles.input}
               placeholder="••••••••"
+              placeholderTextColor={colors.foregroundMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -103,13 +103,13 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
             disabled={loading}
           >
             <Text style={styles.primaryButtonText}>
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Signing In…' : 'Sign In'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or continue with</Text>
+            <Text style={styles.dividerText}>or continue with</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -137,7 +137,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -151,40 +151,41 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: 30,
+    fontWeight: '700',
+    color: colors.foreground,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 15,
+    color: colors.foregroundMuted,
   },
   form: {
     flex: 1,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.foregroundSecondary,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 13,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    color: colors.foreground,
   },
   primaryButton: {
-    backgroundColor: '#ea580c',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 15,
+    borderRadius: radii.md,
     alignItems: 'center',
     marginTop: 8,
   },
@@ -192,40 +193,40 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.primaryForeground,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 22,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.border,
   },
   dividerText: {
-    marginHorizontal: 16,
-    color: '#6b7280',
-    fontSize: 14,
+    marginHorizontal: 14,
+    color: colors.foregroundMuted,
+    fontSize: 13,
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingVertical: 12,
-    borderRadius: 12,
+    borderColor: colors.border,
+    paddingVertical: 13,
+    borderRadius: radii.md,
     marginBottom: 24,
+    gap: 10,
   },
   googleButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#374151',
+    fontSize: 15,
+    color: colors.foreground,
     fontWeight: '600',
   },
   footer: {
@@ -235,11 +236,11 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   footerText: {
-    color: '#6b7280',
+    color: colors.foregroundMuted,
     fontSize: 14,
   },
   footerLink: {
-    color: '#ea580c',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },

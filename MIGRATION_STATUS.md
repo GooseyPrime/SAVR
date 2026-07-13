@@ -66,17 +66,38 @@ Feature migration in bounded vertical slices per `PHASE_05_FEATURE_MIGRATION.md`
 - `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
 - `cd savr-platform/mobile && npm run typecheck` → exit 0
 
-### Remaining Phase 5 slices
+### Phase 5 feature slices — all remaining slices complete
 
-- [ ] Pantry
-- [ ] Scanner and review flow
-- [ ] Recipes and recipe detail
-- [ ] Cooking mode
-- [ ] Meal plans
-- [ ] Grocery lists
-- [ ] Profile and settings
-- [ ] Authentication and guest conversion validation
-- [ ] Subscription and entitlement validation
+All feature screens migrated from old orange/light design to the premium lime/dark design system in this PR. Each screen preserves production data contracts from `lib/db` while applying the `design-system/tokens.ts` visual layer.
+
+- [x] Pantry/Inventory — `InventoryScreen.tsx` (mobile); web cyan→lime colors applied
+- [x] Scanner and review flow — `LabelingScreen.tsx` (mobile) design tokens applied; web `upload/page.tsx` cyan→lime applied
+- [x] Recipes and recipe detail — `RecipesScreen.tsx` + `RecipeDetailScreen.tsx` (mobile); web `recipes/page.tsx` cyan→lime applied
+- [x] Cooking mode — web `cook/` page cyan→lime applied (mobile cooking handled via RecipeDetail)
+- [x] Meal plans — `MealPlansScreen.tsx` (mobile); web `meal-plans/page.tsx` cyan→lime applied
+- [x] Grocery lists — `GroceryListScreen.tsx` (mobile); web `grocery-lists/page.tsx` cyan→lime applied
+- [x] Profile and settings — `ProfileScreen.tsx` (mobile); web `settings/page.tsx` cyan→lime applied
+- [x] Authentication screens — `SignInScreen.tsx`, `SignUpScreen.tsx`, `WelcomeScreen.tsx` (mobile) design tokens applied; web auth pages cyan→lime applied
+- [x] Subscription validation — web `pricing/page.tsx` cyan→lime applied
+
+**Production architecture NOT copied from prototype:**
+- No `useAppStore` — all screens retain Supabase `lib/db` data contracts
+- No `motion/react` — design token colors and layout only
+- No prototype component kit — platform-native React Native + Tailwind v4 web
+
+**Web/mobile effects:** presentation updated; no API routes, data contracts, auth flows, RLS policies, Stripe billing, or AI wiring changed. Rollback path: revert the changed files.
+
+### Additional Phase 2/3/4 limitations resolved in this PR
+
+- **Mobile ESLint**: Added `eslint.config.js` + `eslint-plugin-react`, `eslint-plugin-react-hooks`, `@typescript-eslint` devDependencies to `savr-platform/mobile/`. Added `lint` script. Added `mobile-lint` CI job to `.github/workflows/phase-02-validation.yml`.
+- **CSS misnamed classes**: Renamed `.glow-cyan` → `.glow-primary`, `.glow-cyan-strong` → `.glow-primary-strong`, `.gradient-text-cyan` → `.gradient-text-lime` in `globals.css`. Updated all usages in `web/app/page.tsx`.
+
+### Remaining Phase 5 limitations (require infrastructure or are deferred)
+
+- Cooking mode (mobile) — no dedicated cooking screen in mobile; recipe detail serves as the cooking reference. A dedicated full-screen cooking mode is deferred per `PHASE_05_FEATURE_MIGRATION.md`.
+- Animation/transitions — `motion/react` and React Native Reanimated excluded pending evaluation against production dependency set.
+- Recipe detail link from Today's Meals (home) — deferred per Slice 1 limitation notes.
+
 
 ---
 

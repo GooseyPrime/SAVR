@@ -14,6 +14,7 @@ import { pickImageFromCamera, pickImageFromLibrary } from '../../utils/imageUtil
 import { uploadLabelingImage, getPublicUrl } from '../../utils/storage';
 import PolygonAnnotation from '../../components/PolygonAnnotation';
 import { callApi, callApiGet } from '../../utils/api';
+import { colors, radii } from '../../theme/index';
 
 interface AnnotationObject {
   id: string;
@@ -314,11 +315,11 @@ export default function LabelingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
   },
@@ -331,14 +332,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     minWidth: 200,
     alignItems: 'center',
   },
   uploadButtonText: {
-    color: '#fff',
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -352,16 +353,16 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     alignItems: 'center',
   },
   saveButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.primaryForeground,
     fontWeight: '600',
   },
   categorySection: {
@@ -378,13 +379,13 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: 8,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: colors.border,
   },
   categoryChipSelected: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   colorDot: {
     width: 12,
@@ -402,12 +403,12 @@ const styles = StyleSheet.create({
   infoSection: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sm,
   },
   infoText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.foregroundMuted,
   },
   loadingOverlay: {
     position: 'absolute',

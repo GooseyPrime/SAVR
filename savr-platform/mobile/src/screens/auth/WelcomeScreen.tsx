@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { colors, radii } from '../../theme/index';
 
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 
@@ -57,7 +58,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   content: {
@@ -72,12 +73,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#ea580c',
+    color: colors.primary,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.foregroundMuted,
     textAlign: 'center',
     marginBottom: 48,
     paddingHorizontal: 20,
@@ -98,34 +99,34 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 16,
-    color: '#374151',
+    color: colors.foregroundSecondary,
   },
   buttons: {
     width: '100%',
     paddingBottom: 24,
   },
   primaryButton: {
-    backgroundColor: '#ea580c',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
     marginBottom: 12,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 18,
     fontWeight: 'bold',
   },
   secondaryButton: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#ea580c',
   },
   secondaryButtonText: {
-    color: '#ea580c',
+    color: colors.primary,
     fontSize: 18,
     fontWeight: 'bold',
   },
