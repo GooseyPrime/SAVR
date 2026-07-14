@@ -30,13 +30,7 @@ fi
 
 HEAD_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 COMPARE_FROM="${REFERENCE_COMMIT}"
-CURRENT_UPSTREAM=""
-
-if CURRENT_UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
-  :
-else
-  CURRENT_UPSTREAM=""
-fi
+CURRENT_UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo "")
 
 if git show-ref --verify --quiet "refs/remotes/origin/${DEFAULT_BRANCH}" \
   && { [ "${HEAD_BRANCH}" != "${DEFAULT_BRANCH}" ] || [ "${CURRENT_UPSTREAM}" != "origin/${DEFAULT_BRANCH}" ]; }; then

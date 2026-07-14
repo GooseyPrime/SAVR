@@ -3,6 +3,8 @@ import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypeScript from "eslint-config-next/typescript";
 
 const eslintConfig = defineConfig([
+  // Next 16 exposes flat configs directly; importing them avoids the
+  // FlatCompat circular-schema failure triggered by compat.extends().
   ...nextCoreWebVitals,
   ...nextTypeScript,
   // Override default ignores of eslint-config-next.
