@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
-    "test:unit": "node --import tsx --test tests/*.test.ts"
+    "test:unit": "bash ../scripts/run-node-unit-tests.sh tests"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
