@@ -132,12 +132,7 @@ export async function listUserImages(
  * (for backward compatibility during migration)
  */
 export function isFirebaseStorageUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.toLowerCase() === 'firebasestorage.googleapis.com';
-  } catch {
-    return false;
-  }
+  return url.includes('firebasestorage.googleapis.com');
 }
 
 /**

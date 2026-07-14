@@ -16,7 +16,12 @@ Contains two helper functions:
 
 ```ts
 export function isFirebaseStorageUrl(url: string): boolean {
-  return url.includes('firebasestorage.googleapis.com');
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.toLowerCase() === 'firebasestorage.googleapis.com';
+  } catch {
+    return false;
+  }
 }
 
 export function getImageUrl(bucket: BucketName, pathOrUrl: string): string {
