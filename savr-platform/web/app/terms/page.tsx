@@ -1,22 +1,23 @@
 import Navbar from '@/components/Navbar';
+import Link from 'next/link';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 pt-28 pb-16 max-w-4xl">
-        <h1 className="text-5xl font-bold text-white mb-8">
+        <h1 className="text-5xl font-bold text-foreground mb-8">
           Terms and Conditions
         </h1>
         
-        <div className="prose prose-lg max-w-none space-y-6 text-[#C8D9CF]">
-          <p className="text-sm text-[#C8D9CF]">
+        <div className="prose prose-lg max-w-none space-y-6 text-foreground-secondary">
+          <p className="text-sm text-foreground-secondary">
             Last Updated: February 7, 2025
           </p>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               1. Agreement to Terms
             </h2>
             <p>
@@ -26,7 +27,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               2. Description of Service
             </h2>
             <p>
@@ -36,7 +37,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               3. User Accounts
             </h2>
             <p>
@@ -51,28 +52,27 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               4. Subscription and Payment
             </h2>
             <p>
-              SAVR offers free and paid subscription tiers:
+              SAVR offers two paid subscription tiers:
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li>Basic: Free tier with limited features</li>
-              <li>Plus: Paid subscription with expanded features</li>
-              <li>Premium: Paid subscription with all features</li>
+              <li><strong>Basic:</strong> $4.99/month or $49.99/year — core inventory, recipe, and meal-plan features with monthly usage limits</li>
+              <li><strong>Pro:</strong> $9.99/month or $99.99/year — unlimited access plus the AI cooking assistant, ad-free experience, and priority support</li>
             </ul>
             <p className="mt-4">
-              Paid subscriptions are billed on a recurring monthly basis. You may cancel your subscription at any time. 
+              Subscriptions are billed on a recurring monthly or annual basis. You may cancel your subscription at any time. 
               Refunds are subject to our 30-day money-back guarantee policy for new subscriptions.
             </p>
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               5. Pet Recipe Disclaimer
             </h2>
-            <p className="font-semibold text-orange-600">
+            <p className="font-semibold text-orange-500">
               IMPORTANT: Pet recipes provided by SAVR are for informational purposes only and are not a substitute 
               for professional veterinary advice.
             </p>
@@ -85,7 +85,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               6. AI-Generated Content
             </h2>
             <p>
@@ -100,7 +100,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               7. User Content
             </h2>
             <p>
@@ -115,7 +115,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               8. Prohibited Uses
             </h2>
             <p>
@@ -132,7 +132,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               9. Intellectual Property
             </h2>
             <p>
@@ -143,7 +143,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               10. Limitation of Liability
             </h2>
             <p>
@@ -159,7 +159,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               11. Disclaimers
             </h2>
             <p>
@@ -170,7 +170,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               12. Changes to Terms
             </h2>
             <p>
@@ -180,7 +180,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               13. Termination
             </h2>
             <p>
@@ -190,7 +190,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               14. Governing Law
             </h2>
             <p>
@@ -200,7 +200,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               15. Contact Information
             </h2>
             <p>
@@ -214,10 +214,15 @@ export default function TermsPage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-400">
-            © 2024 SAVR. All rights reserved.
+      <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+          <div className="flex items-center justify-center gap-6 mb-4">
+            <Link href="/pricing" className="text-sm text-foreground-muted hover:text-primary transition-colors">Pricing</Link>
+            <Link href="/faq" className="text-sm text-foreground-muted hover:text-primary transition-colors">FAQ</Link>
+            <Link href="/privacy" className="text-sm text-foreground-muted hover:text-primary transition-colors">Privacy</Link>
+          </div>
+          <p className="text-sm text-foreground-muted">
+            &copy; {new Date().getFullYear()} SAVR. All rights reserved.
           </p>
         </div>
       </footer>

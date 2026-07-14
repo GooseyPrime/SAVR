@@ -1,22 +1,23 @@
 import Navbar from '@/components/Navbar';
+import Link from 'next/link';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 pt-28 pb-16 max-w-4xl">
-        <h1 className="text-5xl font-bold text-white mb-8">
+        <h1 className="text-5xl font-bold text-foreground mb-8">
           Privacy Policy
         </h1>
         
-        <div className="prose prose-lg max-w-none space-y-6 text-[#C8D9CF]">
-          <p className="text-sm text-[#C8D9CF]">
+        <div className="prose prose-lg max-w-none space-y-6 text-foreground-secondary">
+          <p className="text-sm text-foreground-secondary">
             Last Updated: February 7, 2025
           </p>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               1. Introduction
             </h2>
             <p>
@@ -27,11 +28,11 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               2. Information We Collect
             </h2>
             
-            <h3 className="text-2xl font-semibold text-white mt-6 mb-3">
+            <h3 className="text-2xl font-semibold text-foreground mt-6 mb-3">
               2.1 Information You Provide
             </h3>
             <ul className="list-disc pl-6 space-y-2">
@@ -42,7 +43,7 @@ export default function PrivacyPage() {
               <li><strong>Communications:</strong> Messages you send to us for support or feedback</li>
             </ul>
 
-            <h3 className="text-2xl font-semibold text-white mt-6 mb-3">
+            <h3 className="text-2xl font-semibold text-foreground mt-6 mb-3">
               2.2 Automatically Collected Information
             </h3>
             <ul className="list-disc pl-6 space-y-2">
@@ -54,7 +55,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               3. How We Use Your Information
             </h2>
             <p>
@@ -72,14 +73,14 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               4. Third-Party Services
             </h2>
             <p>
               We use the following third-party services that may collect or process your data:
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li><strong>Firebase/Google Cloud:</strong> Authentication, database, and hosting</li>
+              <li><strong>Supabase:</strong> Authentication, database, and storage</li>
               <li><strong>Stripe:</strong> Payment processing for subscriptions</li>
               <li><strong>OpenAI:</strong> AI-powered recipe generation and chat features</li>
               <li><strong>Google Cloud Vision:</strong> Image analysis for ingredient identification</li>
@@ -91,7 +92,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               5. Data Sharing and Disclosure
             </h2>
             <p>
@@ -106,7 +107,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               6. Data Storage and Security
             </h2>
             <p>
@@ -114,10 +115,9 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Encryption of data in transit using SSL/TLS</li>
-              <li>Secure storage on Google Cloud Platform</li>
+              <li>Secure storage via Supabase with row-level security and access controls</li>
               <li>Regular security audits and updates</li>
-              <li>Access controls and authentication measures</li>
-              <li>Password hashing and secure authentication through Firebase</li>
+              <li>Password hashing and secure authentication through Supabase Auth</li>
             </ul>
             <p className="mt-4">
               However, no method of transmission over the internet is 100% secure. While we strive to protect 
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               7. Data Retention
             </h2>
             <p>
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               8. Your Rights and Choices
             </h2>
             <p>
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               9. Children&apos;s Privacy
             </h2>
             <p>
@@ -176,7 +176,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               10. International Data Transfers
             </h2>
             <p>
@@ -187,7 +187,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               11. California Privacy Rights
             </h2>
             <p>
@@ -203,7 +203,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               12. European Privacy Rights (GDPR)
             </h2>
             <p>
@@ -220,7 +220,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               13. Changes to This Privacy Policy
             </h2>
             <p>
@@ -231,7 +231,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-bold text-white mt-8 mb-4">
+            <h2 className="text-3xl font-bold text-foreground mt-8 mb-4">
               14. Contact Us
             </h2>
             <p>
@@ -247,10 +247,15 @@ export default function PrivacyPage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-400">
-            © 2024 SAVR. All rights reserved.
+      <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+          <div className="flex items-center justify-center gap-6 mb-4">
+            <Link href="/pricing" className="text-sm text-foreground-muted hover:text-primary transition-colors">Pricing</Link>
+            <Link href="/faq" className="text-sm text-foreground-muted hover:text-primary transition-colors">FAQ</Link>
+            <Link href="/terms" className="text-sm text-foreground-muted hover:text-primary transition-colors">Terms</Link>
+          </div>
+          <p className="text-sm text-foreground-muted">
+            &copy; {new Date().getFullYear()} SAVR. All rights reserved.
           </p>
         </div>
       </footer>
