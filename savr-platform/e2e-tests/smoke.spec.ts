@@ -13,7 +13,10 @@ test.describe('public smoke coverage', () => {
     await page.goto('/pricing');
 
     await expect(page.getByRole('heading', { name: /simple, transparent/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /sign in to continue/i })).toBeVisible();
+    const signInBtn = page.getByRole('button', { name: /sign in to continue/i });
+    await expect(signInBtn).toBeVisible();
+    await signInBtn.click();
+    await page.waitForURL(/\/sign-in/);
   });
 });
 

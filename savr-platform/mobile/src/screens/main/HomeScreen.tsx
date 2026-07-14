@@ -84,8 +84,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     return mealPlans.flatMap((plan) => plan.meals).filter((meal) => meal.date === today);
   }, [mealPlans]);
 
-  // Last 5 saved recipes
-  const recentRecipes = useMemo(() => recipes.slice(-5).reverse(), [recipes]);
+  // Last 5 saved recipes — getRecipes() returns newest-first, so take the front
+  const recentRecipes = useMemo(() => recipes.slice(0, 5), [recipes]);
 
   const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
 

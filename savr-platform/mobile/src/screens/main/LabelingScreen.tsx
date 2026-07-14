@@ -328,6 +328,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: colors.foreground,
   },
   uploadSection: {
     padding: 32,
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadButtonText: {
-    color: colors.foreground,
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
   },
   buttonText: {
-    color: colors.foreground,
+    color: colors.primaryForeground,
     fontWeight: '600',
   },
   categorySection: {
@@ -374,6 +375,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+    color: colors.foreground,
   },
   categoryChip: {
     flexDirection: 'row',
@@ -397,6 +399,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
+    color: colors.foreground,
   },
   categoryTextSelected: {
     fontWeight: '600',

@@ -49,7 +49,10 @@ function mapDbRecipeToMobile(recipe: any): Recipe {
     dietaryTags: recipe.dietary_tags,
     imageUrl: recipe.image_url,
     createdAt: recipe.created_at,
-    recipeType: 'human',
+    // recipeType distinguishes human vs pet food recipes; isAiGenerated indicates AI vs manual creation.
+    // These are orthogonal: a pet recipe can be AI-generated and a human recipe can be manually created.
+    recipeType: recipe.recipe_type ?? 'human',
+    isAiGenerated: recipe.is_ai_generated ?? false,
   };
 }
 
@@ -97,7 +100,7 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
     return recipes.filter((recipe) => {
       const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchesSearch) return false;
-      if (activeFilter === 'ai') return (recipe as any).isAiGenerated ?? false;
+      if (activeFilter === 'ai') return recipe.isAiGenerated ?? false;
       if (activeFilter === 'quick') return ((recipe.prepTime ?? 0) + recipe.cookTime) <= 30;
       return true;
     });
