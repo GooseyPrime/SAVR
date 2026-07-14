@@ -18,10 +18,10 @@ const eslintConfig = defineConfig([
       // Pre-existing code uses `any` types throughout; maintain prior behaviour
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "warn",
-      "react-hooks/immutability": "off",
-      "react-hooks/purity": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/static-components": "off",
+      "react-hooks/immutability": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/static-components": "warn",
     },
   },
 ]);
