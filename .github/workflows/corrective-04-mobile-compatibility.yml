@@ -1,0 +1,60 @@
+name: Corrective 04 — Mobile Platform Compatibility
+
+on:
+  push:
+    paths:
+      - 'savr-platform/mobile/**'
+      - '.github/workflows/corrective-04-mobile-compatibility.yml'
+      - 'docs/decisions/ADR-003-canonical-expo-version.md'
+  pull_request:
+    paths:
+      - 'savr-platform/mobile/**'
+      - '.github/workflows/corrective-04-mobile-compatibility.yml'
+      - 'docs/decisions/ADR-003-canonical-expo-version.md'
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-compatibility:
+    name: Mobile — Expo Doctor + Bundle exports
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: Export — Android bundle
+        run: npx expo export --platform android
+
+      - name: Export — iOS bundle
+        run: npx expo export --platform ios
+
+      - name: Clean export artifacts
+        if: always()
+        run: rm -rf dist
