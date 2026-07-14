@@ -44,7 +44,6 @@ export async function callApi(endpoint: string, data: any) {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-  if (!response.ok) {
     throw await parseApiError(response);
   }
 
@@ -58,7 +57,6 @@ export async function callApiGet(endpoint: string) {
     method: 'GET',
     headers,
   });
-  if (!response.ok) {
   if (!response.ok) {
     throw await parseApiError(response);
   }

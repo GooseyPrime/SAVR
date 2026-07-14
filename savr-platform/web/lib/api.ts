@@ -36,7 +36,6 @@ export async function callApi(endpoint: string, data: any) {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-  if (!response.ok) {
     throw await parseApiError(response);
   }
   

@@ -9,7 +9,11 @@ export async function POST(request: NextRequest) {
   
   const { user, supabase } = auth;
   const body = await request.json();
-  const ingredients = Array.isArray(body.ingredients) ? body.ingredients.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];
+  const ingredients = Array.isArray(body.ingredients)
+    ? (body.ingredients as unknown[]).filter(
+        (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
+      )
+    : [];
   const preferences = body.preferences;
   const recipeType = body.recipeType === 'pet' ? 'pet' : 'human';
   const species = body.species === 'cat' ? 'cat' : 'dog';
