@@ -47,7 +47,7 @@ export function getRecipeQuotaRule(
   recipeType: AiRecipeType,
   now: Date = new Date()
 ): AiUsageLimitRule | null {
-  if (hasProAccess(billing)) {
+  if (billing && hasProAccess(billing)) {
     return null;
   }
 
@@ -78,7 +78,7 @@ export function getMealPlanQuotaRule(
   billing: AiBillingSnapshot | null | undefined,
   now: Date = new Date()
 ): AiUsageLimitRule | null {
-  if (hasProAccess(billing)) {
+  if (billing && hasProAccess(billing)) {
     return null;
   }
 

@@ -60,6 +60,10 @@ export async function checkRateLimit(userId: string, endpoint: string, limit: nu
 }
 
 export async function enforceAiUsageLimit(userId: string, rule: AiUsageLimitRule) {
+  if (rule.windowMs < 1000) {
+    throw new Error('AI usage windows must be at least 1000ms');
+  }
+
   const supabaseAdmin = getSupabaseAdmin();
   const windowSeconds = Math.max(1, Math.ceil(rule.windowMs / 1000));
   const resetAt = new Date(rule.windowStart.getTime() + rule.windowMs).toISOString();

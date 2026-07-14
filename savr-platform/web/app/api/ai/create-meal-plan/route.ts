@@ -36,9 +36,11 @@ export async function POST(request: NextRequest) {
 
     const mealPlan = await generateMealPlan(days, preferences, inventory);
     
-    // Calculate date range
-    const startDate = new Date().toISOString().slice(0, 10);
-    const endDate = new Date(Date.now() + (days - 1) * MS_PER_DAY).toISOString().slice(0, 10);
+    // Persist an inclusive day range, so a 1-day plan starts and ends on the same date.
+    const startDateValue = new Date();
+    const endDateValue = new Date(startDateValue.getTime() + (days - 1) * MS_PER_DAY);
+    const startDate = startDateValue.toISOString().slice(0, 10);
+    const endDate = endDateValue.toISOString().slice(0, 10);
     
     // Save to database
     const { data, error } = await supabase
