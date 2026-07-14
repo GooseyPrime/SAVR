@@ -26,6 +26,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: 'com.savr.app',
     versionCode: 1,
     predictiveBackGestureEnabled: false,
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [{ scheme: 'savr', host: 'auth', pathPrefix: '/callback' }],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
     permissions: [
       'CAMERA',
       'READ_EXTERNAL_STORAGE',

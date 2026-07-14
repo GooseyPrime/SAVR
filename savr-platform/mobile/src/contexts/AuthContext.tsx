@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 import { UserData } from '../types';
 import { SubscriptionTier } from '../lib/billing';
+import { signInWithGoogle as googleOAuthSignIn } from '../lib/google-auth';
 
 /** Normalize a raw database tier value to a canonical SubscriptionTier. */
 function normalizeLegacyTier(raw: string | null | undefined): SubscriptionTier {
@@ -110,12 +111,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // Note: OAuth in React Native requires different setup
-    // This is a placeholder - needs expo-auth-session or similar
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
-    if (error) throw error;
+    const result = await googleOAuthSignIn();
+    if (!result.success) {
+      if (result.reason === 'canceled') {
+        // User dismissed the browser — do not throw; let the UI remain idle.
+        return;
+      }
+      // Surface browser errors, invalid callbacks, and exchange failures.
+      throw new Error(result.message);
+    }
+    // On success, onAuthStateChange fires automatically and updates user state.
   };
 
   const signOut = async () => {
