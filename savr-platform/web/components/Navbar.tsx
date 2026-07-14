@@ -192,10 +192,11 @@ export default function Navbar() {
       {menuOpen && (
         <div
           id="savr-nav-menu"
-          className="border-t"
+          className="border-t overflow-y-auto"
           style={{
             background: 'rgba(13, 18, 16, 0.96)',
             borderColor: 'var(--color-border)',
+            maxHeight: 'calc(100vh - 72px)',
           }}
         >
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">

@@ -53,6 +53,7 @@ export interface Recipe {
   species?: 'cat' | 'dog';
   imageUrl?: string;
   createdAt: any;
+  isAiGenerated?: boolean;
 }
 
 export interface MealPlan {

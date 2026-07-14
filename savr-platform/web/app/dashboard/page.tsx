@@ -82,8 +82,8 @@ function DashboardContent() {
       .filter((meal) => meal.date === today);
   }, [mealPlans]);
 
-  // Last 5 saved recipes
-  const recentRecipes = useMemo(() => recipes.slice(-5).reverse(), [recipes]);
+  // Last 5 saved recipes — getRecipes() returns newest-first, so take the front
+  const recentRecipes = useMemo(() => recipes.slice(0, 5), [recipes]);
 
   const displayName = userData?.display_name || user?.email?.split('@')[0] || 'Chef';
 

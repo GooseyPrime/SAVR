@@ -89,10 +89,16 @@ export default function MealPlansScreen() {
           />
         }
         renderItem={({ item }) => {
-          const mealsByType = item.meals?.reduce((acc, meal) => {
-            if (!acc[meal.meal_type]) acc[meal.meal_type] = meal;
-            return acc;
-          }, {} as Record<string, MealPlanMeal>);
+          // Group meals by date first, then by meal_type within each date,
+          // so all days of a multi-day plan remain visible.
+          const mealsByDate = (item.meals ?? []).reduce((dateAcc, meal) => {
+            const day = meal.date ?? item.start_date;
+            if (!dateAcc[day]) dateAcc[day] = {} as Record<string, MealPlanMeal>;
+            dateAcc[day][meal.meal_type] = meal;
+            return dateAcc;
+          }, {} as Record<string, Record<string, MealPlanMeal>>);
+
+          const sortedDates = Object.keys(mealsByDate).sort();
 
           return (
             <View style={styles.mealPlanCard}>
@@ -106,25 +112,35 @@ export default function MealPlansScreen() {
                   })}
                 </Text>
               </View>
-              <View style={styles.mealsContainer}>
-                {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((type) => {
-                  const meal = mealsByType?.[type];
-                  if (!meal) return null;
-                  return (
-                    <View key={type} style={styles.mealRow}>
-                      <Text style={styles.mealTypeIcon}>{MEAL_TYPE_ICONS[type] || '🍽️'}</Text>
-                      <View style={styles.mealInfo}>
-                        <Text style={styles.mealType}>
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </Text>
-                        <Text style={styles.mealTitle} numberOfLines={1}>
-                          {meal.recipe_title || 'Planned meal'}
-                        </Text>
-                      </View>
+              {sortedDates.map((date) => {
+                const mealsByType = mealsByDate[date];
+                return (
+                  <View key={date}>
+                    <Text style={styles.dayLabel}>
+                      {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </Text>
+                    <View style={styles.mealsContainer}>
+                      {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((type) => {
+                        const meal = mealsByType?.[type];
+                        if (!meal) return null;
+                        return (
+                          <View key={type} style={styles.mealRow}>
+                            <Text style={styles.mealTypeIcon}>{MEAL_TYPE_ICONS[type] || '🍽️'}</Text>
+                            <View style={styles.mealInfo}>
+                              <Text style={styles.mealType}>
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </Text>
+                              <Text style={styles.mealTitle} numberOfLines={1}>
+                                {meal.recipe_title || 'Planned meal'}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
-                  );
-                })}
-              </View>
+                  </View>
+                );
+              })}
             </View>
           );
         }}
@@ -188,6 +204,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.foreground,
+  },
+  dayLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.foregroundSecondary,
+    marginTop: 10,
+    marginBottom: 6,
   },
   mealsContainer: {
     gap: 10,
