@@ -997,7 +997,7 @@ function RecipeDetailsModal({
               <button
                 type="button"
                 onClick={onCookWithAssistant}
-                className="flex-1 px-4 py-2.5 bg-secondary text-foreground font-semibold rounded-md hover:bg-secondary-hover transition text-sm"
+                className="flex-1 px-4 py-2.5 bg-secondary text-secondary-foreground font-semibold rounded-md hover:bg-secondary-hover transition text-sm"
               >
                 Cook with Assistant
               </button>

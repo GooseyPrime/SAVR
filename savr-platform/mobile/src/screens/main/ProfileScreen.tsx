@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { isPaidTier } from '../../types';
+import { isProTier } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, shadowElevations } from '../../theme/index';
 
@@ -27,9 +27,8 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const isPro = isPaidTier(userData?.subscriptionTier);
+  const isPro = isProTier(userData?.subscriptionTier);
   const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
-  const tierLabel = isPro ? 'Pro' : 'Basic';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -58,7 +57,10 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {!isPro && (
-          <TouchableOpacity style={[styles.menuItem, styles.upgradeItem]}>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.upgradeItem]}
+            onPress={() => Linking.openURL(`${APP_URL}/pricing`)}
+          >
             <Ionicons name="star-outline" size={22} color={colors.primary} />
             <Text style={[styles.menuItemText, styles.upgradeText]}>Upgrade to Pro</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />

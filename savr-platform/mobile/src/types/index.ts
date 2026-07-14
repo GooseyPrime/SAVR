@@ -20,6 +20,15 @@ export function isPaidTier(tier: UserData['subscriptionTier'] | undefined): bool
   return tier === 'basic' || tier === 'pro' || tier === 'plus' || tier === 'premium' || tier === 'free';
 }
 
+/**
+ * Returns true only when the user is on the active Pro tier or its legacy equivalent.
+ * Based on ADR-001: treat `pro` as the active Pro tier and `premium` as the legacy Pro equivalent.
+ * Use this predicate to gate Pro-only features; do not use isPaidTier() for Pro checks.
+ */
+export function isProTier(tier: UserData['subscriptionTier'] | undefined): boolean {
+  return tier === 'pro' || tier === 'premium';
+}
+
 export interface InventoryItem {
   id: string;
   name: string;
