@@ -55,6 +55,6 @@ jobs:
       - name: Export — iOS bundle
         run: npx expo export --platform ios
 
-      - name: Clean export artefacts
+      - name: Clean export artifacts
         if: always()
         run: rm -rf dist
