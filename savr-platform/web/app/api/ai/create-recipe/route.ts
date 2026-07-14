@@ -1,17 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest } from '@/lib/middleware';
+import { getRecipeQuotaRule } from '@/lib/ai-rate-limit';
+import { authenticateRequest, enforceAiUsageLimit, getUserBillingSnapshot } from '@/lib/middleware';
 import { generateRecipe } from '@/lib/services/ai';
+
+function parseIngredients(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0
+  );
+}
 
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   
   const { user, supabase } = auth;
-  
-  const { ingredients, preferences } = await request.json();
+  const body = await request.json();
+  const ingredients = parseIngredients(body.ingredients);
+  const preferences = body.preferences;
+  const recipeType = body.recipeType === 'pet' ? 'pet' : 'human';
+  const species = body.species === 'cat' ? 'cat' : 'dog';
+
+  if (ingredients.length === 0) {
+    return NextResponse.json({ error: 'At least one ingredient is required' }, { status: 400 });
+  }
   
   try {
-    const result = await generateRecipe(ingredients, preferences);
+    const billing = await getUserBillingSnapshot(user.id);
+    const quotaRule = getRecipeQuotaRule(billing, recipeType);
+
+    if (quotaRule) {
+      const rateCheck = await enforceAiUsageLimit(user.id, quotaRule);
+      if (!rateCheck.allowed) {
+        return rateCheck.error;
+      }
+    }
+
+    const result = await generateRecipe(
+      ingredients,
+      preferences,
+      recipeType === 'pet' ? { mode: 'pet', species } : { mode: 'human' }
+    );
     
     // Optionally save to database
     const { data, error } = await supabase
@@ -34,7 +66,14 @@ export async function POST(request: NextRequest) {
     
     if (error) throw error;
     
-    return NextResponse.json({ success: true, recipe: data });
+    return NextResponse.json({
+      success: true,
+      recipeId: data.id,
+      recipe: data,
+      recipeType,
+      species: recipeType === 'pet' ? species : undefined,
+      removedForSafety: result.removedForSafety,
+    });
   } catch (error) {
     console.error('Error creating recipe:', error);
     return NextResponse.json({ error: 'Failed to create recipe' }, { status: 500 });

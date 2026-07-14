@@ -1,25 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest } from '@/lib/middleware';
+import { getMealPlanQuotaRule } from '@/lib/ai-rate-limit';
+import { authenticateRequest, enforceAiUsageLimit, getUserBillingSnapshot } from '@/lib/middleware';
 import { generateMealPlan } from '@/lib/services/ai';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   
   const { user, supabase } = auth;
-  
-  const { days, preferences, inventory } = await request.json();
+  const body = await request.json();
+  const days = Number(body.days);
+  const preferences = body.preferences;
+  const inventory = Array.isArray(body.inventory)
+    ? body.inventory
+    : Array.isArray(body.ingredients)
+      ? body.ingredients
+      : [];
   
   if (!days || days < 1 || days > 30) {
     return NextResponse.json({ error: 'Days must be between 1 and 30' }, { status: 400 });
   }
   
   try {
+    const billing = await getUserBillingSnapshot(user.id);
+    const quotaRule = getMealPlanQuotaRule(billing);
+
+    if (quotaRule) {
+      const rateCheck = await enforceAiUsageLimit(user.id, quotaRule);
+      if (!rateCheck.allowed) {
+        return rateCheck.error;
+      }
+    }
+
     const mealPlan = await generateMealPlan(days, preferences, inventory);
     
-    // Calculate date range
-    const startDate = new Date().toISOString();
-    const endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    // Persist an inclusive day range, so a 1-day plan starts and ends on the same date.
+    const startDateValue = new Date();
+    const endDateValue = new Date(startDateValue.getTime() + (days - 1) * MS_PER_DAY);
+    const startDate = startDateValue.toISOString().slice(0, 10);
+    const endDate = endDateValue.toISOString().slice(0, 10);
     
     // Save to database
     const { data, error } = await supabase
@@ -30,14 +51,14 @@ export async function POST(request: NextRequest) {
         start_date: startDate,
         end_date: endDate,
         meals: mealPlan.meals,
-        is_ai_generated: true,
+        dietary_preferences: preferences?.dietary ?? [],
       })
       .select()
       .single();
     
     if (error) throw error;
     
-    return NextResponse.json({ success: true, mealPlan: data });
+    return NextResponse.json({ success: true, mealPlanId: data.id, mealPlan: data });
   } catch (error) {
     console.error('Error creating meal plan:', error);
     return NextResponse.json({ error: 'Failed to create meal plan' }, { status: 500 });

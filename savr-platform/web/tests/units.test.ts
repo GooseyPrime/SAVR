@@ -15,6 +15,14 @@ import {
   hasProAccess,
   resolveTierFromPriceId,
 } from '../lib/billing';
+import {
+  AI_RATE_LIMIT_EXCEEDED_CODE,
+  AI_USAGE_EXHAUSTED_CODE,
+  getBurstLimitRule,
+  getMealPlanQuotaRule,
+  getRecipeQuotaRule,
+  getUtcMonthWindow,
+} from '../lib/ai-rate-limit';
 
 test('normalizeUnit maps known aliases and preserves unknown values', () => {
   assert.equal(normalizeUnit(' Cups '), 'cup');
@@ -223,3 +231,80 @@ test('resolveTierFromPriceId throws when env vars are missing', () => {
   process.env.STRIPE_PRICE_PRO_YEARLY    = 'price_pro_yearly_test';
 });
 
+// ──────────────────────────────────────────
+// AI usage limits (corrective PR 5)
+// ──────────────────────────────────────────
+
+test('getUtcMonthWindow returns a UTC month-aligned window', () => {
+  const { windowStart, nextWindowStart, windowMs } = getUtcMonthWindow(
+    new Date('2026-07-14T16:14:36.558Z')
+  );
+
+  assert.equal(windowStart.toISOString(), '2026-07-01T00:00:00.000Z');
+  assert.equal(nextWindowStart.toISOString(), '2026-08-01T00:00:00.000Z');
+  assert.equal(windowMs, 31 * 24 * 60 * 60 * 1000);
+});
+
+test('getRecipeQuotaRule skips limits for active Pro users', () => {
+  assert.equal(
+    getRecipeQuotaRule({ subscription_tier: 'pro', subscription_status: 'active' }, 'human'),
+    null
+  );
+});
+
+test('getRecipeQuotaRule returns the Basic human monthly recipe quota', () => {
+  const rule = getRecipeQuotaRule(
+    { subscription_tier: 'basic', subscription_status: 'active' },
+    'human',
+    new Date('2026-07-14T16:14:36.558Z')
+  );
+
+  assert.ok(rule);
+  assert.equal(rule.feature, 'create-recipe');
+  assert.equal(rule.limit, 10);
+  assert.equal(rule.code, AI_USAGE_EXHAUSTED_CODE);
+  assert.match(rule.message, /unlimited recipes/i);
+  assert.equal(rule.windowStart.toISOString(), '2026-07-01T00:00:00.000Z');
+});
+
+test('getRecipeQuotaRule returns the Basic pet monthly recipe quota', () => {
+  const rule = getRecipeQuotaRule(
+    { subscription_tier: 'basic', subscription_status: 'trialing' },
+    'pet',
+    new Date('2026-07-14T16:14:36.558Z')
+  );
+
+  assert.ok(rule);
+  assert.equal(rule.feature, 'create-pet-recipe');
+  assert.equal(rule.limit, 5);
+  assert.equal(rule.code, AI_USAGE_EXHAUSTED_CODE);
+  assert.match(rule.message, /pet recipes/i);
+});
+
+test('getMealPlanQuotaRule returns the Basic monthly meal plan quota', () => {
+  const rule = getMealPlanQuotaRule(
+    { subscription_tier: 'basic', subscription_status: 'active' },
+    new Date('2026-07-14T16:14:36.558Z')
+  );
+
+  assert.ok(rule);
+  assert.equal(rule.feature, 'create-meal-plan');
+  assert.equal(rule.limit, 2);
+  assert.equal(rule.code, AI_USAGE_EXHAUSTED_CODE);
+  assert.match(rule.message, /unlimited meal plans/i);
+});
+
+test('getBurstLimitRule aligns rate-limit buckets to the requested window', () => {
+  const rule = getBurstLimitRule(
+    'analyze-image',
+    100,
+    60_000,
+    'Rate limit exceeded. Please wait and try again.',
+    new Date('2026-07-14T16:14:36.558Z')
+  );
+
+  assert.equal(rule.feature, 'analyze-image');
+  assert.equal(rule.limit, 100);
+  assert.equal(rule.code, AI_RATE_LIMIT_EXCEEDED_CODE);
+  assert.equal(rule.windowStart.toISOString(), '2026-07-14T16:14:00.000Z');
+});

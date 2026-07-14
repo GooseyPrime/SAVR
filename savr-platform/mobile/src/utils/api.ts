@@ -2,6 +2,26 @@ import { supabase } from '../config/supabase';
 
 const API_BASE = process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:3000';
 
+export interface ApiError extends Error {
+  code?: string;
+  status?: number;
+  resetAt?: string;
+}
+
+async function parseApiError(response: Response): Promise<ApiError> {
+  const payload = await response.json().catch(() => ({}));
+  const error = new Error(
+    typeof payload?.error === 'string' ? payload.error : 'API request failed'
+  ) as ApiError;
+
+  error.name = 'ApiError';
+  error.code = typeof payload?.code === 'string' ? payload.code : undefined;
+  error.status = response.status;
+  error.resetAt = typeof payload?.resetAt === 'string' ? payload.resetAt : undefined;
+
+  return error;
+}
+
 async function getAuthHeaders() {
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -23,10 +43,8 @@ export async function callApi(endpoint: string, data: any) {
     headers,
     body: JSON.stringify(data),
   });
-
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    throw await parseApiError(response);
   }
 
   return response.json();
@@ -39,10 +57,8 @@ export async function callApiGet(endpoint: string) {
     method: 'GET',
     headers,
   });
-
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    throw await parseApiError(response);
   }
 
   return response.json();
@@ -59,10 +75,10 @@ export interface GenerateMealPlanParams {
 }
 
 export interface ChatWithAIParams {
-  messages: Array<{
+  messages: {
     role: 'user' | 'assistant' | 'system';
     content: string;
-  }>;
+  }[];
   context?: Record<string, any>;
 }
 
