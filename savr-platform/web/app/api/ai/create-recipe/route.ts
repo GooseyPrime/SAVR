@@ -3,17 +3,23 @@ import { getRecipeQuotaRule } from '@/lib/ai-rate-limit';
 import { authenticateRequest, enforceAiUsageLimit, getUserBillingSnapshot } from '@/lib/middleware';
 import { generateRecipe } from '@/lib/services/ai';
 
+function parseIngredients(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0
+  );
+}
+
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   
   const { user, supabase } = auth;
   const body = await request.json();
-  const ingredients = Array.isArray(body.ingredients)
-    ? (body.ingredients as unknown[]).filter(
-        (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
-      )
-    : [];
+  const ingredients = parseIngredients(body.ingredients);
   const preferences = body.preferences;
   const recipeType = body.recipeType === 'pet' ? 'pet' : 'human';
   const species = body.species === 'cat' ? 'cat' : 'dog';

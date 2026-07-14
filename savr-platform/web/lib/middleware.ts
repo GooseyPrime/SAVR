@@ -41,7 +41,7 @@ export async function getUserBillingSnapshot(userId: string): Promise<AiBillingS
     .single();
 
   if (error) {
-    throw error;
+    throw new Error(`Failed to fetch user billing snapshot: ${error.message}`);
   }
 
   return data;

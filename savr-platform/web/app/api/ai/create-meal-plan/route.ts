@@ -3,6 +3,8 @@ import { getMealPlanQuotaRule } from '@/lib/ai-rate-limit';
 import { authenticateRequest, enforceAiUsageLimit, getUserBillingSnapshot } from '@/lib/middleware';
 import { generateMealPlan } from '@/lib/services/ai';
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     
     // Calculate date range
     const startDate = new Date().toISOString().slice(0, 10);
-    const endDate = new Date(Date.now() + (days - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const endDate = new Date(Date.now() + (days - 1) * MS_PER_DAY).toISOString().slice(0, 10);
     
     // Save to database
     const { data, error } = await supabase
