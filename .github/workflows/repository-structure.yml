@@ -39,3 +39,11 @@ jobs:
           fi
           echo ""
           echo "All required initialization files are present."
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate Copilot instruction frontmatter
+        run: node scripts/validate-copilot-instructions.mjs

@@ -1,6 +1,5 @@
 ---
-applyTo:
-  - ../../savr-platform/web/**
+applyTo: "savr-platform/web/**"
 ---
 
 # SAVR platform web rules

@@ -6,7 +6,24 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 6 — Hardening and Release (complete)**
+**Post-Phase-6 Corrective Track — in progress**
+
+Consolidation phases 1–6 are complete. A corrective build path is underway to address governance gaps, billing contract normalization, webhook reliability, mobile platform formalization, AI rate limiting, landing-page productionization, mobile auth completeness, and final release-candidate verification.
+
+---
+
+## Post-Phase-6 Corrective Track
+
+| Corrective PR | Title | Status |
+|---|---|---|
+| Corrective PR 1 | Restore repository governance | 🔄 In progress |
+| Corrective PR 2 | Normalize Basic and Pro billing | ⏳ Pending |
+| Corrective PR 3 | Make Stripe webhook processing reliable | ⏳ Pending |
+| Corrective PR 4 | Formalize and validate the mobile platform version | ⏳ Pending |
+| Corrective PR 5 | Implement durable AI rate limiting | ⏳ Pending |
+| Corrective PR 6 | Productionize the public landing page | ⏳ Pending |
+| Corrective PR 7 | Complete mobile authentication readiness | ⏳ Pending |
+| Corrective PR 8 | Final release-candidate verification | ⏳ Pending |
 
 ---
 
