@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /savr-platform/web
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /savr-platform/mobile
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: expo
+        update-types: [version-update:semver-major]
+      - dependency-name: react-native
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /savr-platform/e2e-tests
+    schedule:
+      interval: weekly
