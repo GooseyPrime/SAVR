@@ -18,7 +18,7 @@ Consolidation phases 1–6 are complete. A corrective build path is underway to 
 |---|---|---|
 | Corrective PR 1 | Restore repository governance | ✅ Complete |
 | Corrective PR 2 | Normalize Basic and Pro billing | ✅ Complete |
-| Corrective PR 3 | Make Stripe webhook processing reliable | ⏳ Pending |
+| Corrective PR 3 | Make Stripe webhook processing reliable | ✅ Complete |
 | Corrective PR 4 | Formalize and validate the mobile platform version | ⏳ Pending |
 | Corrective PR 5 | Implement durable AI rate limiting | ⏳ Pending |
 | Corrective PR 6 | Productionize the public landing page | ⏳ Pending |
@@ -80,6 +80,43 @@ Phase 6 added the missing hardening gates needed to prove the consolidated platf
 - Live Stripe checkout E2E still needs repository secrets and a live target
 - Mobile native runtime validation still depends on external device/emulator execution
 - ADR-001 and ADR-002 remain open until production audits are available
+
+
+---
+
+## Corrective PR 3 Completion Summary
+
+**Title:** fix: add idempotent Stripe webhook reconciliation  
+**Branch:** `copilot/proceed-with-corrective-action-pr-3`
+
+### What was added
+
+- `savr-platform/supabase/migrations/20260714020000_stripe_webhook_events.sql` — forward-only migration creating `public.stripe_webhook_events` table (event_id PK, event_type, processing_status, attempt_count, last_error, timestamps) with a `('pending','processed','failed')` check constraint, RLS enabled with no client policies, and the `public.claim_stripe_webhook_event(event_id, event_type)` security-definer SQL function for atomic idempotent event claiming
+- `savr-platform/web/lib/stripe-webhook.ts` — extracted webhook business logic (handleWebhook, claimWebhookEvent, markEventProcessed, markEventFailed, dispatchWebhookEvent, all event-specific handlers) with injectable `StripeClient` and `SupabaseAdmin` interfaces for testability
+- `savr-platform/web/tests/webhook.test.ts` — 21 unit tests covering all required scenarios (invalid/missing signature, first delivery, duplicate processed, already-pending concurrent delivery, retry after failure, Basic monthly/yearly, Pro monthly/yearly, unknown price ID, subscription update, subscription deletion, payment failed, payment recovered, checkout session, claimWebhookEvent unit tests)
+
+### What changed
+
+- `savr-platform/web/app/api/stripe/webhook/route.ts` — simplified to a thin Next.js adapter that initialises real Stripe/Supabase instances and delegates to `handleWebhook()` from `stripe-webhook.ts`
+- `MIGRATION_STATUS.md` — corrective PR 3 marked complete
+
+### Validation (exact commands, exact results)
+
+- `cd savr-platform/web && npm run lint` → exit 0, 43 warnings (pre-existing pattern; 0 errors)
+- `cd savr-platform/web && npx tsc --noEmit` → exit 0
+- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
+- `cd savr-platform/web && npm run test:unit` → 45 passed (24 original + 21 new webhook tests), 0 failed
+
+### Remaining limitations
+
+- `supabase db reset` against a live project: deferred (requires Supabase CLI and Docker environment); migration SQL validated by inspection and constraint logic review
+- Live Stripe signature verification of `claim_stripe_webhook_event` RPC round-trip: deferred (requires live Supabase project)
+- Mobile webhook handling is not applicable (mobile is a client-only consumer of subscription state)
+
+### Reference folder confirmation
+
+- `SAVR-old/` — not modified
+- `savr-premium-mobile-app/` — not modified
 
 ---
 
