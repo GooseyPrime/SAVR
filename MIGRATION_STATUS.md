@@ -353,7 +353,7 @@ boundaries, and backend contracts.
 
 - Billing tier names conflict — see `docs/decisions/ADR-001-billing-tier-names.md`
 - Firebase Storage backward compat — see `docs/decisions/ADR-002-firebase-storage-compat.md`
-- Mobile Google OAuth requires additional setup; not production-ready for all paths
+- Mobile Google OAuth: `expo-auth-session`+`expo-web-browser` flow implemented in `savr-platform/mobile/src/contexts/AuthContext.tsx`; requires Google provider enabled in Supabase project settings and redirect URL registered in Google Cloud Console before production use
 - Mobile lint configuration is still missing in `savr-platform/mobile/`
 - Supabase migration validation has no committed `db lint` or `db reset` script
 - E2E tests require a running application; cannot run headless in CI without a deployed target

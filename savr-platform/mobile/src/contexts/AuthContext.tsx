@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from '../config/supabase';
 import { UserData } from '../types';
+
+// Ensures any pending in-app browser OAuth sessions are finalized on mount.
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   user: User | null;
@@ -100,12 +105,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // Note: OAuth in React Native requires different setup
-    // This is a placeholder - needs expo-auth-session or similar
-    const { error } = await supabase.auth.signInWithOAuth({
+    // Build a deep-link redirect URI using the app's registered scheme (savr://).
+    // Requires the Google provider to be enabled in the Supabase project settings
+    // and the redirect URL registered in Google Cloud Console.
+    const redirectUri = makeRedirectUri({ scheme: 'savr', path: 'auth/callback' });
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: redirectUri,
+        skipBrowserRedirect: true,
+      },
     });
+
     if (error) throw error;
+    if (!data?.url) throw new Error('No OAuth URL returned from provider');
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+
+    if (result.type === 'success' && result.url) {
+      // Parse access_token and refresh_token from the callback URL fragment.
+      const fragmentParams = new URLSearchParams(result.url.replace(/^[^#]*#/, ''));
+      const accessToken = fragmentParams.get('access_token');
+      const refreshToken = fragmentParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (sessionError) throw sessionError;
+      } else {
+        throw new Error('OAuth callback did not return a valid session');
+      }
+    } else if (result.type === 'cancel') {
+      // User dismissed the browser — treat as a cancellation, not an error.
+    } else if (result.type !== 'dismiss') {
+      throw new Error('Google sign-in was not completed');
+    }
   };
 
   const signOut = async () => {
