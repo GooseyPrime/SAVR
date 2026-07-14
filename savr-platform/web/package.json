@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --import tsx --test tests/**/*.test.ts"
+    "test:unit": "node --import tsx --test tests/*.test.ts"
   },
   "overrides": {
     "@tootallnate/once": "^3.0.1",
