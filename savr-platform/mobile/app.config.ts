@@ -39,7 +39,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-camera',
+    'expo-font',
     'expo-image-picker',
+    'expo-status-bar',
   ],
   extra: {
     eas: {
