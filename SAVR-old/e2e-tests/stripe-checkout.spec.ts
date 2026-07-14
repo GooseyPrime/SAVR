@@ -95,15 +95,7 @@ test.describe('Stripe Subscription Flow with 100% Coupon', () => {
     const currentUrl = page.url();
     console.log(`Current URL: ${currentUrl}`);
 
-    let isStripeCheckoutHost = false;
-    try {
-      const parsedUrl = new URL(currentUrl);
-      isStripeCheckoutHost = parsedUrl.hostname === 'checkout.stripe.com';
-    } catch (e) {
-      console.log('Unable to parse current URL:', e);
-    }
-
-    if (isStripeCheckoutHost) {
+    if (currentUrl.includes('checkout.stripe.com')) {
       console.log('On Stripe checkout page, filling out billing info');
       
       // Apply coupon code first if there's a coupon field
