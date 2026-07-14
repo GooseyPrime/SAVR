@@ -8,6 +8,9 @@ const eslintConfig = defineConfig([
           ...config,
           rules: {
             ...(config.rules ?? {}),
+            // These React compiler-era rules surface as new errors across unchanged pages;
+            // keep the repository's existing warning-only lint baseline until those pages
+            // are migrated in dedicated follow-up work.
             "react-hooks/immutability": "off",
             "react-hooks/purity": "off",
             "react-hooks/set-state-in-effect": "off",
