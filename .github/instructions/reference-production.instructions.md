@@ -1,6 +1,6 @@
 ---
 applyTo:
-  - ../../SAVR-old/**
+  - SAVR-old/**
 ---
 
 # SAVR-old production reference

@@ -12,7 +12,7 @@
     "web:start": "npm run start --prefix web",
     "mobile:typecheck": "npm run typecheck --prefix mobile",
     "mobile:test:unit": "npm run test:unit --prefix mobile",
-    "supabase:reset": "npx supabase@latest db reset"
+    "supabase:reset": "npx supabase@2.109.1 db reset"
   },
   "repository": {
     "type": "git",

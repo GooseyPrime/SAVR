@@ -1,13 +1,13 @@
 ---
 applyTo:
-  - ../../savr-platform/**/*stripe*.ts
-  - ../../savr-platform/**/*stripe*.tsx
-  - ../../savr-platform/**/*billing*.ts
-  - ../../savr-platform/**/*billing*.tsx
-  - ../../savr-platform/**/*subscription*.ts
-  - ../../savr-platform/**/*subscription*.tsx
-  - ../../savr-platform/**/*entitlement*.ts
-  - ../../savr-platform/**/*entitlement*.tsx
+  - savr-platform/**/*stripe*.ts
+  - savr-platform/**/*stripe*.tsx
+  - savr-platform/**/*billing*.ts
+  - savr-platform/**/*billing*.tsx
+  - savr-platform/**/*subscription*.ts
+  - savr-platform/**/*subscription*.tsx
+  - savr-platform/**/*entitlement*.ts
+  - savr-platform/**/*entitlement*.tsx
 ---
 
 # SAVR platform payments rules

@@ -1,11 +1,11 @@
 ---
 applyTo:
-  - ../../savr-platform/supabase/**
-  - ../../savr-platform/**/supabase/**
-  - ../../savr-platform/**/*supabase*.ts
-  - ../../savr-platform/**/*supabase*.tsx
-  - ../../savr-platform/**/*supabase*.js
-  - ../../savr-platform/**/*supabase*.jsx
+  - savr-platform/supabase/**
+  - savr-platform/**/supabase/**
+  - savr-platform/**/*supabase*.ts
+  - savr-platform/**/*supabase*.tsx
+  - savr-platform/**/*supabase*.js
+  - savr-platform/**/*supabase*.jsx
 ---
 
 # SAVR platform Supabase rules

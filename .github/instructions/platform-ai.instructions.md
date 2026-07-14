@@ -1,17 +1,17 @@
 ---
 applyTo:
-  - ../../savr-platform/**/*ai*.ts
-  - ../../savr-platform/**/*ai*.tsx
-  - ../../savr-platform/**/*ai*.js
-  - ../../savr-platform/**/*ai*.jsx
-  - ../../savr-platform/**/*prompt*.ts
-  - ../../savr-platform/**/*prompt*.tsx
-  - ../../savr-platform/**/*vision*.ts
-  - ../../savr-platform/**/*vision*.tsx
-  - ../../savr-platform/**/*image-analysis*.ts
-  - ../../savr-platform/**/*image-analysis*.tsx
-  - ../../savr-platform/**/*pet-safety*.ts
-  - ../../savr-platform/**/*pet-safety*.tsx
+  - savr-platform/**/*ai*.ts
+  - savr-platform/**/*ai*.tsx
+  - savr-platform/**/*ai*.js
+  - savr-platform/**/*ai*.jsx
+  - savr-platform/**/*prompt*.ts
+  - savr-platform/**/*prompt*.tsx
+  - savr-platform/**/*vision*.ts
+  - savr-platform/**/*vision*.tsx
+  - savr-platform/**/*image-analysis*.ts
+  - savr-platform/**/*image-analysis*.tsx
+  - savr-platform/**/*pet-safety*.ts
+  - savr-platform/**/*pet-safety*.tsx
 ---
 
 # SAVR platform AI rules

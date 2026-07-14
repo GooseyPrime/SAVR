@@ -1,6 +1,6 @@
 ---
 applyTo:
-  - ../../savr-platform/**
+  - savr-platform/**
 ---
 
 # SAVR platform production tree

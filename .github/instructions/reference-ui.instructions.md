@@ -1,6 +1,6 @@
 ---
 applyTo:
-  - ../../savr-premium-mobile-app/**
+  - savr-premium-mobile-app/**
 ---
 
 # SAVR premium UI reference

@@ -159,7 +159,7 @@ jobs:
           node-version: '20'
 
       - name: Start Supabase local stack
-        run: npx supabase@latest start
+        run: npx supabase@2.109.1 start
 
       - name: Apply migrations with reset
-        run: npx supabase@latest db reset
+        run: npx supabase@2.109.1 db reset
