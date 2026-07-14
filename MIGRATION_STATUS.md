@@ -19,7 +19,7 @@ Consolidation phases 1–6 are complete. A corrective build path is underway to 
 | Corrective PR 1 | Restore repository governance | ✅ Complete |
 | Corrective PR 2 | Normalize Basic and Pro billing | ✅ Complete |
 | Corrective PR 3 | Make Stripe webhook processing reliable | ✅ Complete |
-| Corrective PR 4 | Formalize and validate the mobile platform version | ⏳ Pending |
+| Corrective PR 4 | Formalize and validate the mobile platform version | ✅ Complete |
 | Corrective PR 5 | Implement durable AI rate limiting | ⏳ Pending |
 | Corrective PR 6 | Productionize the public landing page | ⏳ Pending |
 | Corrective PR 7 | Complete mobile authentication readiness | ⏳ Pending |
@@ -81,6 +81,49 @@ Phase 6 added the missing hardening gates needed to prove the consolidated platf
 - Mobile native runtime validation still depends on external device/emulator execution
 - ADR-001 and ADR-002 remain open until production audits are available
 
+
+---
+
+## Corrective PR 4 Completion Summary
+
+**Title:** chore: validate and document the canonical Expo mobile platform  
+**Branch:** `copilot/corrective-04-mobile-platform`
+
+### What was added
+
+- `docs/decisions/ADR-003-canonical-expo-version.md` — formal decision record documenting the undocumented Expo 54 → Expo 57 / React Native 0.75 → 0.86 upgrade, compatibility evidence, and remaining physical-device/EAS validation gates
+- `.github/workflows/corrective-04-mobile-compatibility.yml` — CI workflow running lint, typecheck, unit tests, Expo Doctor, Android bundle export, and iOS bundle export on every mobile change
+
+### What changed
+
+- `savr-platform/mobile/app.json` — removed `newArchEnabled`, `edgeToEdgeEnabled`, and top-level `splash` fields removed from the `@expo/config-types@57.0.1` schema; removed legacy Firebase `extra` fields superseded by `app.config.ts`; removed `googleServicesFile` reference
+- `savr-platform/mobile/app.config.ts` — added `expo-font` and `expo-status-bar` to `plugins` array as required by those packages
+- `savr-platform/mobile/package.json` — aligned all Expo SDK 57 peer dependencies to expected versions per `npx expo install --check`; moved `@types/react` and `typescript` exclusively to devDependencies; added `expo-font` dependency; added `@types/node` devDependency for TypeScript 6.0 `node:` import support
+- `savr-platform/mobile/package-lock.json` — updated lockfile to reflect dependency alignment
+- `savr-platform/mobile/tsconfig.json` — added `"types": ["node"]` for TypeScript 6.0 `node:` protocol support in test files
+- `MIGRATION_STATUS.md` — corrective PR 4 marked complete
+
+### Validation (exact commands, exact results)
+
+- `cd savr-platform/mobile && npm ci` → exit 0
+- `cd savr-platform/mobile && npm run lint` → exit 0, 50 warnings (pre-existing; 0 errors)
+- `cd savr-platform/mobile && npm run typecheck` → exit 0
+- `cd savr-platform/mobile && npm run test:unit` → 17 passed, 0 failed
+- `cd savr-platform/mobile && npx expo-doctor` → 20/20 checks passed, no issues detected
+- `cd savr-platform/mobile && npx expo export --platform android` → Android Bundled 9014ms, 1071 modules, exit 0
+- `cd savr-platform/mobile && npx expo export --platform ios` → iOS Bundled 15538ms, 1076 modules, exit 0
+
+### Remaining limitations
+
+- Native EAS builds (Android APK/AAB, iOS IPA): deferred — requires EAS project credentials and protected-environment access
+- On-device runtime testing (camera, photo library, OAuth, push notifications): deferred — requires physical device or managed emulator
+- Live Supabase connectivity: deferred — requires live Supabase project with matching schema
+- Google OAuth native flow: deferred — requires registered OAuth client IDs for both platforms
+
+### Reference folder confirmation
+
+- `SAVR-old/` — not modified
+- `savr-premium-mobile-app/` — not modified
 
 ---
 
