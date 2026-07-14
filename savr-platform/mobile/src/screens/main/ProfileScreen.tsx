@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { isPaidTier } from '../../types';
+import { hasProAccess } from '../../lib/billing';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, shadowElevations } from '../../theme/index';
 
@@ -27,7 +27,7 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const isPro = isPaidTier(userData?.subscriptionTier);
+  const isPro = hasProAccess(userData);
   const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
   const tierLabel = isPro ? 'Pro' : 'Basic';
 

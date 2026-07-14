@@ -8,6 +8,13 @@ import {
   normalizeUnit,
 } from '../lib/utils/units';
 import { filterIngredientsForPet, PET_RECIPE_DISCLAIMER } from '../lib/config/forbiddenFoods';
+import {
+  isKnownTier,
+  isSubscriptionActive,
+  hasBasicAccess,
+  hasProAccess,
+  resolveTierFromPriceId,
+} from '../lib/billing';
 
 test('normalizeUnit maps known aliases and preserves unknown values', () => {
   assert.equal(normalizeUnit(' Cups '), 'cup');
@@ -83,3 +90,136 @@ test('filterIngredientsForPet removes toxic ingredients for each species', () =>
 
   assert.match(PET_RECIPE_DISCLAIMER, /consult your veterinarian/i);
 });
+
+// ──────────────────────────────────────────
+// Billing helpers (ADR-001)
+// ──────────────────────────────────────────
+
+test('isKnownTier accepts canonical tier values', () => {
+  assert.equal(isKnownTier('basic'), true);
+  assert.equal(isKnownTier('pro'), true);
+});
+
+test('isKnownTier rejects legacy and unknown tier values', () => {
+  assert.equal(isKnownTier('free'), false);
+  assert.equal(isKnownTier('plus'), false);
+  assert.equal(isKnownTier('premium'), false);
+  assert.equal(isKnownTier(undefined), false);
+  assert.equal(isKnownTier(null), false);
+  assert.equal(isKnownTier(''), false);
+  assert.equal(isKnownTier('legacy'), false);
+});
+
+test('isSubscriptionActive returns true only for active and trialing', () => {
+  assert.equal(isSubscriptionActive('active'), true);
+  assert.equal(isSubscriptionActive('trialing'), true);
+  assert.equal(isSubscriptionActive('pending'), false);
+  assert.equal(isSubscriptionActive('canceled'), false);
+  assert.equal(isSubscriptionActive('past_due'), false);
+  assert.equal(isSubscriptionActive('incomplete'), false);
+  assert.equal(isSubscriptionActive('incomplete_expired'), false);
+  assert.equal(isSubscriptionActive('unpaid'), false);
+  assert.equal(isSubscriptionActive(null), false);
+  assert.equal(isSubscriptionActive(undefined), false);
+});
+
+test('hasBasicAccess: Basic active', () => {
+  assert.equal(hasBasicAccess({ subscription_tier: 'basic', subscription_status: 'active' }), true);
+});
+
+test('hasBasicAccess: Basic trialing', () => {
+  assert.equal(hasBasicAccess({ subscription_tier: 'basic', subscription_status: 'trialing' }), true);
+});
+
+test('hasBasicAccess: Pro active (superset)', () => {
+  assert.equal(hasBasicAccess({ subscription_tier: 'pro', subscription_status: 'active' }), true);
+});
+
+test('hasBasicAccess: Basic pending — no access', () => {
+  assert.equal(hasBasicAccess({ subscription_tier: 'basic', subscription_status: 'pending' }), false);
+});
+
+test('hasBasicAccess: Basic canceled — no access', () => {
+  assert.equal(hasBasicAccess({ subscription_tier: 'basic', subscription_status: 'canceled' }), false);
+});
+
+test('hasBasicAccess: null — no access', () => {
+  assert.equal(hasBasicAccess(null), false);
+  assert.equal(hasBasicAccess(undefined), false);
+});
+
+test('hasBasicAccess: legacy tier values grant no access', () => {
+  assert.equal(hasBasicAccess({ subscription_tier: 'free', subscription_status: 'active' }), false);
+  assert.equal(hasBasicAccess({ subscription_tier: 'plus', subscription_status: 'active' }), false);
+  assert.equal(hasBasicAccess({ subscription_tier: 'premium', subscription_status: 'active' }), false);
+});
+
+test('hasProAccess: Pro active', () => {
+  assert.equal(hasProAccess({ subscription_tier: 'pro', subscription_status: 'active' }), true);
+});
+
+test('hasProAccess: Pro trialing', () => {
+  assert.equal(hasProAccess({ subscription_tier: 'pro', subscription_status: 'trialing' }), true);
+});
+
+test('hasProAccess: Basic active — no Pro access', () => {
+  assert.equal(hasProAccess({ subscription_tier: 'basic', subscription_status: 'active' }), false);
+});
+
+test('hasProAccess: Pro past_due — no access', () => {
+  assert.equal(hasProAccess({ subscription_tier: 'pro', subscription_status: 'past_due' }), false);
+});
+
+test('hasProAccess: null — no access', () => {
+  assert.equal(hasProAccess(null), false);
+  assert.equal(hasProAccess(undefined), false);
+});
+
+test('hasProAccess: legacy tier values grant no Pro access', () => {
+  assert.equal(hasProAccess({ subscription_tier: 'premium', subscription_status: 'active' }), false);
+  assert.equal(hasProAccess({ subscription_tier: 'plus', subscription_status: 'active' }), false);
+});
+
+// Stripe price ID to tier resolution
+test('resolveTierFromPriceId maps configured price IDs correctly', () => {
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
+  process.env.STRIPE_PRICE_BASIC_YEARLY  = 'price_basic_yearly_test';
+  process.env.STRIPE_PRICE_PRO_MONTHLY   = 'price_pro_monthly_test';
+  process.env.STRIPE_PRICE_PRO_YEARLY    = 'price_pro_yearly_test';
+
+  assert.equal(resolveTierFromPriceId('price_basic_monthly_test'), 'basic');
+  assert.equal(resolveTierFromPriceId('price_basic_yearly_test'),  'basic');
+  assert.equal(resolveTierFromPriceId('price_pro_monthly_test'),   'pro');
+  assert.equal(resolveTierFromPriceId('price_pro_yearly_test'),    'pro');
+});
+
+test('resolveTierFromPriceId throws on unknown price ID', () => {
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
+  process.env.STRIPE_PRICE_BASIC_YEARLY  = 'price_basic_yearly_test';
+  process.env.STRIPE_PRICE_PRO_MONTHLY   = 'price_pro_monthly_test';
+  process.env.STRIPE_PRICE_PRO_YEARLY    = 'price_pro_yearly_test';
+
+  assert.throws(
+    () => resolveTierFromPriceId('price_unknown_xyz'),
+    /Unknown Stripe price ID/
+  );
+});
+
+test('resolveTierFromPriceId throws when env vars are missing', () => {
+  delete process.env.STRIPE_PRICE_BASIC_MONTHLY;
+  delete process.env.STRIPE_PRICE_BASIC_YEARLY;
+  delete process.env.STRIPE_PRICE_PRO_MONTHLY;
+  delete process.env.STRIPE_PRICE_PRO_YEARLY;
+
+  assert.throws(
+    () => resolveTierFromPriceId('price_basic_monthly_test'),
+    /environment variables are not configured/
+  );
+
+  // Restore for subsequent tests
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
+  process.env.STRIPE_PRICE_BASIC_YEARLY  = 'price_basic_yearly_test';
+  process.env.STRIPE_PRICE_PRO_MONTHLY   = 'price_pro_monthly_test';
+  process.env.STRIPE_PRICE_PRO_YEARLY    = 'price_pro_yearly_test';
+});
+

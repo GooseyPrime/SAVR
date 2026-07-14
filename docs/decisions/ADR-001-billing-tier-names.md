@@ -1,56 +1,80 @@
-# ADR-001 — Billing Tier Name Conflict
+# ADR-001 — Billing Tier Names
 
 **Date:** 2026-07-12  
-**Status:** Open — conflict documented, no resolution yet  
-**Phase:** Phase 2 — Validation and Contract Reconciliation
+**Updated:** 2026-07-14  
+**Status:** Accepted — Corrective PR 2  
+**Phase:** Post-Phase-6 Corrective Track
 
 ---
 
 ## Context
 
-The active Supabase migration (`savr-platform/supabase/migrations/20260220000000_initial_schema.sql`) contains a `subscription_tier` column with a check constraint that allows both legacy and current tier names:
+The active Supabase migration (`savr-platform/supabase/migrations/20260220000000_initial_schema.sql`) contained a `subscription_tier` column with a check constraint that allowed both legacy and current tier names:
 
 - **Legacy values** (older billing flow): `free`, `plus`, `premium`
 - **Current values** (active Stripe integration): `basic`, `pro`
 
-The production `SAVR-old/web/` code and the `SAVR-old/mobile/` code reference both sets of values in different areas. The Stripe webhook reconciliation code uses `basic` and `pro`, while some display and conditional logic references `free`, `plus`, and `premium`.
-
----
-
-## Conflict
-
-| Source | Tier values used |
-|---|---|
-| `subscription_tier` check constraint | `free`, `plus`, `premium`, `basic`, `pro` |
-| Stripe webhook handler | `basic`, `pro` |
-| Some UI/conditional checks | `free`, `plus`, `premium` |
-
-This creates ambiguity: it is not clear from the imported code whether `free`/`plus`/`premium` represent active user states or historical states that may still exist in the production database.
+The production `SAVR-old/web/` code and the `SAVR-old/mobile/` code referenced both sets of values in different areas. The Stripe webhook reconciliation code used `basic` and `pro`, while some display and conditional logic referenced `free`, `plus`, and `premium`.
 
 ---
 
 ## Decision
 
-**Not yet resolved.** This conflict is documented here so future agents know:
+**Accepted.** `basic` and `pro` are the only canonical billing tier values for SAVR.
 
-1. **Do not drop any tier name from the check constraint** until the full production database state is audited and confirmed empty of legacy tier values.
-2. **Do not introduce a third tier naming scheme** without a new ADR.
-3. **Treat `basic` and `pro` as the active billing tiers** for new Stripe integration work, based on the active webhook handler.
-4. **Treat `free`, `plus`, `premium` as potentially live legacy states** that must remain readable until migration is verified.
+| Legacy value | Canonical mapping |
+|---|---|
+| `free` | `basic` |
+| `plus` | `pro` |
+| `premium` | `pro` |
+
+### Access rules
+
+- **Active access** requires `subscription_status` to be `active` or `trialing`. Tier alone never grants access. Statuses `pending`, `canceled`, `past_due`, `incomplete`, `incomplete_expired`, and `unpaid` do not confer entitlement.
+- **Basic access** is granted to active/trialing users whose tier is `basic` or `pro`.
+- **Pro access** is granted only to active/trialing users whose tier is `pro`.
+
+### Canonical tier contract
+
+- `basic` and `pro` are the only valid runtime tier values.
+- Legacy values (`free`, `plus`, `premium`) must not appear in any canonical runtime code path.
+- They may appear only in: the data-normalization migration, ADR history, and explicit legacy-migration tests.
+
+### Pricing contract
+
+There are exactly two plans with four recurring prices:
+
+| Plan | Monthly | Yearly |
+|---|---|---|
+| Basic | $4.99 / month | $49.99 / year |
+| Pro | $9.99 / month | $99.99 / year |
+
+All prices are in USD. There is no Free, Plus, or Premium plan. The existing five-day trial is unchanged.
 
 ---
 
-## Resolution criteria
+## Implementation
 
-- [ ] Audit production database row counts by `subscription_tier` value (requires production access)
-- [ ] Confirm whether any user row has `free`, `plus`, or `premium` as their current tier
-- [ ] If legacy values exist: write a data migration and a new ADR authorizing the transition
-- [ ] If no legacy values exist: write an ADR authorizing the constraint narrowing
-- [ ] Update all display and conditional logic to use only the confirmed active tier names
+1. **Migration:** `savr-platform/supabase/migrations/20260714000000_normalize_billing_tiers.sql`
+   - Normalizes existing legacy rows (`free` → `basic`, `plus` → `pro`, `premium` → `pro`)
+   - Drops the old check constraint
+   - Adds a new constraint allowing only `basic` and `pro`
+2. **Canonical billing helpers:** `savr-platform/web/lib/billing.ts` and `savr-platform/mobile/src/lib/billing.ts`
+3. **Webhook:** Price-to-tier resolution now uses explicit Stripe price ID env vars, not metadata or amount inference.
 
 ---
 
-## Impact on downstream phases
+## Historical conflict (resolved)
 
-- Phase 3 (design system) and Phase 4 (application shells): must not hard-code tier names; use constants referencing this ADR
-- Phase 5 (feature migration): subscription gate logic must be reviewed against this conflict before landing
+| Source | Tier values used (before this ADR) |
+|---|---|
+| `subscription_tier` check constraint | `free`, `plus`, `premium`, `basic`, `pro` |
+| Stripe webhook handler | `basic`, `pro` |
+| Some UI/conditional checks | `free`, `plus`, `premium` |
+
+---
+
+## Impact on downstream work
+
+- All new feature work must gate access using `hasBasicAccess` or `hasProAccess` from the canonical billing helpers.
+- Do not introduce a third tier naming scheme without a new ADR.

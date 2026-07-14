@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Script from 'next/script';
 import { callApi } from '@/lib/api';
+import { hasProAccess, isSubscriptionActive } from '@/lib/billing';
 
 export default function PricingPage() {
   const { user, userData } = useAuth();
@@ -14,10 +15,8 @@ export default function PricingPage() {
   const [error, setError] = useState('');
   const pricingTableRef = useRef<HTMLDivElement>(null);
 
-  const tier = userData?.subscription_tier;
-  const status = userData?.subscription_status;
-  const hasActiveSub = status === 'active' || status === 'trialing';
-  const isPro = hasActiveSub && (tier === 'pro' || tier === 'plus' || tier === 'premium');
+  const hasActiveSub = isSubscriptionActive(userData?.subscription_status);
+  const isPro = hasProAccess(userData);
 
   // Redirect logged-out users who try to use pricing table
   useEffect(() => {
@@ -171,6 +170,43 @@ export default function PricingPage() {
         ) : (
           /* New Subscriber - Show Stripe Pricing Table */
           <div className="max-w-5xl mx-auto">
+            {/* Static plan comparison — visible before sign-in and when Stripe is unavailable */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12" aria-label="Plan comparison">
+              {/* Basic plan */}
+              <div className="rounded-2xl p-8 bg-surface/60 border border-border/60">
+                <h3 className="text-xl font-bold text-foreground mb-2">Basic</h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-4xl font-extrabold text-foreground">$4.99</span>
+                  <span className="text-foreground-muted text-sm">/ month</span>
+                </div>
+                <p className="text-sm text-foreground-muted mb-4">or <strong className="text-foreground">$49.99 / year</strong> — save 17%</p>
+                <ul className="space-y-2 text-sm text-foreground-muted">
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> Pantry &amp; inventory tracking</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> AI recipe generation</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> Meal planning</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> Grocery lists</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> 5-day free trial</li>
+                </ul>
+              </div>
+              {/* Pro plan */}
+              <div className="rounded-2xl p-8 bg-surface/60 border border-primary/40 relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Most popular</div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Pro</h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-4xl font-extrabold text-foreground">$9.99</span>
+                  <span className="text-foreground-muted text-sm">/ month</span>
+                </div>
+                <p className="text-sm text-foreground-muted mb-4">or <strong className="text-foreground">$99.99 / year</strong> — save 17%</p>
+                <ul className="space-y-2 text-sm text-foreground-muted">
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> Everything in Basic</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> AI Chef chat (unlimited)</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> Advanced meal planning</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> Priority support</li>
+                  <li className="flex items-center gap-2"><span className="text-primary">✓</span> 5-day free trial</li>
+                </ul>
+              </div>
+            </div>
+
             {!user && (
               <div className="mb-8 text-center">
                 <p className="text-foreground-muted mb-4">

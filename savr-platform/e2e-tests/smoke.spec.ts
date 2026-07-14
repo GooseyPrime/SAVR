@@ -18,6 +18,20 @@ test.describe('public smoke coverage', () => {
     await signInBtn.click();
     await page.waitForURL(/\/sign-in/);
   });
+
+  test('pricing page displays all four SAVR prices for logged-out visitors', async ({ page }) => {
+    await page.goto('/pricing');
+
+    // Static plan comparison must be visible without sign-in and without Stripe
+    await expect(page.getByRole('heading', { name: /^Basic$/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Pro$/i })).toBeVisible();
+
+    // All four prices must be visible
+    await expect(page.getByText(/\$4\.99/)).toBeVisible();
+    await expect(page.getByText(/\$49\.99/)).toBeVisible();
+    await expect(page.getByText(/\$9\.99/)).toBeVisible();
+    await expect(page.getByText(/\$99\.99/)).toBeVisible();
+  });
 });
 
 test.describe('mobile viewport smoke coverage', () => {

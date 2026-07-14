@@ -50,7 +50,7 @@ export async function checkSubscriptionTier(userId: string, requiredTier: 'basic
   if (!user) return false;
   
   if (requiredTier === 'pro') {
-    return (user.subscription_tier === 'pro' || user.subscription_tier === 'plus' || user.subscription_tier === 'premium') &&
+    return user.subscription_tier === 'pro' &&
            (user.subscription_status === 'active' || user.subscription_status === 'trialing');
   }
   
