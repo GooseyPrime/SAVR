@@ -66,8 +66,7 @@ function SettingsContent() {
   }
 
   const tier = userData?.subscription_tier;
-  const tierLabel = 
-    tier === 'pro' || tier === 'plus' || tier === 'premium' ? 'Pro' : 'Basic';
+  const tierLabel = tier === 'pro' ? 'Pro' : 'Basic';
   const hasPro = isProTier(userData?.subscription_tier);
 
   async function handleManageSubscription() {

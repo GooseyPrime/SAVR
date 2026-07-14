@@ -3,14 +3,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { isSubscriptionActive, hasProAccess as billingHasProAccess, SubscriptionTier } from '@/lib/billing';
 
-export type SubscriptionTierName = 'basic' | 'pro';
+export type SubscriptionTierName = SubscriptionTier;
 
 interface UserData {
   id: string;
   email: string | null;
   display_name?: string | null;
-  subscription_tier: SubscriptionTierName | 'free' | 'plus' | 'premium'; // legacy: free/plus/premium
+  subscription_tier: SubscriptionTierName;
   subscription_status?: string;
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
@@ -26,20 +27,13 @@ interface UserData {
   updated_at?: string;
 }
 
-export function isProTier(tier: UserData['subscription_tier'] | undefined): boolean {
-  return tier === 'pro' || tier === 'plus' || tier === 'premium';
-}
-
-export function isPaidTier(tier: UserData['subscription_tier'] | undefined): boolean {
-  // All tiers are now paid (basic and pro) — this checks if user has ANY tier set
-  return tier === 'basic' || tier === 'pro' || tier === 'plus' || tier === 'premium' || tier === 'free';
+export function isProTier(tier: SubscriptionTierName | undefined): boolean {
+  return tier === 'pro';
 }
 
 export function hasActiveSubscription(userData: UserData | null): boolean {
   if (!userData) return false;
-  // User must have completed Stripe onboarding (status is 'active' or 'trialing')
-  const status = userData.subscription_status;
-  return status === 'active' || status === 'trialing';
+  return isSubscriptionActive(userData.subscription_status);
 }
 
 interface AuthContextType {

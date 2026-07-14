@@ -62,11 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserData(null);
         } else if (data) {
           // Map snake_case to camelCase for compatibility
+          const tier = data.subscription_tier === 'free' ? 'basic' :
+                        data.subscription_tier === 'plus' ? 'pro' :
+                        data.subscription_tier === 'premium' ? 'pro' :
+                        (data.subscription_tier as 'basic' | 'pro') ?? 'basic';
           setUserData({
             uid: data.id,
             email: data.email,
             displayName: data.display_name,
-            subscriptionTier: data.subscription_tier as any,
+            subscriptionTier: tier,
             subscriptionStatus: data.subscription_status,
             createdAt: data.created_at ? new Date(data.created_at) : new Date(),
           });

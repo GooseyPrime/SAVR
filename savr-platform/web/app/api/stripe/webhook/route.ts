@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripeInstance } from '@/lib/stripe';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { resolveTierFromPriceId } from '@/lib/billing';
 
 export async function POST(request: NextRequest) {
   let stripe: Stripe;
@@ -146,31 +147,6 @@ async function findUserByCustomerId(
   return data.id;
 }
 
-async function getTierFromPrice(
-  priceId: string,
-  stripe: Stripe
-): Promise<'basic' | 'pro'> {
-  try {
-    const price = await stripe.prices.retrieve(priceId);
-
-    if (price.metadata?.tier) {
-      const tier = price.metadata.tier.toLowerCase();
-      if (tier === 'pro' || tier === 'plus' || tier === 'premium') return 'pro';
-      if (tier === 'basic' || tier === 'free') return 'basic';
-    }
-
-    const priceAmount = typeof price.unit_amount === 'number' ? price.unit_amount : 0;
-    if (priceAmount > 0) {
-      return 'pro'; // Non-zero price defaults to pro
-    }
-
-    return 'basic';
-  } catch (error) {
-    console.error('Error retrieving price:', error);
-    return 'basic';
-  }
-}
-
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
   stripe: Stripe,
@@ -212,7 +188,12 @@ async function handleCheckoutCompleted(
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const priceId = subscription.items.data[0]?.price.id;
     if (priceId) {
-      updates.subscription_tier = await getTierFromPrice(priceId, stripe);
+      try {
+        updates.subscription_tier = resolveTierFromPriceId(priceId);
+      } catch (err) {
+        console.error(`Checkout ${session.id}: ${(err as Error).message} — aborting user update`);
+        return;
+      }
     }
     updates.subscription_status = subscription.status;
   }
@@ -243,7 +224,17 @@ async function handleSubscriptionUpdated(
   }
 
   const priceId = subscription.items.data[0]?.price.id;
-  const tier = priceId ? await getTierFromPrice(priceId, stripe) : 'basic';
+  if (!priceId) {
+    console.error(`No price ID found on subscription ${subscription.id} — skipping tier update`);
+    return;
+  }
+  let tier: 'basic' | 'pro';
+  try {
+    tier = resolveTierFromPriceId(priceId);
+  } catch (err) {
+    console.error(`Subscription ${subscription.id}: ${(err as Error).message} — skipping update`);
+    return;
+  }
 
   const periodEnd = subscription.items?.data?.[0]?.current_period_end;
   const trialEnd = subscription.trial_end;

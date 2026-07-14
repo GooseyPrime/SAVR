@@ -10,14 +10,9 @@ export interface UserData {
   uid: string;
   email: string | null;
   displayName?: string | null;
-  subscriptionTier: SubscriptionTierName | 'free' | 'plus' | 'premium'; // legacy support
+  subscriptionTier: SubscriptionTierName;
   subscriptionStatus?: string;
   createdAt?: any;
-}
-
-export function isPaidTier(tier: UserData['subscriptionTier'] | undefined): boolean {
-  // All tiers are now paid (basic and pro)
-  return tier === 'basic' || tier === 'pro' || tier === 'plus' || tier === 'premium' || tier === 'free';
 }
 
 export interface InventoryItem {

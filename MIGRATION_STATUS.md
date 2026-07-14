@@ -16,8 +16,8 @@ Consolidation phases 1–6 are complete. A corrective build path is underway to 
 
 | Corrective PR | Title | Status |
 |---|---|---|
-| Corrective PR 1 | Restore repository governance | 🔄 In progress |
-| Corrective PR 2 | Normalize Basic and Pro billing | ⏳ Pending |
+| Corrective PR 1 | Restore repository governance | ✅ Complete |
+| Corrective PR 2 | Normalize Basic and Pro billing | ✅ Complete |
 | Corrective PR 3 | Make Stripe webhook processing reliable | ⏳ Pending |
 | Corrective PR 4 | Formalize and validate the mobile platform version | ⏳ Pending |
 | Corrective PR 5 | Implement durable AI rate limiting | ⏳ Pending |
@@ -80,6 +80,60 @@ Phase 6 added the missing hardening gates needed to prove the consolidated platf
 - Live Stripe checkout E2E still needs repository secrets and a live target
 - Mobile native runtime validation still depends on external device/emulator execution
 - ADR-001 and ADR-002 remain open until production audits are available
+
+---
+
+## Corrective PR 2 Completion Summary
+
+**Title:** fix: establish Basic and Pro as the only SAVR billing tiers  
+**Branch:** `copilot/complete-corrective-action-pr-2`
+
+### What was added
+
+- `savr-platform/supabase/migrations/20260714000000_normalize_billing_tiers.sql` — forward-only migration that normalizes `free`→`basic`, `plus`→`pro`, `premium`→`pro`, then narrows the check constraint to `('basic', 'pro')` only
+- `savr-platform/web/lib/billing.ts` — canonical billing helpers: `isKnownTier`, `isSubscriptionActive`, `hasBasicAccess`, `hasProAccess`, `resolveTierFromPriceId`
+- `savr-platform/mobile/src/lib/billing.ts` — equivalent mobile billing helpers (camelCase UserData fields)
+- `savr-platform/web/.env.example` — documents all env vars including the four new `STRIPE_PRICE_*` server-only variables
+
+### What changed
+
+- `docs/decisions/ADR-001-billing-tier-names.md` — status updated to Accepted; pricing contract, access rules, and implementation recorded
+- `savr-platform/web/contexts/AuthContext.tsx` — removed legacy tier values from `UserData` type; `isProTier` simplified to `tier === 'pro'`; `isPaidTier` removed; imports from `billing.ts`
+- `savr-platform/web/lib/middleware.ts` — `checkSubscriptionTier` uses `=== 'pro'` only (no legacy values)
+- `savr-platform/web/types/index.ts` — `SubscriptionTierName` corrected from `'free' | 'pro'` to `'basic' | 'pro'`
+- `savr-platform/web/app/settings/page.tsx` — `tierLabel` uses `tier === 'pro'` only
+- `savr-platform/web/app/pricing/page.tsx` — static plan comparison grid added (Basic $4.99/mo + $49.99/yr, Pro $9.99/mo + $99.99/yr); `isPro` uses `hasProAccess` from `billing.ts`
+- `savr-platform/web/app/api/stripe/webhook/route.ts` — `getTierFromPrice` replaced with `resolveTierFromPriceId` imported from `billing.ts`; unknown price IDs abort the update (no silent defaults)
+- `savr-platform/mobile/src/types/index.ts` — legacy tier union and `isPaidTier` function removed
+- `savr-platform/mobile/src/contexts/AuthContext.tsx` — `as any` removed; explicit normalization of legacy DB values to canonical tiers
+- `savr-platform/mobile/src/screens/main/ProfileScreen.tsx` — uses `hasProAccess` from `billing.ts` instead of `isPaidTier`
+- `savr-platform/mobile/tests/subscription.test.ts` — rewritten to test `billing.ts` helpers with full coverage of canonical and legacy tier cases
+- `savr-platform/web/tests/units.test.ts` — billing helper tests added (24 total, including `resolveTierFromPriceId` coverage)
+- `savr-platform/e2e-tests/smoke.spec.ts` — new smoke test verifying all four plan prices visible on the pricing page
+- `MIGRATION_STATUS.md` — corrective PR 2 marked complete
+
+### Validation (exact commands, exact results)
+
+- `cd savr-platform/web && npm run lint` → exit 0, 35 warnings (pre-existing; 0 errors)
+- `cd savr-platform/web && npx tsc --noEmit` → exit 0
+- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
+- `cd savr-platform/web && npm run test:unit` → 24 passed, 0 failed
+- `cd savr-platform/mobile && npm run lint` → exit 0, 50 warnings (pre-existing; 0 errors)
+- `cd savr-platform/mobile && npm run typecheck` → exit 0
+- `cd savr-platform/mobile && npm run test:unit` → 17 passed, 0 failed
+- `cd savr-platform/e2e-tests && PLAYWRIGHT_USE_WEBSERVER=true CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npx playwright test smoke.spec.ts` → 4 passed (includes new pricing price display test)
+- Supabase db reset: deferred — requires local Supabase CLI with active Docker; migration SQL validated by inspection and constraint logic review
+
+### Remaining limitations
+
+- `supabase db reset` against a live project: deferred (requires Supabase CLI and Docker environment)
+- Mobile ChatScreen.tsx uses `subscriptionTier !== 'pro'` without checking subscription status — this is an incomplete guard pre-existing before this PR and is unchanged
+- Stripe price ID validation against actual amounts/intervals requires live Stripe API access
+
+### Reference folder confirmation
+
+- `SAVR-old/` — not modified
+- `savr-premium-mobile-app/` — not modified
 
 ---
 

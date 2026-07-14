@@ -1,6 +1,6 @@
 // Lightweight web-side types aligned with backend contracts
 
-export type SubscriptionTierName = 'free' | 'pro';
+export type SubscriptionTierName = 'basic' | 'pro';
 
 export interface WebInventoryItem {
   id: string;
