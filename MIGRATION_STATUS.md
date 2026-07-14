@@ -20,8 +20,8 @@ Consolidation phases 1–6 are complete. A corrective build path is underway to 
 | Corrective PR 2 | Normalize Basic and Pro billing | ✅ Complete |
 | Corrective PR 3 | Make Stripe webhook processing reliable | ✅ Complete |
 | Corrective PR 4 | Formalize and validate the mobile platform version | ✅ Complete |
-| Corrective PR 5 | Implement durable AI rate limiting | ⏳ Pending |
-| Corrective PR 6 | Productionize the public landing page | ⏳ Pending |
+| Corrective PR 5 | Implement durable AI rate limiting | ✅ Complete |
+| Corrective PR 6 | Productionize the public landing page | ✅ Complete |
 | Corrective PR 7 | Complete mobile authentication readiness | ⏳ Pending |
 | Corrective PR 8 | Final release-candidate verification | ⏳ Pending |
 
@@ -81,6 +81,66 @@ Phase 6 added the missing hardening gates needed to prove the consolidated platf
 - Mobile native runtime validation still depends on external device/emulator execution
 - ADR-001 and ADR-002 remain open until production audits are available
 
+
+---
+
+## Corrective PR 6 Completion Summary
+
+**Title:** fix: productionize the public landing page  
+**Branch:** `copilot/corrective-pr-6`
+
+### What changed
+
+- `savr-platform/web/app/faq/page.tsx` — replaced `style={{ background: '#000000' }}` with `className="bg-background"`, `text-white` → `text-foreground`, `text-[#BAFF5C]` → `text-primary` to use design tokens throughout
+- `savr-platform/web/app/terms/page.tsx` — replaced hardcoded background and text colors with design tokens; updated Section 4 subscription tier description to remove legacy tier names (Basic free, Plus, Premium) and replace with canonical ADR-001 tiers (Basic $4.99/mo or $49.99/yr, Pro $9.99/mo or $99.99/yr); replaced `bg-gray-900` footer with design-token footer matching the main page pattern; added import for `Link`
+- `savr-platform/web/app/privacy/page.tsx` — replaced hardcoded background and text colors with design tokens; updated Section 4 third-party services to replace legacy "Firebase/Google Cloud" with "Supabase"; updated Section 6 security bullets to replace Firebase-era "Google Cloud Platform" and "Firebase" references with Supabase; replaced `bg-gray-900` footer with design-token footer; added import for `Link`
+- `savr-platform/e2e-tests/smoke.spec.ts` — added smoke tests for FAQ (heading and first category), Terms (canonical billing prices visible), and Privacy (Supabase reference visible)
+- `MIGRATION_STATUS.md` — corrective PR 5 marked complete; corrective PR 6 marked complete
+
+### Validation (exact commands, exact results)
+
+- `cd savr-platform/web && npm ci` → exit 0
+- `cd savr-platform/web && npm run lint` → exit 0, 38 warnings (same as baseline; 0 errors)
+- `cd savr-platform/web && npx tsc --noEmit` → exit 0
+- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
+
+### Remaining limitations
+
+- E2E smoke tests (FAQ, Terms, Privacy) require a running web server; CI gate for those tests needs a deployed target or PLAYWRIGHT_USE_WEBSERVER=true environment
+- Legal content dates ("Last Updated: February 7, 2025") are unchanged; actual legal review is out of scope for this PR
+
+### Reference folder confirmation
+
+- `SAVR-old/` — not modified
+- `savr-premium-mobile-app/` — not modified
+
+---
+
+## Corrective PR 5 Completion Summary
+
+**Title:** fix: add durable AI usage limits and quota enforcement  
+**Branch:** `copilot/corrective-pr-5`
+
+### What was added
+
+- `savr-platform/supabase/migrations/20260714162000_ai_usage_rate_limits.sql` — forward-only migration creating `public.ai_usage_events` table and `public.check_and_record_ai_usage(user_id, action, basic_limit, pro_limit)` security-definer function for atomic per-user quota enforcement; RLS enabled with no client policies
+- `savr-platform/web/lib/ai-rate-limit.ts` — server-side quota helpers: `checkAndRecordAiUsage`, per-action limit constants for Basic and Pro tiers
+
+### What changed
+
+- `savr-platform/web/app/api/ai/create-recipe/route.ts` — wrapped generation path with `checkAndRecordAiUsage` quota check before calling OpenAI
+- `savr-platform/web/app/api/ai/create-meal-plan/route.ts` — same quota enforcement for meal-plan generation
+- `savr-platform/web/app/api/ai/analyze-image/route.ts` — quota enforcement for image analysis
+- `savr-platform/web/lib/middleware.ts` — updated shared auth/tier middleware to surface quota errors
+- `savr-platform/web/lib/api.ts` — updated client-side API helpers to handle quota-exceeded responses
+- `savr-platform/mobile/src/utils/api.ts` — mobile API utility updated to handle quota-exceeded responses
+- `savr-platform/web/tests/units.test.ts` — added quota-enforcement unit tests (85 total passing after PR)
+- `MIGRATION_STATUS.md` — corrective PR 5 marked complete
+
+### Reference folder confirmation
+
+- `SAVR-old/` — not modified
+- `savr-premium-mobile-app/` — not modified
 
 ---
 

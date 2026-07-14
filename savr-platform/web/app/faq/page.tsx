@@ -189,16 +189,16 @@ const FAQ_DATA: FAQCategory[] = [
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-[#BAFF5C] mb-4">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
             Support
           </h2>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
             Frequently Asked Questions
           </h1>
           <p className="text-lg max-w-xl mx-auto" style={{ color: '#9ca3c2' }}>
@@ -252,7 +252,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-6 py-5 text-left flex justify-between items-center"
       >
-        <span className="font-semibold text-white text-sm">{question}</span>
+        <span className="font-semibold text-foreground text-sm">{question}</span>
         <svg
           className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${
             isOpen ? 'rotate-180' : ''

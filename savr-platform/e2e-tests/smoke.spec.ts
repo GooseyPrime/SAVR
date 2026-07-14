@@ -32,6 +32,30 @@ test.describe('public smoke coverage', () => {
     await expect(page.getByText(/\$9\.99/)).toBeVisible();
     await expect(page.getByText(/\$99\.99/)).toBeVisible();
   });
+
+  test('FAQ page renders with page heading and first category', async ({ page }) => {
+    await page.goto('/faq');
+
+    await expect(page.getByRole('heading', { name: /frequently asked questions/i })).toBeVisible();
+    await expect(page.getByText(/getting started/i)).toBeVisible();
+  });
+
+  test('Terms page renders canonical billing tier names', async ({ page }) => {
+    await page.goto('/terms');
+
+    await expect(page.getByRole('heading', { name: /terms and conditions/i })).toBeVisible();
+    // Must reference current canonical tiers (Basic and Pro), not legacy names
+    await expect(page.getByText(/\$4\.99\/month/i)).toBeVisible();
+    await expect(page.getByText(/\$9\.99\/month/i)).toBeVisible();
+  });
+
+  test('Privacy page renders without legacy Firebase references', async ({ page }) => {
+    await page.goto('/privacy');
+
+    await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible();
+    // Must reference Supabase as the current data platform
+    await expect(page.getByText(/supabase/i)).toBeVisible();
+  });
 });
 
 test.describe('mobile viewport smoke coverage', () => {
