@@ -49,6 +49,8 @@ function mapDbRecipeToMobile(recipe: any): Recipe {
     dietaryTags: recipe.dietary_tags,
     imageUrl: recipe.image_url,
     createdAt: recipe.created_at,
+    // recipeType distinguishes human vs pet food recipes; isAiGenerated indicates AI vs manual creation.
+    // These are orthogonal: a pet recipe can be AI-generated and a human recipe can be manually created.
     recipeType: recipe.recipe_type ?? 'human',
     isAiGenerated: recipe.is_ai_generated ?? false,
   };

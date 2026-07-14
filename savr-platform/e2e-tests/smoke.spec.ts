@@ -17,7 +17,6 @@ test.describe('public smoke coverage', () => {
     await expect(signInBtn).toBeVisible();
     await signInBtn.click();
     await page.waitForURL(/\/sign-in/);
-    expect(page.url()).toContain('/sign-in');
   });
 });
 
