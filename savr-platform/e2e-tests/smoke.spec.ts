@@ -52,9 +52,9 @@ test.describe('public smoke coverage', () => {
   test('Privacy page renders without legacy Firebase references', async ({ page }) => {
     await page.goto('/privacy');
 
-    await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /privacy policy/i, level: 1 })).toBeVisible();
     // Must reference Supabase as the current data platform
-    await expect(page.getByText(/supabase/i)).toBeVisible();
+    await expect(page.getByText(/supabase/i).first()).toBeVisible();
   });
 });
 
