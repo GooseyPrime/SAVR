@@ -6,7 +6,7 @@ Tracks the current phase of the SAVR consolidation project.
 
 ## Current Phase
 
-**Phase 5 — Feature Migration (complete)**
+**Phase 6 — Hardening and Release (complete)**
 
 ---
 
@@ -22,11 +22,51 @@ Tracks the current phase of the SAVR consolidation project.
 | Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
 | Shared design tokens created | ✅ Yes — Phase 3 |
 | Application shells created | ✅ Yes — Phase 4 |
-| Feature migration started | ✅ Yes — Phase 5 (all slices complete)
+| Feature migration started | ✅ Yes — Phase 5 (all slices complete) |
+| Hardening and release readiness complete | ✅ Yes — Phase 6 evidence recorded |
 
 ---
 
-## Phase 5 Progress (in progress)
+## Phase 6 Completion Summary
+
+Phase 6 added the missing hardening gates needed to prove the consolidated platform is production-safe without reopening application contracts.
+
+### What was added
+
+- `.github/workflows/phase-06-hardening.yml` — CI jobs for web/mobile unit tests, dependency audits, Playwright smoke coverage, and Supabase migration reset
+- `.github/workflows/codeql.yml` — repository SAST scanning for JavaScript/TypeScript
+- `savr-platform/web/tests/units.test.ts` — non-E2E coverage for ingredient normalization and pet-safety filtering
+- `savr-platform/mobile/tests/subscription.test.ts` — non-E2E coverage for mobile billing-tier semantics
+- `savr-platform/e2e-tests/smoke.spec.ts` — local CI-safe smoke coverage for landing, pricing, and sign-in flows across desktop/mobile viewports
+- `savr-platform/supabase/config.toml` — committed Supabase CLI config so migration reset is reproducible
+
+### What changed
+
+- `savr-platform/web/package.json` — added `test:unit`, `tsx`, and security overrides that eliminate current high-severity web audit findings
+- `savr-platform/mobile/package.json` — added `test:unit` and `tsx`
+- `savr-platform/e2e-tests/package.json` / `playwright.config.ts` — added smoke script and CI-controlled local web server startup
+- `savr-platform/package.json` — added root shortcuts for unit tests and Supabase reset
+- `docs/validation/required-gates.md` — updated Phase 6 gate inventory and remaining deferred limits
+- `savr-platform/README.md` — Phase 5 and Phase 6 marked complete
+
+### Validation added
+
+- `cd savr-platform/web && npm run test:unit`
+- `cd savr-platform/mobile && npm run test:unit`
+- `cd savr-platform/e2e-tests && PLAYWRIGHT_USE_WEBSERVER=true CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run test:e2e:smoke`
+- `cd savr-platform && npx supabase@latest db reset`
+- `cd savr-platform/web && npm audit --audit-level=high`
+- `cd savr-platform/mobile && npm audit --audit-level=high`
+
+### Remaining deferred items
+
+- Live Stripe checkout E2E still needs repository secrets and a live target
+- Mobile native runtime validation still depends on external device/emulator execution
+- ADR-001 and ADR-002 remain open until production audits are available
+
+---
+
+## Phase 5 Progress (complete)
 
 Feature migration in bounded vertical slices per `PHASE_05_FEATURE_MIGRATION.md`.
 
@@ -323,13 +363,13 @@ boundaries, and backend contracts.
 
 ## Next Phase
 
-**Phase 5 — Feature Migration**
+**Project phases 1–6 complete**
 
 Recommended outcome:
 
-1. Migrate bounded feature slices against the now-stable web and mobile shells, starting with Home.
-2. Preserve production contracts while adapting premium UX screen by screen.
-3. Keep each PR scoped to one feature slice or one tightly bounded contract surface.
+1. Use the Phase 6 gate set as the release-readiness baseline for future feature work.
+2. Resolve ADR-001 and ADR-002 only when production audit evidence is available.
+3. Keep future PRs bounded to post-consolidation product changes, not migration backlog catch-up.
 
 ---
 

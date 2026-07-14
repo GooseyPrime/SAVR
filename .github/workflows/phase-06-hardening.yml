@@ -1,0 +1,163 @@
+name: Phase 06 — Hardening and Release
+
+on:
+  push:
+    paths:
+      - 'savr-platform/web/**'
+      - 'savr-platform/mobile/**'
+      - 'savr-platform/e2e-tests/**'
+      - 'savr-platform/supabase/**'
+      - '.github/workflows/phase-06-hardening.yml'
+      - 'docs/validation/required-gates.md'
+      - 'MIGRATION_STATUS.md'
+      - 'savr-platform/README.md'
+  pull_request:
+    paths:
+      - 'savr-platform/web/**'
+      - 'savr-platform/mobile/**'
+      - 'savr-platform/e2e-tests/**'
+      - 'savr-platform/supabase/**'
+      - '.github/workflows/phase-06-hardening.yml'
+      - 'docs/validation/required-gates.md'
+      - 'MIGRATION_STATUS.md'
+      - 'savr-platform/README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  web-unit-tests:
+    name: Web — Unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  mobile-unit-tests:
+    name: Mobile — Unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform/mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  security-audit:
+    name: Security audit — ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - package: web
+            working-directory: savr-platform/web
+            lockfile: savr-platform/web/package-lock.json
+          - package: mobile
+            working-directory: savr-platform/mobile
+            lockfile: savr-platform/mobile/package-lock.json
+    defaults:
+      run:
+        working-directory: ${{ matrix.working-directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.lockfile }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dependency audit
+        run: npm audit --audit-level=high
+
+  e2e-smoke:
+    name: E2E — Smoke
+    runs-on: ubuntu-latest
+    env:
+      CI: 'true'
+      PLAYWRIGHT_USE_WEBSERVER: 'true'
+      NEXT_PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co'
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'dummy_key_for_build'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            savr-platform/web/package-lock.json
+            savr-platform/e2e-tests/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+
+      - name: Install E2E dependencies
+        working-directory: savr-platform/e2e-tests
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: savr-platform/e2e-tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        working-directory: savr-platform/e2e-tests
+        run: npm run test:e2e:smoke
+
+  supabase-migration-validation:
+    name: Supabase — Migration reset
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: savr-platform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Start Supabase local stack
+        run: npx supabase@latest start
+
+      - name: Apply migrations with reset
+        run: npx supabase@latest db reset
