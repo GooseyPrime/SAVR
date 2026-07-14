@@ -2,6 +2,16 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 import { UserData } from '../types';
+import { SubscriptionTier } from '../lib/billing';
+
+/** Normalize a raw database tier value to a canonical SubscriptionTier. */
+function normalizeLegacyTier(raw: string | null | undefined): SubscriptionTier {
+  if (raw === 'free')    return 'basic';
+  if (raw === 'plus')    return 'pro';
+  if (raw === 'premium') return 'pro';
+  if (raw === 'pro')     return 'pro';
+  return 'basic';
+}
 
 interface AuthContextType {
   user: User | null;
@@ -61,16 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error('Error fetching user data:', error);
           setUserData(null);
         } else if (data) {
-          // Map snake_case to camelCase for compatibility
-          const tier = data.subscription_tier === 'free' ? 'basic' :
-                        data.subscription_tier === 'plus' ? 'pro' :
-                        data.subscription_tier === 'premium' ? 'pro' :
-                        (data.subscription_tier as 'basic' | 'pro') ?? 'basic';
+          // Map snake_case to camelCase; normalize any legacy tier values to canonical.
           setUserData({
             uid: data.id,
             email: data.email,
             displayName: data.display_name,
-            subscriptionTier: tier,
+            subscriptionTier: normalizeLegacyTier(data.subscription_tier),
             subscriptionStatus: data.subscription_status,
             createdAt: data.created_at ? new Date(data.created_at) : new Date(),
           });

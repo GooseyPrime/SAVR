@@ -188,12 +188,8 @@ async function handleCheckoutCompleted(
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const priceId = subscription.items.data[0]?.price.id;
     if (priceId) {
-      try {
-        updates.subscription_tier = resolveTierFromPriceId(priceId);
-      } catch (err) {
-        console.error(`Checkout ${session.id}: ${(err as Error).message} — aborting user update`);
-        return;
-      }
+      // Throws on unknown price — propagates to outer catch and returns 500 so Stripe retries.
+      updates.subscription_tier = resolveTierFromPriceId(priceId);
     }
     updates.subscription_status = subscription.status;
   }
@@ -228,13 +224,8 @@ async function handleSubscriptionUpdated(
     console.error(`No price ID found on subscription ${subscription.id} — skipping tier update`);
     return;
   }
-  let tier: 'basic' | 'pro';
-  try {
-    tier = resolveTierFromPriceId(priceId);
-  } catch (err) {
-    console.error(`Subscription ${subscription.id}: ${(err as Error).message} — skipping update`);
-    return;
-  }
+  // Throws on unknown price — propagates to outer catch and returns 500 so Stripe retries.
+  const tier = resolveTierFromPriceId(priceId);
 
   const periodEnd = subscription.items?.data?.[0]?.current_period_end;
   const trialEnd = subscription.trial_end;
