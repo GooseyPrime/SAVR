@@ -30,6 +30,10 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          config: |
+            paths-ignore:
+              - SAVR-old/**
+              - savr-premium-mobile-app/**
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
