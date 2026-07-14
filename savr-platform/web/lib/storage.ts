@@ -133,8 +133,11 @@ export async function listUserImages(
  */
 export function isFirebaseStorageUrl(url: string): boolean {
   try {
-    const parsed = new URL(url);
-    return parsed.hostname.toLowerCase() === 'firebasestorage.googleapis.com';
+    const hostname = new URL(url).hostname.toLowerCase();
+    return (
+      hostname === 'firebasestorage.googleapis.com' ||
+      hostname.endsWith('.firebasestorage.googleapis.com')
+    );
   } catch {
     return false;
   }

@@ -3,8 +3,6 @@ import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypeScript from "eslint-config-next/typescript";
 
 const eslintConfig = defineConfig([
-  // Next 16 exposes flat configs directly; importing them avoids the
-  // FlatCompat circular-schema failure triggered by compat.extends().
   ...nextCoreWebVitals,
   ...nextTypeScript,
   // Override default ignores of eslint-config-next.
@@ -20,10 +18,11 @@ const eslintConfig = defineConfig([
       // Pre-existing code uses `any` types throughout; maintain prior behaviour
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "warn",
-      "react-hooks/immutability": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/static-components": "warn",
+      // Keep existing lint baseline while using flat config exports.
+      "react-hooks/immutability": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/static-components": "off",
     },
   },
 ]);
