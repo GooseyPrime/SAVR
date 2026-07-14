@@ -30,7 +30,7 @@
     "postcss": "^8.5.19"
   },
   "dependencies": {
-    "@google-cloud/vision": "^5.3.4",
+    "@google-cloud/vision": "^5.3.7",
     "@stripe/stripe-js": "^8.7.0",
     "@supabase/supabase-js": "^2.97.0",
     "@types/qrcode": "^1.5.6",
@@ -47,7 +47,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.0.0",
