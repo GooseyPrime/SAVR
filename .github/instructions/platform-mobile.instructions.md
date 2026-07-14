@@ -1,6 +1,5 @@
 ---
-applyTo:
-  - ../../savr-platform/mobile/**
+applyTo: "savr-platform/mobile/**"
 ---
 
 # SAVR platform mobile rules

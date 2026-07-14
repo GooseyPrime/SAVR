@@ -1,0 +1,18 @@
+name: Reference Integrity
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify-reference-integrity:
+    name: Verify reference folder integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify SAVR-old and savr-premium-mobile-app match pinned snapshot
+        run: bash scripts/verify-reference-integrity.sh

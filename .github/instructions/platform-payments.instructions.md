@@ -1,13 +1,5 @@
 ---
-applyTo:
-  - ../../savr-platform/**/*stripe*.ts
-  - ../../savr-platform/**/*stripe*.tsx
-  - ../../savr-platform/**/*billing*.ts
-  - ../../savr-platform/**/*billing*.tsx
-  - ../../savr-platform/**/*subscription*.ts
-  - ../../savr-platform/**/*subscription*.tsx
-  - ../../savr-platform/**/*entitlement*.ts
-  - ../../savr-platform/**/*entitlement*.tsx
+applyTo: "savr-platform/web/app/api/stripe/**,savr-platform/web/lib/stripe.ts,savr-platform/web/app/pricing/**,savr-platform/web/contexts/AuthContext.tsx,savr-platform/mobile/src/types/index.ts,savr-platform/mobile/src/screens/main/ProfileScreen.tsx"
 ---
 
 # SAVR platform payments rules
