@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   // Rate limiting
   const rateCheck = await checkRateLimit(user.id, 'analyze-image', 100, 60000);
   if (!rateCheck.allowed) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    return rateCheck.error;
   }
   
   const { imageUrl } = await request.json();
