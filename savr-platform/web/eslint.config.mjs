@@ -1,34 +1,30 @@
-import { defineConfig } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config";
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypeScript from "eslint-config-next/typescript";
 
 const eslintConfig = defineConfig([
-  ...nextCoreWebVitals.map((config) =>
-    config.name === "next"
-      ? {
-          ...config,
-          rules: {
-            ...(config.rules ?? {}),
-            // These React compiler-era rules surface as new errors across unchanged pages;
-            // keep the repository's existing warning-only lint baseline until those pages
-            // are migrated in dedicated follow-up work.
-            "react-hooks/immutability": "off",
-            "react-hooks/purity": "off",
-            "react-hooks/set-state-in-effect": "off",
-            "react-hooks/static-components": "off",
-          },
-        }
-      : config.name === "next/typescript"
-      ? {
-          ...config,
-          rules: {
-            ...(config.rules ?? {}),
-            // Pre-existing code uses `any` types throughout; maintain prior behaviour
-            "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/no-unused-vars": "warn",
-          },
-        }
-      : config,
-  ),
+  ...nextCoreWebVitals,
+  ...nextTypeScript,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+  {
+    rules: {
+      // Pre-existing code uses `any` types throughout; maintain prior behaviour
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      // Keep existing lint baseline while using flat config exports.
+      "react-hooks/immutability": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/static-components": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
