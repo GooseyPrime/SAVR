@@ -124,6 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
 
     if (result.type === 'success' && result.url) {
+      // Verify the callback URL originates from this app's registered scheme before
+      // extracting tokens, preventing token injection from malicious redirect URLs.
+      if (!result.url.startsWith(redirectUri.split('?')[0])) {
+        throw new Error('OAuth callback URL does not match the expected redirect URI');
+      }
+
       // Parse access_token and refresh_token from the callback URL fragment.
       const fragmentParams = new URLSearchParams(result.url.replace(/^[^#]*#/, ''));
       const accessToken = fragmentParams.get('access_token');
@@ -138,9 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         throw new Error('OAuth callback did not return a valid session');
       }
-    } else if (result.type === 'cancel') {
+    } else if (result.type === 'cancel' || result.type === 'dismiss') {
       // User dismissed the browser — treat as a cancellation, not an error.
-    } else if (result.type !== 'dismiss') {
+      return;
+    } else {
       throw new Error('Google sign-in was not completed');
     }
   };
