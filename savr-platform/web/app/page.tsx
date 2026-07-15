@@ -74,7 +74,7 @@ export default function Home() {
               {!user || !hasActiveSub ? (
                 <>
                   <Link href="/sign-up" className="btn-primary text-base sm:text-lg w-full sm:w-auto text-center">
-                    Start Free Trial
+                    Get Started
                   </Link>
                   <Link href="/pricing" className="btn-secondary text-base sm:text-lg w-full sm:w-auto text-center">
                     View Pricing
@@ -234,7 +234,7 @@ export default function Home() {
             {!user || !hasActiveSub ? (
               <>
                 <Link href="/sign-up" className="btn-primary text-base sm:text-lg w-full sm:w-auto text-center">
-                  Get Started Free
+                  Get Started
                 </Link>
                 <Link href="/pricing" className="btn-secondary text-base sm:text-lg w-full sm:w-auto text-center">
                   Compare Plans
