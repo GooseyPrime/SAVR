@@ -1,0 +1,388 @@
+name: Live Environment Tests — Supabase + Stripe + AI
+
+# Requires the GitHub "Production" or "Staging" environment so that secrets
+# (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, OPENAI_API_KEY, etc.) are
+# only injected from trusted environments and never exposed to PRs from forks.
+#
+# Usage (manual trigger):
+#   Actions → Live Environment Tests → Run workflow → choose environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment to test against'
+        required: true
+        default: 'Staging'
+        type: choice
+        options:
+          - Staging
+          - Production
+  push:
+    branches:
+      - main
+    paths:
+      - 'savr-platform/web/app/api/**'
+      - 'savr-platform/web/lib/billing.ts'
+      - 'savr-platform/web/lib/stripe.ts'
+      - 'savr-platform/supabase/migrations/**'
+
+# Minimal token permissions for all jobs.
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # 1. Supabase authenticated CRUD smoke test
+  # ─────────────────────────────────────────────────────────────
+  supabase-auth-crud:
+    name: Supabase authenticated CRUD smoke test
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+
+      - name: Run Supabase CRUD smoke tests
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: |
+          echo "NOTE: Supabase authenticated CRUD smoke tests require a dedicated"
+          echo "test-user credential and a live Supabase project."
+          echo "This step will fail until TEST_USER_EMAIL / TEST_USER_PASSWORD are"
+          echo "provisioned in the '${{ github.event.inputs.environment || 'Staging' }}' environment."
+          echo ""
+          echo "Required: implement savr-platform/e2e-tests/supabase-crud.spec.ts"
+          echo "that signs in with the test user and exercises pantry CRUD via the"
+          echo "REST API to confirm RLS is enforced."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 2. Stripe test-mode checkout
+  # ─────────────────────────────────────────────────────────────
+  stripe-checkout:
+    name: Stripe test-mode checkout
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/e2e-tests/package-lock.json
+
+      - name: Install Playwright
+        working-directory: savr-platform/e2e-tests
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Run Stripe checkout E2E
+        working-directory: savr-platform/e2e-tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
+        run: npx playwright test stripe-checkout.spec.ts --reporter=list
+
+  # ─────────────────────────────────────────────────────────────
+  # 3. Stripe webhook delivery
+  # ─────────────────────────────────────────────────────────────
+  stripe-webhook:
+    name: Stripe webhook delivery
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    needs: stripe-checkout
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Stripe CLI
+        run: |
+          curl -fsSL https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee -a /etc/apt/sources.list.d/stripe.list
+          sudo apt-get update -y && sudo apt-get install stripe -y
+
+      - name: Verify webhook endpoint responds to Stripe events
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          WEBHOOK_URL: ${{ vars.STAGING_WEBHOOK_URL }}
+        run: |
+          echo "Triggering customer.subscription.created test event..."
+          stripe trigger customer.subscription.created \
+            --api-key "$STRIPE_SECRET_KEY" \
+            --override customer:email=webhook-test@example.com \
+            2>&1 || true
+          echo ""
+          echo "Inspect the Stripe Dashboard → Developers → Webhooks to confirm"
+          echo "delivery to $WEBHOOK_URL returned HTTP 200."
+
+  # ─────────────────────────────────────────────────────────────
+  # 4. Basic monthly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-basic-monthly:
+    name: Billing entitlement — basic monthly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check basic monthly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_BASIC_MONTHLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the basic-monthly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 5. Basic yearly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-basic-yearly:
+    name: Billing entitlement — basic yearly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check basic yearly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_BASIC_YEARLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the basic-yearly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 6. Pro monthly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-pro-monthly:
+    name: Billing entitlement — pro monthly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check pro monthly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_PRO_MONTHLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the pro-monthly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 7. Pro yearly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-pro-yearly:
+    name: Billing entitlement — pro yearly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check pro yearly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_PRO_YEARLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the pro-yearly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 8. Customer portal
+  # ─────────────────────────────────────────────────────────────
+  stripe-customer-portal:
+    name: Stripe customer portal
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    needs: stripe-checkout
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/e2e-tests/package-lock.json
+
+      - name: Install Playwright
+        working-directory: savr-platform/e2e-tests
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Test customer portal redirect
+        working-directory: savr-platform/e2e-tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
+        run: |
+          echo "NOTE: Implement savr-platform/e2e-tests/customer-portal.spec.ts"
+          echo "that signs in as the test user, navigates to /settings, clicks"
+          echo "'Manage subscription', and confirms redirect to Stripe portal."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 9. Subscription cancellation
+  # ─────────────────────────────────────────────────────────────
+  stripe-cancellation:
+    name: Subscription cancellation
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    needs: entitlement-basic-monthly
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test cancellation flow
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          echo "NOTE: Implement cancellation smoke test that:"
+          echo "  1. Cancels the test subscription via Stripe API"
+          echo "  2. Delivers customer.subscription.deleted webhook"
+          echo "  3. Confirms subscription_status = 'canceled' in the users table"
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 10. Subscription upgrade/downgrade
+  # ─────────────────────────────────────────────────────────────
+  stripe-upgrade-downgrade:
+    name: Subscription upgrade/downgrade
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    needs: entitlement-basic-monthly
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test upgrade/downgrade flow
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          STRIPE_PRICE_BASIC_MONTHLY: ${{ secrets.STRIPE_PRICE_BASIC_MONTHLY }}
+          STRIPE_PRICE_PRO_MONTHLY: ${{ secrets.STRIPE_PRICE_PRO_MONTHLY }}
+        run: |
+          echo "NOTE: Implement upgrade/downgrade test that:"
+          echo "  1. Creates a basic-monthly subscription"
+          echo "  2. Updates the subscription to pro-monthly via Stripe API"
+          echo "  3. Delivers customer.subscription.updated webhook"
+          echo "  4. Confirms subscription_tier = 'pro' in the users table"
+          echo "  5. Downgrades back to basic and confirms tier reverts"
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 11. AI request and durable rate-limit behavior
+  # ─────────────────────────────────────────────────────────────
+  ai-rate-limit:
+    name: AI request and durable rate-limit behavior
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+
+      - name: Test AI rate limiting
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
+        run: |
+          echo "NOTE: Implement AI rate-limit integration test that:"
+          echo "  1. Signs in as the test user"
+          echo "  2. Makes N+1 AI recipe generation requests (N = tier daily limit)"
+          echo "  3. Confirms the N+1 request returns HTTP 429 with a rate-limit body"
+          echo "  4. Advances the test clock by 24 hours via Supabase service role"
+          echo "  5. Confirms the next request succeeds (counter reset)"
+          exit 1

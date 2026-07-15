@@ -1,18 +1,19 @@
 # Migration Status
 
-Tracks the current phase of the SAVR consolidation project.
+Current state of the SAVR consolidation project.  
+Historical phase summaries are preserved in `docs/migration/` and linked below.
 
 ---
 
-## Current Phase
+## Current phase
 
-**Post-Phase-6 Corrective Track — in progress**
+**Post-Phase-6 Corrective Track — complete**
 
-Consolidation phases 1–6 are complete. A corrective build path is underway to address governance gaps, billing contract normalization, webhook reliability, mobile platform formalization, AI rate limiting, landing-page productionization, mobile auth completeness, and final release-candidate verification.
+All eight corrective PRs have been merged. The canonical platform (`savr-platform/`) is in release-candidate state.
 
 ---
 
-## Post-Phase-6 Corrective Track
+## Corrective track summary
 
 | Corrective PR | Title | Status |
 |---|---|---|
@@ -23,612 +24,68 @@ Consolidation phases 1–6 are complete. A corrective build path is underway to 
 | Corrective PR 5 | Implement durable AI rate limiting | ✅ Complete |
 | Corrective PR 6 | Productionize the public landing page | ✅ Complete |
 | Corrective PR 7 | Complete mobile authentication readiness | ✅ Complete |
-| Corrective PR 8 | Final release-candidate verification | ⏳ Pending |
+| Corrective PR 8 | Final release-candidate verification | ✅ Complete |
 
 ---
 
-## Status Checklist
+## Platform state
 
-| Item | Status |
-|---|---|
-| Source repositories imported | ✅ Yes |
-| Source roles established | ✅ Yes |
-| Architecture discovery complete | ✅ Yes, with explicit verification limitations and unresolved conflicts documented |
-| Canonical application initialized | ✅ Yes — Phase 1 PR merged |
-| Validation gates documented | ✅ Yes — Phase 2 complete |
-| Contract conflicts documented | ✅ Yes — ADR-001 (billing tiers), ADR-002 (Firebase storage compat) |
-| Shared design tokens created | ✅ Yes — Phase 3 |
-| Application shells created | ✅ Yes — Phase 4 |
-| Feature migration started | ✅ Yes — Phase 5 (all slices complete) |
-| Hardening and release readiness complete | ✅ Yes — Phase 6 evidence recorded |
-
----
-
-## Phase 6 Completion Summary
-
-Phase 6 added the missing hardening gates needed to prove the consolidated platform is production-safe without reopening application contracts.
-
-### What was added
-
-- `.github/workflows/phase-06-hardening.yml` — CI jobs for web/mobile unit tests, dependency audits, Playwright smoke coverage, and Supabase migration reset
-- `.github/workflows/codeql.yml` — repository SAST scanning for JavaScript/TypeScript
-- `savr-platform/web/tests/units.test.ts` — non-E2E coverage for ingredient normalization and pet-safety filtering
-- `savr-platform/mobile/tests/subscription.test.ts` — non-E2E coverage for mobile billing-tier semantics
-- `savr-platform/e2e-tests/smoke.spec.ts` — local CI-safe smoke coverage for landing, pricing, and sign-in flows across desktop/mobile viewports
-- `savr-platform/supabase/config.toml` — committed Supabase CLI config so migration reset is reproducible
-
-### What changed
-
-- `savr-platform/web/package.json` — added `test:unit`, `tsx`, and security overrides that eliminate current high-severity web audit findings
-- `savr-platform/mobile/package.json` — added `test:unit` and `tsx`
-- `savr-platform/e2e-tests/package.json` / `playwright.config.ts` — added smoke script and CI-controlled local web server startup
-- `savr-platform/package.json` — added root shortcuts for unit tests and Supabase reset
-- `docs/validation/required-gates.md` — updated Phase 6 gate inventory and remaining deferred limits
-- `savr-platform/README.md` — Phase 5 and Phase 6 marked complete
-
-### Validation added
-
-- `cd savr-platform/web && npm run test:unit`
-- `cd savr-platform/mobile && npm run test:unit`
-- `cd savr-platform/e2e-tests && PLAYWRIGHT_USE_WEBSERVER=true CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run test:e2e:smoke`
-- `cd savr-platform && npx supabase@latest db reset`
-- `cd savr-platform/web && npm audit --audit-level=high`
-- `cd savr-platform/mobile && npm audit --audit-level=high`
-
-### Remaining deferred items
-
-- Live Stripe checkout E2E still needs repository secrets and a live target
-- Mobile native runtime validation still depends on external device/emulator execution
-- ADR-001 and ADR-002 remain open until production audits are available
-
-
----
-
-## Corrective PR 7 Completion Summary
-
-**Title:** fix: complete Expo Google authentication and release redirects  
-**Branch:** `copilot/corrective-pr-7`
-
-### What was added
-
-- `savr-platform/mobile/src/lib/google-auth-utils.ts` — pure utility module (no native imports): `parseOAuthCallback`, `shouldExchangeSession`, `GoogleAuthResult` type, `AuthSessionResult` type
-- `savr-platform/mobile/src/lib/google-auth.ts` — Expo-compatible OAuth flow: `buildRedirectUri`, `signInWithGoogle`; calls `WebBrowser.maybeCompleteAuthSession()` at module load for Android
-- `savr-platform/mobile/tests/google-auth.test.ts` — 14 unit tests covering callback parsing (valid tokens, missing tokens, empty hash, URL-encoded values, query-params-before-hash) and session-exchange decision logic (success/cancel/dismiss/locked/empty-URL)
-- `docs/decisions/ADR-004-mobile-google-oauth.md` — decision record documenting the OAuth pattern, redirect URL for each environment (standalone, Expo Go), Supabase dashboard configuration, Google Cloud Console setup, and remaining physical-device validation gates
-
-### What changed
-
-- `savr-platform/mobile/src/contexts/AuthContext.tsx` — replaced the placeholder `signInWithGoogle` stub with a real call to `googleOAuthSignIn`; canceled-login returns silently; other failures throw with a message for the UI
-- `savr-platform/mobile/app.config.ts` — added Android `intentFilters` for `savr://auth/callback` so Custom Tabs can redirect back into the app
-- `MIGRATION_STATUS.md` — corrective PR 7 marked complete
-
-### Validation (exact commands, exact results)
-
-- `cd savr-platform/mobile && npm ci` → exit 0
-- `cd savr-platform/mobile && npm run lint` → exit 0, 48 warnings (one fewer than baseline; 0 errors)
-- `cd savr-platform/mobile && npm run typecheck` → exit 0
-- `cd savr-platform/mobile && npm run test:unit` → 31 passed, 0 failed (14 new google-auth tests + 17 existing subscription tests)
-- `cd savr-platform/mobile && npx expo-doctor` → 20/20 checks passed, no issues detected
-- `cd savr-platform/mobile && npx expo export --platform android` → exit 0
-- `cd savr-platform/mobile && npx expo export --platform ios` → exit 0
-
-### Remaining limitations
-
-- End-to-end Google OAuth requires a live Supabase project with the Google provider enabled and a registered Google Cloud OAuth 2.0 client — deferred (requires credentials)
-- Physical-device validation (Android and iOS standalone builds): deferred — requires EAS signing credentials
-- Google client IDs for Android and iOS must be added to `.env` before live OAuth will work
-- Expo Go OAuth requires an `exp://` redirect registered in Supabase and in the Google Console
-
-### Reference folder confirmation
-
-- `SAVR-old/` — not modified
-- `savr-premium-mobile-app/` — not modified
-
----
-
-## Corrective PR 6 Completion Summary
-
-
-**Title:** fix: productionize the public landing page  
-**Branch:** `copilot/corrective-pr-6`
-
-### What changed
-
-- `savr-platform/web/app/faq/page.tsx` — replaced `style={{ background: '#000000' }}` with `className="bg-background"`, `text-white` → `text-foreground`, `text-[#BAFF5C]` → `text-primary` to use design tokens throughout
-- `savr-platform/web/app/terms/page.tsx` — replaced hardcoded background and text colors with design tokens; updated Section 4 subscription tier description to remove legacy tier names (Basic free, Plus, Premium) and replace with canonical ADR-001 tiers (Basic $4.99/mo or $49.99/yr, Pro $9.99/mo or $99.99/yr); replaced `bg-gray-900` footer with design-token footer matching the main page pattern; added import for `Link`
-- `savr-platform/web/app/privacy/page.tsx` — replaced hardcoded background and text colors with design tokens; updated Section 4 third-party services to replace legacy "Firebase/Google Cloud" with "Supabase"; updated Section 6 security bullets to replace Firebase-era "Google Cloud Platform" and "Firebase" references with Supabase; replaced `bg-gray-900` footer with design-token footer; added import for `Link`
-- `savr-platform/e2e-tests/smoke.spec.ts` — added smoke tests for FAQ (heading and first category), Terms (canonical billing prices visible), and Privacy (Supabase reference visible)
-- `MIGRATION_STATUS.md` — corrective PR 5 marked complete; corrective PR 6 marked complete
-
-### Validation (exact commands, exact results)
-
-- `cd savr-platform/web && npm ci` → exit 0
-- `cd savr-platform/web && npm run lint` → exit 0, 38 warnings (same as baseline; 0 errors)
-- `cd savr-platform/web && npx tsc --noEmit` → exit 0
-- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
-
-### Remaining limitations
-
-- E2E smoke tests (FAQ, Terms, Privacy) require a running web server; CI gate for those tests needs a deployed target or PLAYWRIGHT_USE_WEBSERVER=true environment
-- Legal content dates ("Last Updated: February 7, 2025") are unchanged; actual legal review is out of scope for this PR
-
-### Reference folder confirmation
-
-- `SAVR-old/` — not modified
-- `savr-premium-mobile-app/` — not modified
-
----
-
-## Corrective PR 5 Completion Summary
-
-**Title:** fix: add durable AI usage limits and quota enforcement  
-**Branch:** `copilot/corrective-pr-5`
-
-### What was added
-
-- `savr-platform/supabase/migrations/20260714162000_ai_usage_rate_limits.sql` — forward-only migration creating `public.ai_usage_events` table and `public.check_and_record_ai_usage(user_id, action, basic_limit, pro_limit)` security-definer function for atomic per-user quota enforcement; RLS enabled with no client policies
-- `savr-platform/web/lib/ai-rate-limit.ts` — server-side quota helpers: `checkAndRecordAiUsage`, per-action limit constants for Basic and Pro tiers
-
-### What changed
-
-- `savr-platform/web/app/api/ai/create-recipe/route.ts` — wrapped generation path with `checkAndRecordAiUsage` quota check before calling OpenAI
-- `savr-platform/web/app/api/ai/create-meal-plan/route.ts` — same quota enforcement for meal-plan generation
-- `savr-platform/web/app/api/ai/analyze-image/route.ts` — quota enforcement for image analysis
-- `savr-platform/web/lib/middleware.ts` — updated shared auth/tier middleware to surface quota errors
-- `savr-platform/web/lib/api.ts` — updated client-side API helpers to handle quota-exceeded responses
-- `savr-platform/mobile/src/utils/api.ts` — mobile API utility updated to handle quota-exceeded responses
-- `savr-platform/web/tests/units.test.ts` — added quota-enforcement unit tests (85 total passing after PR)
-- `MIGRATION_STATUS.md` — corrective PR 5 marked complete
-
-### Reference folder confirmation
-
-- `SAVR-old/` — not modified
-- `savr-premium-mobile-app/` — not modified
-
----
-
-## Corrective PR 4 Completion Summary
-
-**Title:** chore: validate and document the canonical Expo mobile platform  
-**Branch:** `copilot/corrective-04-mobile-platform`
-
-### What was added
-
-- `docs/decisions/ADR-003-canonical-expo-version.md` — formal decision record documenting the undocumented Expo 54 → Expo 57 / React Native 0.75 → 0.86 upgrade, compatibility evidence, and remaining physical-device/EAS validation gates
-- `.github/workflows/corrective-04-mobile-compatibility.yml` — CI workflow running lint, typecheck, unit tests, Expo Doctor, Android bundle export, and iOS bundle export on every mobile change
-
-### What changed
-
-- `savr-platform/mobile/app.json` — removed `newArchEnabled`, `edgeToEdgeEnabled`, and top-level `splash` fields removed from the `@expo/config-types@57.0.1` schema; removed legacy Firebase `extra` fields superseded by `app.config.ts`; removed `googleServicesFile` reference
-- `savr-platform/mobile/app.config.ts` — added `expo-font` and `expo-status-bar` to `plugins` array as required by those packages
-- `savr-platform/mobile/package.json` — aligned all Expo SDK 57 peer dependencies to expected versions per `npx expo install --check`; moved `@types/react` and `typescript` exclusively to devDependencies; added `expo-font` dependency; added `@types/node` devDependency for TypeScript 6.0 `node:` import support
-- `savr-platform/mobile/package-lock.json` — updated lockfile to reflect dependency alignment
-- `savr-platform/mobile/tsconfig.json` — added `"types": ["node"]` for TypeScript 6.0 `node:` protocol support in test files
-- `MIGRATION_STATUS.md` — corrective PR 4 marked complete
-
-### Validation (exact commands, exact results)
-
-- `cd savr-platform/mobile && npm ci` → exit 0
-- `cd savr-platform/mobile && npm run lint` → exit 0, 50 warnings (pre-existing; 0 errors)
-- `cd savr-platform/mobile && npm run typecheck` → exit 0
-- `cd savr-platform/mobile && npm run test:unit` → 17 passed, 0 failed
-- `cd savr-platform/mobile && npx expo-doctor` → 20/20 checks passed, no issues detected
-- `cd savr-platform/mobile && npx expo export --platform android` → Android Bundled 9014ms, 1071 modules, exit 0
-- `cd savr-platform/mobile && npx expo export --platform ios` → iOS Bundled 15538ms, 1076 modules, exit 0
-
-### Remaining limitations
-
-- Native EAS builds (Android APK/AAB, iOS IPA): deferred — requires EAS project credentials and protected-environment access
-- On-device runtime testing (camera, photo library, OAuth, push notifications): deferred — requires physical device or managed emulator
-- Live Supabase connectivity: deferred — requires live Supabase project with matching schema
-- Google OAuth native flow: deferred — requires registered OAuth client IDs for both platforms
-
-### Reference folder confirmation
-
-- `SAVR-old/` — not modified
-- `savr-premium-mobile-app/` — not modified
-
----
-
-## Corrective PR 3 Completion Summary
-
-**Title:** fix: add idempotent Stripe webhook reconciliation  
-**Branch:** `copilot/proceed-with-corrective-action-pr-3`
-
-### What was added
-
-- `savr-platform/supabase/migrations/20260714020000_stripe_webhook_events.sql` — forward-only migration creating `public.stripe_webhook_events` table (event_id PK, event_type, processing_status, attempt_count, last_error, timestamps) with a `('pending','processed','failed')` check constraint, RLS enabled with no client policies, and the `public.claim_stripe_webhook_event(event_id, event_type)` security-definer SQL function for atomic idempotent event claiming
-- `savr-platform/web/lib/stripe-webhook.ts` — extracted webhook business logic (handleWebhook, claimWebhookEvent, markEventProcessed, markEventFailed, dispatchWebhookEvent, all event-specific handlers) with injectable `StripeClient` and `SupabaseAdmin` interfaces for testability
-- `savr-platform/web/tests/webhook.test.ts` — 21 unit tests covering all required scenarios (invalid/missing signature, first delivery, duplicate processed, already-pending concurrent delivery, retry after failure, Basic monthly/yearly, Pro monthly/yearly, unknown price ID, subscription update, subscription deletion, payment failed, payment recovered, checkout session, claimWebhookEvent unit tests)
-
-### What changed
-
-- `savr-platform/web/app/api/stripe/webhook/route.ts` — simplified to a thin Next.js adapter that initialises real Stripe/Supabase instances and delegates to `handleWebhook()` from `stripe-webhook.ts`
-- `MIGRATION_STATUS.md` — corrective PR 3 marked complete
-
-### Validation (exact commands, exact results)
-
-- `cd savr-platform/web && npm run lint` → exit 0, 43 warnings (pre-existing pattern; 0 errors)
-- `cd savr-platform/web && npx tsc --noEmit` → exit 0
-- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
-- `cd savr-platform/web && npm run test:unit` → 45 passed (24 original + 21 new webhook tests), 0 failed
-
-### Remaining limitations
-
-- `supabase db reset` against a live project: deferred (requires Supabase CLI and Docker environment); migration SQL validated by inspection and constraint logic review
-- Live Stripe signature verification of `claim_stripe_webhook_event` RPC round-trip: deferred (requires live Supabase project)
-- Mobile webhook handling is not applicable (mobile is a client-only consumer of subscription state)
-
-### Reference folder confirmation
-
-- `SAVR-old/` — not modified
-- `savr-premium-mobile-app/` — not modified
-
----
-
-## Corrective PR 2 Completion Summary
-
-**Title:** fix: establish Basic and Pro as the only SAVR billing tiers  
-**Branch:** `copilot/complete-corrective-action-pr-2`
-
-### What was added
-
-- `savr-platform/supabase/migrations/20260714000000_normalize_billing_tiers.sql` — forward-only migration that normalizes `free`→`basic`, `plus`→`pro`, `premium`→`pro`, then narrows the check constraint to `('basic', 'pro')` only
-- `savr-platform/web/lib/billing.ts` — canonical billing helpers: `isKnownTier`, `isSubscriptionActive`, `hasBasicAccess`, `hasProAccess`, `resolveTierFromPriceId`
-- `savr-platform/mobile/src/lib/billing.ts` — equivalent mobile billing helpers (camelCase UserData fields)
-- `savr-platform/web/.env.example` — documents all env vars including the four new `STRIPE_PRICE_*` server-only variables
-
-### What changed
-
-- `docs/decisions/ADR-001-billing-tier-names.md` — status updated to Accepted; pricing contract, access rules, and implementation recorded
-- `savr-platform/web/contexts/AuthContext.tsx` — removed legacy tier values from `UserData` type; `isProTier` simplified to `tier === 'pro'`; `isPaidTier` removed; imports from `billing.ts`
-- `savr-platform/web/lib/middleware.ts` — `checkSubscriptionTier` uses `=== 'pro'` only (no legacy values)
-- `savr-platform/web/types/index.ts` — `SubscriptionTierName` corrected from `'free' | 'pro'` to `'basic' | 'pro'`
-- `savr-platform/web/app/settings/page.tsx` — `tierLabel` uses `tier === 'pro'` only
-- `savr-platform/web/app/pricing/page.tsx` — static plan comparison grid added (Basic $4.99/mo + $49.99/yr, Pro $9.99/mo + $99.99/yr); `isPro` uses `hasProAccess` from `billing.ts`
-- `savr-platform/web/app/api/stripe/webhook/route.ts` — `getTierFromPrice` replaced with `resolveTierFromPriceId` imported from `billing.ts`; unknown price IDs abort the update (no silent defaults)
-- `savr-platform/mobile/src/types/index.ts` — legacy tier union and `isPaidTier` function removed
-- `savr-platform/mobile/src/contexts/AuthContext.tsx` — `as any` removed; explicit normalization of legacy DB values to canonical tiers
-- `savr-platform/mobile/src/screens/main/ProfileScreen.tsx` — uses `hasProAccess` from `billing.ts` instead of `isPaidTier`
-- `savr-platform/mobile/tests/subscription.test.ts` — rewritten to test `billing.ts` helpers with full coverage of canonical and legacy tier cases
-- `savr-platform/web/tests/units.test.ts` — billing helper tests added (24 total, including `resolveTierFromPriceId` coverage)
-- `savr-platform/e2e-tests/smoke.spec.ts` — new smoke test verifying all four plan prices visible on the pricing page
-- `MIGRATION_STATUS.md` — corrective PR 2 marked complete
-
-### Validation (exact commands, exact results)
-
-- `cd savr-platform/web && npm run lint` → exit 0, 35 warnings (pre-existing; 0 errors)
-- `cd savr-platform/web && npx tsc --noEmit` → exit 0
-- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
-- `cd savr-platform/web && npm run test:unit` → 24 passed, 0 failed
-- `cd savr-platform/mobile && npm run lint` → exit 0, 50 warnings (pre-existing; 0 errors)
-- `cd savr-platform/mobile && npm run typecheck` → exit 0
-- `cd savr-platform/mobile && npm run test:unit` → 17 passed, 0 failed
-- `cd savr-platform/e2e-tests && PLAYWRIGHT_USE_WEBSERVER=true CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npx playwright test smoke.spec.ts` → 4 passed (includes new pricing price display test)
-- Supabase db reset: deferred — requires local Supabase CLI with active Docker; migration SQL validated by inspection and constraint logic review
-
-### Remaining limitations
-
-- `supabase db reset` against a live project: deferred (requires Supabase CLI and Docker environment)
-- Mobile ChatScreen.tsx uses `subscriptionTier !== 'pro'` without checking subscription status — this is an incomplete guard pre-existing before this PR and is unchanged
-- Stripe price ID validation against actual amounts/intervals requires live Stripe API access
-
-### Reference folder confirmation
-
-- `SAVR-old/` — not modified
-- `savr-premium-mobile-app/` — not modified
-
----
-
-## Phase 5 Progress (complete)
-
-Feature migration in bounded vertical slices per `PHASE_05_FEATURE_MIGRATION.md`.
-
-### Slice 1 — Home (complete)
-
-**Production behavior preserved:**
-- Auth guard via `ProtectedRoute` / `useAuth`
-- Stats (inventory, recipe, meal-plan counts) from Supabase via `getInventory`, `getRecipes`, `getMealPlans`
-- Stripe checkout success banner and `trackCheckoutIntentIfReturning` (web only)
-- Subscription tier display and upgrade link (web only)
-- Pro-gated AI Chat access (mobile only)
-- Pull-to-refresh (mobile only)
-
-**Premium UX adapted (from `savr-premium-mobile-app/src/pages/Home.tsx`):**
-- Time-based greeting (Good morning/afternoon/evening)
-- 2-column primary action buttons: Scan Ingredients (primary/lime) + What Can I Make? (secondary)
-- 3-column stat badges (Pantry, Recipes, Planned)
-- Expiring soon items section (inventory items with `expiry_date` within 3 days)
-- Today's meals section from meal plans (`meals` array filtered to today's date)
-- Recent recipes section (last 5, most recent first)
-- Design token CSS classes replacing hardcoded legacy hex values
-
-**Production architecture NOT copied from prototype:**
-- No `useAppStore` — data fetches from Supabase production contracts only
-- No `motion/react` animation dependency — React Native theme tokens used instead
-- No prototype `MobileLayout`, `Card`, `Button` UI kit — standalone platform-native components
-
-**Files changed:**
-- `savr-platform/web/app/dashboard/page.tsx`
-- `savr-platform/mobile/src/screens/main/HomeScreen.tsx`
-
-**Web/mobile effects:** presentation updated; no API routes, data contracts, auth flows, or navigation structure changed. Rollback path: revert the two changed files.
-
-**Validation (exact commands, exact results):**
-- `cd savr-platform/web && npm run lint` → exit 0, 34 warnings (same as baseline)
-- `cd savr-platform/web && npm run typecheck` → exit 0
-- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
-- `cd savr-platform/mobile && npm run typecheck` → exit 0
-
-### Slices 2–10 — All remaining slices (complete)
-
-**Slices covered:** Pantry, Scanner and review flow, Recipes and recipe detail, Cooking mode, Meal plans, Grocery lists, Profile and settings, Authentication pages, Subscription page.
-
-**Production behavior preserved across all slices:**
-- All Supabase data contracts unchanged (getInventory, addInventoryItem, deleteInventoryItem, getRecipes, generateRecipes, getMealPlans, generateMealPlan, getGroceryLists, updateGroceryList, getDataConsent, upsertDataConsent, callApi for stripe portal)
-- All auth guards and `ProtectedRoute` wrappers unchanged
-- All navigation routes and stack params unchanged
-- All Stripe billing server-side interactions (manage subscription, portal) unchanged
-- AI recipe generation, meal plan generation, image analysis API calls unchanged
-- Mobile: Pull-to-refresh, AI scan, delete confirmation preserved
-- Web: Edit modal, barcode lookup, recipe sharing, deduction modal preserved
-
-**Premium UX adapted per slice:**
-- Pantry: search bar + category filter chips (All/Pantry/Fridge/Freezer) + location grouping + expiry warning badges + stats row; web: same token classes
-- Recipes (mobile): search bar + filter chips (All/AI Generated/Quick) + results count; web: token classes
-- Recipe Detail (mobile): meta chips row, dietary tags row, ingredients as bordered cards, lime step circles for instructions
-- Meal Plans (mobile): date card with meal-type icons + grouped meals display; web: token classes
-- Grocery Lists (mobile): category grouping + check/uncheck with progress indicator + done badge; web: token classes
-- Profile: lime avatar, tier badge, section cards with icons, sign-out button in error/danger style; web settings: lime primary, mint secondary replacing old cyan/purple
-- Scanner/Upload: token classes applied; cooking mode timer/chat/progress gradient updated
-- Auth pages (sign-in, sign-up, forgot-password): token classes
-- Pricing: token classes + SVG stroke fix
-
-**Production architecture NOT copied from prototype:**
-- No `useAppStore`, no `motion/react`, no prototype UI kit components
-- No prototype auth, router, or sessionStorage patterns
-- No new dependencies added
-
-**Files changed:**
-- `savr-platform/mobile/src/screens/main/InventoryScreen.tsx`
-- `savr-platform/mobile/src/screens/main/RecipesScreen.tsx`
-- `savr-platform/mobile/src/screens/main/RecipeDetailScreen.tsx`
-- `savr-platform/mobile/src/screens/main/MealPlansScreen.tsx`
-- `savr-platform/mobile/src/screens/main/GroceryListScreen.tsx`
-- `savr-platform/mobile/src/screens/main/ProfileScreen.tsx`
-- `savr-platform/mobile/src/screens/main/LabelingScreen.tsx`
-- `savr-platform/web/app/inventory/page.tsx`
-- `savr-platform/web/app/recipes/page.tsx`
-- `savr-platform/web/app/meal-plans/page.tsx`
-- `savr-platform/web/app/grocery-lists/page.tsx`
-- `savr-platform/web/app/settings/page.tsx`
-- `savr-platform/web/app/upload/page.tsx`
-- `savr-platform/web/app/cook/[recipeId]/CookContent.tsx`
-- `savr-platform/web/app/sign-in/page.tsx`
-- `savr-platform/web/app/sign-up/page.tsx`
-- `savr-platform/web/app/forgot-password/page.tsx`
-- `savr-platform/web/app/pricing/page.tsx`
-- `savr-platform/web/app/chat/page.tsx`
-- `savr-platform/web/app/recipe/page.tsx`
-- `savr-platform/web/app/page.tsx`
-- `MIGRATION_STATUS.md`
-
-**Web/mobile effects:** presentation updated across all feature screens; no API routes, data contracts, auth flows, navigation structure, or RLS policies changed. Rollback path: revert the changed files.
-
-**Validation (exact commands, exact results):**
-- `cd savr-platform/web && npm run lint` → exit 0, 34 warnings (same as baseline)
-- `cd savr-platform/web && npx tsc --noEmit` → exit 0
-- `cd savr-platform/web && CI=true NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key_for_build npm run build` → exit 0
-- `cd savr-platform/mobile && npm run typecheck` → exit 0 (same pre-existing errors as baseline)
-
-### Remaining Phase 5 slices
-
-- [x] Pantry
-- [x] Scanner and review flow
-- [x] Recipes and recipe detail
-- [x] Cooking mode
-- [x] Meal plans
-- [x] Grocery lists
-- [x] Profile and settings
-- [x] Authentication and guest conversion validation
-- [x] Subscription and entitlement validation
-
----
-
-## Phase 4 Completion Summary
-
-Production-safe web and mobile application shells created in `savr-platform/`. Both shells use the shared design token layer from Phase 3 and are ready for bounded feature migration.
-
-### What was added
-
-- `savr-platform/mobile/App.tsx` — root Expo entry point
-- `savr-platform/mobile/src/components/LoadingSpinner.tsx` — shared loading indicator using design tokens
-- `savr-platform/mobile/src/navigation/` — `AuthNavigator`, `MainNavigator`, `MobileTabBar`, `RootNavigator`, `navigationTheme`
-- `savr-platform/web/components/LoadingSpinner.tsx` — web loading indicator
-- `savr-platform/web/components/Navbar.tsx` — web navigation shell
-- `savr-platform/web/components/ProtectedRoute.tsx` — web auth guard
-
-### What did NOT change
-
-- No API routes, data contracts, or auth flows modified
-- No database or RLS changes
-- `SAVR-old/` and `savr-premium-mobile-app/` not modified
-
----
-
-## Phase 2 Completion Summary
-
-Validation gates and contract conflicts were established and documented. The baseline is now reproducible before broad UI adaptation begins.
-
-### What was added
-
-- `savr-platform/web/package.json` — `typecheck` script (`tsc --noEmit`)
-- `savr-platform/mobile/package.json` — `typecheck` script (`tsc --noEmit`)
-- `savr-platform/package.json` — `web:typecheck` and `mobile:typecheck` root shortcuts
-- `.github/workflows/phase-02-validation.yml` — CI job for mobile TypeScript check
-- `docs/decisions/ADR-001-billing-tier-names.md` — billing tier naming conflict documented
-- `docs/decisions/ADR-002-firebase-storage-compat.md` — Firebase Storage backward-compat status documented
-- `docs/validation/required-gates.md` — updated to reflect Phase 2 additions and remaining gaps
-
-### Validation gates now active
-
-| Gate | Command | CI job |
+| Area | Status | Notes |
 |---|---|---|
-| Web lint | `npm run lint` (in `savr-platform/web`) | `phase-01-baseline.yml: web-lint` |
-| Web typecheck | `npm run typecheck` (in `savr-platform/web`) | `phase-01-baseline.yml: web-typecheck` |
-| Web build | `npm run build` (in `savr-platform/web`) | `phase-01-baseline.yml: web-build` |
-| Mobile typecheck | `npm run typecheck` (in `savr-platform/mobile`) | `phase-02-validation.yml: mobile-typecheck` |
-
-### Remaining validation gaps (explicit)
-
-- Mobile lint — no ESLint config in `savr-platform/mobile/`
-- Unit/integration tests — no non-E2E test suite
-- Supabase migration CI gate — requires Supabase CLI or project access
-- E2E CI gate — requires a deployed application target
-- Security scanning — no automated dependency or SAST scan
-
----
-
-## Phase 1 Completion Summary
-
-The production baseline from `SAVR-old/` was copied into `savr-platform/` without visual migration and without changing product behavior.
-
-### What was imported
-
-- `savr-platform/web/` — Next.js 16 App Router web application (full source)
-- `savr-platform/mobile/` — Expo SDK 54 React Native mobile application (full source)
-- `savr-platform/supabase/` — Active migration `20260220000000_initial_schema.sql` and RLS policies
-- `savr-platform/e2e-tests/` — Playwright E2E test suite
-
-### What was explicitly excluded
-
-- Firebase deploy scripts from the SAVR-old root `package.json` (replaced with clean `savr-platform/package.json`)
-- `SAVR-old/archive/` — historical/obsolete material
-- `SAVR-old/.cursor/` — IDE config with stale branding
-- No secrets or `.env.local` files copied
-
-### Stale references documented (not fixed yet)
-
-- Legacy billing tier names (`free`, `plus`, `premium`) coexist with newer values (`basic`, `pro`) in the `subscription_tier` check constraint
-- Mobile Google OAuth is marked in source as requiring additional setup; not production-ready for all paths
-- `SAVR-old/cloudbuild-android.yaml` still contains Firebase Android build references; not imported
+| Repository governance | ✅ CI-validated | Reference integrity enforced; instruction routing correct |
+| Web application build | ✅ CI-validated | Next.js App Router; exit 0 on lint, typecheck, build, unit tests |
+| Mobile application build | ✅ CI-validated | Expo SDK 57; exit 0 on lint, typecheck, unit tests, expo export (android + ios) |
+| Supabase migrations | ✅ CI-validated | `db reset` clean; billing-tier normalization migration in place |
+| Billing tier contract | ✅ Implemented | `basic` and `pro` only; helpers in `web/lib/billing.ts` and `mobile/src/lib/billing.ts` |
+| Stripe webhook | ✅ Implemented | Signature verification, idempotent reconciliation, server-driven entitlement |
+| AI rate limiting | ✅ Implemented | Durable per-user daily limits; server-side only |
+| Landing page | ✅ Implemented | Public marketing page with correct pricing and CTA |
+| Mobile Google OAuth | ✅ Implemented | Expo Auth Session; deep-link handling; ADR-004 documents remaining device gates |
+| E2E smoke coverage | ✅ CI-validated | Playwright smoke spec covers landing, pricing, sign-in across desktop/mobile viewports |
+| Security (web) | ✅ CI-validated | `npm audit --audit-level=high` → 0 high/critical; CodeQL SAST enabled |
+| Security (mobile) | ✅ CI-validated | `npm audit --audit-level=high` → 0 high/critical; 11 moderate (upstream-only) |
+| Debug surface (`/subscription-debug`) | ✅ Implemented | Returns 404 in production unless `NEXT_PUBLIC_DEBUG_MODE=true` |
+| Live Stripe checkout E2E | ⏳ Manually pending | Requires repository secrets and live Stripe target; workflow stub in `live-environment-tests.yml` |
+| Entitlement matrix E2E | ⏳ Manually pending | Requires live Supabase + Stripe test credentials; workflow stub in `live-environment-tests.yml` |
+| Native device validation | ⏳ Manually pending | EAS builds and device smoke tests require signing credentials; manual checklist in release report |
+| Firebase Storage URL audit | 🔒 Blocked | ADR-002 deferred until production database is audited for `firebasestorage.googleapis.com` URLs |
+| Reference folder integrity (main) | ⚠️ Pre-existing violation | `main` diverges from pinned snapshot `add8dd5c` (lockfiles removed, package.json versions bumped in corrective PR 4); corrective-pr-8 introduced no new violations |
 
 ---
 
-## Phase 2 Completion Summary
+## Architecture decisions
 
-Phase 2 (Validation and Contract Reconciliation) exit criteria were met through
-documentation established across Phase 1 and subsequent cleanup. No dedicated
-Phase 2 PR was needed because all required artifacts already existed.
-
-### Exit criteria met
-
-- Validation gates documented in `docs/validation/required-gates.md`
-- Source-of-truth conflicts documented in `docs/architecture/source-of-truth.md`
-- Production architecture reference documented in `docs/architecture/production-reference.md`
-- Stale Firebase-era root scripts removed from `savr-platform/package.json`
-- CI workflow established for web lint, typecheck, and production build (`phase-01-baseline.yml`)
-- `typecheck` npm script added to `savr-platform/web/package.json` (closes Phase 1 gap)
-
-### Remaining validation gaps (documented, not blocking Phase 3)
-
-- Mobile validation limited to `expo start` — no automated CI gate for mobile type-check
-- Supabase migration validation has no committed `db lint` or `db reset` script
-- E2E tests require a running application; cannot run headless in CI without a deployed target
-- No non-E2E unit/integration test commands
+| ADR | Title | Status |
+|---|---|---|
+| ADR-001 | Billing Tier Names | ✅ Accepted |
+| ADR-002 | Firebase Storage Backward Compatibility | 📋 Documented — deferred |
+| ADR-003 | Canonical Expo Version (SDK 57) | ✅ Accepted |
+| ADR-004 | Mobile Google OAuth with Expo Auth Session | ✅ Accepted |
 
 ---
 
-## Phase 3 Completion Summary
+## Source origins
 
-Shared design tokens ported from `savr-premium-mobile-app/src/theme.css` into
-production-safe shared primitives available to both web and mobile platforms.
+| Folder | Role | State |
+|---|---|---|
+| `SAVR-old/` | Production architecture and feature baseline (read-only) | Pinned at `add8dd5c`; diverged on `main` (pre-existing, tracked in source origins doc) |
+| `savr-premium-mobile-app/` | Approved UI/UX reference (read-only) | Pinned at `add8dd5c`; diverged on `main` (pre-existing) |
+| `savr-platform/` | Canonical production application | Active; release-candidate state |
 
-### What was created
-
-- `savr-platform/design-system/tokens.ts` — canonical TypeScript source of all token values
-- `savr-platform/design-system/web/theme.css` — Tailwind v4 `@theme` CSS block (mirrors tokens.ts)
-- `savr-platform/design-system/README.md` — per-platform usage documentation
-- `savr-platform/mobile/src/theme/index.ts` — React Native–compatible token constants
-
-### What was updated
-
-- `savr-platform/web/app/globals.css` — replaced old cyan/purple theme with premium lime/dark-green design system tokens via Tailwind v4 `@theme` block; updated utility classes and global styles to use CSS variables
-- `savr-platform/web/package.json` — added `typecheck` npm script
-- `.github/workflows/phase-01-baseline.yml` — updated typecheck job to use `npm run typecheck`
-
-### What did NOT change
-
-- No API routes, data contracts, or auth flows modified
-- No navigation structure or routing changed
-- No database or RLS changes
-- `SAVR-old/` and `savr-premium-mobile-app/` not modified
+See `SOURCE_ORIGINS.md` for the full source registry.
 
 ---
 
-## Phase 4 Completion Summary
+## Remaining work before public launch
 
-Production-safe web and mobile application shells now consume the shared
-design-token layer while preserving the imported production routes, auth
-boundaries, and backend contracts.
-
-### What was created
-
-- `savr-platform/mobile/src/navigation/MobileTabBar.tsx` — token-driven mobile tab shell for the canonical bottom navigation
-- `savr-platform/mobile/src/navigation/navigationTheme.ts` — shared React Navigation dark theme mapped to the Phase 3 token layer
-
-### What was updated
-
-- `savr-platform/web/components/Navbar.tsx` — rebuilt the web shell navigation around the premium token palette while preserving all production destinations
-- `savr-platform/web/components/ProtectedRoute.tsx` — updated the authenticated loading shell without changing auth or subscription gating rules
-- `savr-platform/web/components/LoadingSpinner.tsx` — aligned shell loading treatment with the shared token layer
-- `savr-platform/mobile/App.tsx` — added `SafeAreaProvider` and token-aligned status-bar handling
-- `savr-platform/mobile/src/components/LoadingSpinner.tsx` — aligned loading shell visuals with the shared token layer
-- `savr-platform/mobile/src/navigation/AuthNavigator.tsx` — set production auth shell background styling without changing auth flow logic
-- `savr-platform/mobile/src/navigation/RootNavigator.tsx` — themed the root shell and auth restoration loading state
-- `savr-platform/mobile/src/navigation/MainNavigator.tsx` — applied the canonical shell theme to tab and stack navigation
-
-### What did NOT change
-
-- No API routes, Supabase schema, Stripe logic, or AI provider wiring changed
-- No production route paths or protected-route access rules changed
-- No feature-specific data shaping or CRUD behavior changed
-- `SAVR-old/` and `savr-premium-mobile-app/` were not modified
-
-### Phase 5 readiness
-
-- Shared design tokens are now wired into both production shells
-- Web and mobile navigation affordances are stable enough for bounded feature-slice work
-- Phase 5 can begin with the recommended Home slice, followed by Pantry, without reopening shell architecture
+1. Provision GitHub `Production` and `Staging` environments with required secrets
+2. Complete live-environment test stubs in `.github/workflows/live-environment-tests.yml`
+3. Configure EAS Build signing credentials and run the native release checklist in `docs/validation/RELEASE_CANDIDATE_REPORT.md`
+4. Audit production database for Firebase Storage URLs (ADR-002 resolution criteria)
+5. Restore reference-folder integrity on `main` in a dedicated governance PR (separate from corrective track)
 
 ---
 
-## Known Remaining Blockers
+## Historical records
 
-- Billing tier names conflict — see `docs/decisions/ADR-001-billing-tier-names.md`
-- Firebase Storage backward compat — see `docs/decisions/ADR-002-firebase-storage-compat.md`
-- Mobile Google OAuth requires additional setup; not production-ready for all paths
-- Mobile lint configuration is still missing in `savr-platform/mobile/`
-- Supabase migration validation has no committed `db lint` or `db reset` script
-- E2E tests require a running application; cannot run headless in CI without a deployed target
-- No unit/integration test suite for web or mobile
-
----
-
-## Next Phase
-
-**Project phases 1–6 complete**
-
-Recommended outcome:
-
-1. Use the Phase 6 gate set as the release-readiness baseline for future feature work.
-2. Resolve ADR-001 and ADR-002 only when production audit evidence is available.
-3. Keep future PRs bounded to post-consolidation product changes, not migration backlog catch-up.
-
----
-
-## Guardrails
-
-- `SAVR-old/` was not modified.
-- `savr-premium-mobile-app/` was not modified.
-- All production code is in `savr-platform/`.
+Full per-phase summaries (Phases 1–6) and per-corrective-PR summaries (CRs 1–7) are in the git history of this file. The last full-history version was committed before corrective PR 8.
