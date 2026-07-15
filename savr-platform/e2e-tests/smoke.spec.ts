@@ -5,7 +5,7 @@ test.describe('public smoke coverage', () => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: /cook smarter\./i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /start free trial/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /get started/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /view pricing/i })).toBeVisible();
   });
 
