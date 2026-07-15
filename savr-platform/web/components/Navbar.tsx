@@ -109,7 +109,7 @@ export default function Navbar() {
           <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[rgba(20,26,23,0.88)]">
               <Image
-                src="https://res.cloudinary.com/dksj2niho/image/upload/w_64,h_64,c_fit,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png"
+                src="https://res.cloudinary.com/intellme/image/upload/w_64,h_64,c_fit,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png"
                 alt="SAVR"
                 width={32}
                 height={32}
