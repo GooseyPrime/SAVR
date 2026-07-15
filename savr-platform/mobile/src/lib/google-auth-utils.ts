@@ -25,7 +25,7 @@ export type GoogleAuthResult =
  */
 export type AuthSessionResult =
   | { type: 'success'; url: string }
-  | { type: 'cancel' | 'dismiss' | 'locked' | 'opened' };
+  | { type: 'cancel' | 'dismiss' | 'locked' };
 
 /**
  * Parse the callback URL fragment for Supabase session tokens.
