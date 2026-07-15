@@ -4,10 +4,6 @@ name: Live Environment Tests — Supabase + Stripe + AI
 # (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, OPENAI_API_KEY, etc.) are
 # only injected from trusted environments and never exposed to PRs from forks.
 #
-# These tests are intentionally NOT triggered on pull_request events from
-# external contributors.  They run only on explicit workflow_dispatch or on
-# pushes/merges to main.
-#
 # Usage (manual trigger):
 #   Actions → Live Environment Tests → Run workflow → choose environment
 
@@ -30,6 +26,10 @@ on:
       - 'savr-platform/web/lib/billing.ts'
       - 'savr-platform/web/lib/stripe.ts'
       - 'savr-platform/supabase/migrations/**'
+
+# Minimal token permissions for all jobs.
+permissions:
+  contents: read
 
 jobs:
   # ─────────────────────────────────────────────────────────────
@@ -140,55 +140,119 @@ jobs:
           echo "delivery to $WEBHOOK_URL returned HTTP 200."
 
   # ─────────────────────────────────────────────────────────────
-  # 4–7. Billing entitlement matrix
+  # 4. Basic monthly entitlement
   # ─────────────────────────────────────────────────────────────
-  billing-entitlements:
-    name: Billing entitlement matrix (${{ matrix.plan }})
+  entitlement-basic-monthly:
+    name: Billing entitlement — basic monthly
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'Staging' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - plan: basic-monthly
-            price_id_secret: STRIPE_PRICE_BASIC_MONTHLY
-          - plan: basic-yearly
-            price_id_secret: STRIPE_PRICE_BASIC_YEARLY
-          - plan: pro-monthly
-            price_id_secret: STRIPE_PRICE_PRO_MONTHLY
-          - plan: pro-yearly
-            price_id_secret: STRIPE_PRICE_PRO_YEARLY
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: savr-platform/web/package-lock.json
-
       - name: Install web dependencies
         working-directory: savr-platform/web
         run: npm ci
-
-      - name: Check ${{ matrix.plan }} entitlement
+      - name: Check basic monthly entitlement
         working-directory: savr-platform/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          PRICE_ID: ${{ secrets[matrix.price_id_secret] }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_BASIC_MONTHLY }}
         run: |
-          echo "NOTE: Entitlement matrix tests require a test harness that:"
-          echo "  1. Creates a Stripe test subscription for price $PRICE_ID"
-          echo "  2. Delivers the checkout.session.completed webhook locally"
-          echo "  3. Queries the users table via service role to confirm"
-          echo "     subscription_tier and subscription_status were updated"
-          echo "  4. Calls hasProAccess() / hasBasicAccess() from billing.ts"
-          echo "     against the updated row and asserts the expected result"
-          echo ""
-          echo "Implement savr-platform/web/tests/billing-entitlements.test.ts"
-          echo "to run this check programmatically."
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the basic-monthly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 5. Basic yearly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-basic-yearly:
+    name: Billing entitlement — basic yearly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check basic yearly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_BASIC_YEARLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the basic-yearly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 6. Pro monthly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-pro-monthly:
+    name: Billing entitlement — pro monthly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check pro monthly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_PRO_MONTHLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the pro-monthly price entitlement end-to-end."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 7. Pro yearly entitlement
+  # ─────────────────────────────────────────────────────────────
+  entitlement-pro-yearly:
+    name: Billing entitlement — pro yearly
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: savr-platform/web
+        run: npm ci
+      - name: Check pro yearly entitlement
+        working-directory: savr-platform/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PRICE_ID: ${{ secrets.STRIPE_PRICE_PRO_YEARLY }}
+        run: |
+          echo "NOTE: Implement savr-platform/web/tests/billing-entitlements.test.ts"
+          echo "to exercise the pro-yearly price entitlement end-to-end."
           exit 1
 
   # ─────────────────────────────────────────────────────────────
@@ -234,7 +298,7 @@ jobs:
     name: Subscription cancellation
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'Staging' }}
-    needs: billing-entitlements
+    needs: entitlement-basic-monthly
     steps:
       - uses: actions/checkout@v4
 
@@ -261,7 +325,7 @@ jobs:
     name: Subscription upgrade/downgrade
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'Staging' }}
-    needs: billing-entitlements
+    needs: entitlement-basic-monthly
     steps:
       - uses: actions/checkout@v4
 

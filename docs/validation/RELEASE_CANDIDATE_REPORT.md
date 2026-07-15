@@ -163,7 +163,7 @@ EAS Build requires Apple Developer account, provisioning profiles, and signing c
 | ADR-002 (Firebase Storage URLs) | Medium | Audit production database; remove helpers if clean or migrate if not |
 | Supabase `db reset` not runnable locally without Docker | Low | Document expected behavior; CI gate covers this |
 | Mobile audit: 11 moderate findings | Low | Upstream Expo ecosystem fixes only; no high/critical |
-| `/subscription-debug` previously unguarded | Fixed | Now returns 404 in production unless `NEXT_PUBLIC_DEBUG_MODE=true` |
+| `/subscription-debug` previously unguarded | Fixed | Now returns 404 in production unless `DEBUG_MODE=true` |
 
 ---
 
@@ -171,7 +171,7 @@ EAS Build requires Apple Developer account, provisioning profiles, and signing c
 
 1. Revert the corrective PR 8 merge commit on `main` using `git revert -m 1 <merge-sha>` — this undoes all corrective PR 8 changes without touching earlier corrective PRs.
 2. The Supabase billing-tier migration (`20260714000000_normalize_billing_tiers.sql`) cannot be auto-reversed; a forward migration restoring the original check constraint would be needed if a rollback is required past corrective PR 2.
-3. The `/subscription-debug` guard can be disabled by setting `NEXT_PUBLIC_DEBUG_MODE=true` in the hosting environment without a code change.
+3. The `/subscription-debug` guard can be disabled by setting `DEBUG_MODE=true` in the hosting environment without a code change.
 
 ---
 
