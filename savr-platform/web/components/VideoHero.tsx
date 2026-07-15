@@ -5,8 +5,8 @@ import Image from 'next/image';
 
 // Cloudinary raw video URLs for native <video> playback with onEnded support
 const VIDEOS = [
-  'https://res.cloudinary.com/dksj2niho/video/upload/download_2_ontzhn',
-  'https://res.cloudinary.com/dksj2niho/video/upload/11689587509115154621_sample_1_rddsv2',
+  'https://res.cloudinary.com/intellme/video/upload/download_2_ontzhn',
+  'https://res.cloudinary.com/intellme/video/upload/11689587509115154621_sample_1_rddsv2',
 ];
 
 const VIDEO_LOAD_TIMEOUT = 10000; // 10 seconds timeout for video loading
@@ -53,7 +53,7 @@ export default function VideoHero() {
       <div className="relative w-full max-w-[48rem] md:max-w-[72rem] h-auto animate-float px-4 sm:px-6">
         {showFallback ? (
           <Image
-            src="https://res.cloudinary.com/dksj2niho/image/upload/w_640,h_640,c_fit,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png"
+            src="https://res.cloudinary.com/intellme/image/upload/w_640,h_640,c_fit,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png"
             alt="SAVR Logo"
             width={280}
             height={280}
