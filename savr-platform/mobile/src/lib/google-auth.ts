@@ -86,7 +86,7 @@ export async function signInWithGoogle(): Promise<import('./google-auth-utils').
   const adaptedResult: AuthSessionResult =
     result.type === 'success'
       ? { type: 'success', url: (result as WebBrowser.WebBrowserRedirectResult).url }
-      : { type: result.type as 'locked' | 'opened' };
+      : { type: 'locked' };
 
   if (!shouldExchangeSession(adaptedResult)) {
     return {

@@ -49,7 +49,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
     try {
       await signInWithGoogle();
     } catch (_error) {
-      Alert.alert('Error', 'Failed to sign in with Google');
+      Alert.alert('Error', _error instanceof Error ? _error.message : 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
