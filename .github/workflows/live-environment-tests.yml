@@ -100,7 +100,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL || 'http://localhost:3000' }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
         run: npx playwright test stripe-checkout.spec.ts --reporter=list
 
   # ─────────────────────────────────────────────────────────────
@@ -284,7 +284,7 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL || 'http://localhost:3000' }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
         run: |
           echo "NOTE: Implement savr-platform/e2e-tests/customer-portal.spec.ts"
           echo "that signs in as the test user, navigates to /settings, clicks"
@@ -377,7 +377,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL || 'http://localhost:3000' }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
         run: |
           echo "NOTE: Implement AI rate-limit integration test that:"
           echo "  1. Signs in as the test user"
