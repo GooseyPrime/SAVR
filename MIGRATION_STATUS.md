@@ -22,7 +22,7 @@ Consolidation phases 1–6 are complete. A corrective build path is underway to 
 | Corrective PR 4 | Formalize and validate the mobile platform version | ✅ Complete |
 | Corrective PR 5 | Implement durable AI rate limiting | ✅ Complete |
 | Corrective PR 6 | Productionize the public landing page | ✅ Complete |
-| Corrective PR 7 | Complete mobile authentication readiness | ⏳ Pending |
+| Corrective PR 7 | Complete mobile authentication readiness | ✅ Complete |
 | Corrective PR 8 | Final release-candidate verification | ⏳ Pending |
 
 ---
@@ -84,7 +84,50 @@ Phase 6 added the missing hardening gates needed to prove the consolidated platf
 
 ---
 
+## Corrective PR 7 Completion Summary
+
+**Title:** fix: complete Expo Google authentication and release redirects  
+**Branch:** `copilot/corrective-pr-7`
+
+### What was added
+
+- `savr-platform/mobile/src/lib/google-auth-utils.ts` — pure utility module (no native imports): `parseOAuthCallback`, `shouldExchangeSession`, `GoogleAuthResult` type, `AuthSessionResult` type
+- `savr-platform/mobile/src/lib/google-auth.ts` — Expo-compatible OAuth flow: `buildRedirectUri`, `signInWithGoogle`; calls `WebBrowser.maybeCompleteAuthSession()` at module load for Android
+- `savr-platform/mobile/tests/google-auth.test.ts` — 14 unit tests covering callback parsing (valid tokens, missing tokens, empty hash, URL-encoded values, query-params-before-hash) and session-exchange decision logic (success/cancel/dismiss/locked/empty-URL)
+- `docs/decisions/ADR-004-mobile-google-oauth.md` — decision record documenting the OAuth pattern, redirect URL for each environment (standalone, Expo Go), Supabase dashboard configuration, Google Cloud Console setup, and remaining physical-device validation gates
+
+### What changed
+
+- `savr-platform/mobile/src/contexts/AuthContext.tsx` — replaced the placeholder `signInWithGoogle` stub with a real call to `googleOAuthSignIn`; canceled-login returns silently; other failures throw with a message for the UI
+- `savr-platform/mobile/app.config.ts` — added Android `intentFilters` for `savr://auth/callback` so Custom Tabs can redirect back into the app
+- `MIGRATION_STATUS.md` — corrective PR 7 marked complete
+
+### Validation (exact commands, exact results)
+
+- `cd savr-platform/mobile && npm ci` → exit 0
+- `cd savr-platform/mobile && npm run lint` → exit 0, 48 warnings (one fewer than baseline; 0 errors)
+- `cd savr-platform/mobile && npm run typecheck` → exit 0
+- `cd savr-platform/mobile && npm run test:unit` → 31 passed, 0 failed (14 new google-auth tests + 17 existing subscription tests)
+- `cd savr-platform/mobile && npx expo-doctor` → 20/20 checks passed, no issues detected
+- `cd savr-platform/mobile && npx expo export --platform android` → exit 0
+- `cd savr-platform/mobile && npx expo export --platform ios` → exit 0
+
+### Remaining limitations
+
+- End-to-end Google OAuth requires a live Supabase project with the Google provider enabled and a registered Google Cloud OAuth 2.0 client — deferred (requires credentials)
+- Physical-device validation (Android and iOS standalone builds): deferred — requires EAS signing credentials
+- Google client IDs for Android and iOS must be added to `.env` before live OAuth will work
+- Expo Go OAuth requires an `exp://` redirect registered in Supabase and in the Google Console
+
+### Reference folder confirmation
+
+- `SAVR-old/` — not modified
+- `savr-premium-mobile-app/` — not modified
+
+---
+
 ## Corrective PR 6 Completion Summary
+
 
 **Title:** fix: productionize the public landing page  
 **Branch:** `copilot/corrective-pr-6`
