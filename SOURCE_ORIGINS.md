@@ -22,7 +22,18 @@ Both reference directories are pinned to the following monorepo commit and must 
 add8dd5c125ee27c6620897eec598d13920b4ce6
 ```
 
-Reference-integrity CI (`reference-integrity.yml`) enforces this invariant on every push and pull request using `scripts/verify-reference-integrity.sh`.
+Reference-integrity CI (`reference-integrity.yml`) enforces this invariant on every push and pull request using `scripts/verify-reference-integrity.sh`. The script is branch-aware: on non-`main` branches it checks only that the branch does not introduce new reference-folder changes relative to `main`; on `main` it compares directly against the pinned commit.
+
+### Known divergence on `main` (pre-existing)
+
+As of corrective PR 4, `main` diverges from `add8dd5c` in the following files:
+
+- `SAVR-old/mobile/package.json` — expo bumped from `^54.0.33` to `^57.0.4`; react-native from `^0.75.5` to `^0.86.0`
+- `SAVR-old/web/package.json` — minor version bump
+- `SAVR-old/e2e-tests/package-lock.json`, `SAVR-old/mobile/package-lock.json`, `SAVR-old/package-lock.json`, `SAVR-old/web/package-lock.json`, `savr-premium-mobile-app/package-lock.json` — lockfiles removed
+- `savr-premium-mobile-app/package.json` — minor version bumps
+
+These changes were applied to `SAVR-old/` and `savr-premium-mobile-app/` during corrective PRs 1 and 4 and violate the read-only reference-folder rule. A dedicated governance PR is required to restore these files to the pinned state and prevent future mutations. Until that PR is merged, `bash scripts/verify-reference-integrity.sh` on `main` will report an error.
 
 ---
 
