@@ -46,10 +46,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'CAMERA',
       'INTERNET',
       'ACCESS_NETWORK_STATE',
-      // Required by expo-image-picker on Android 12 (API 32) and earlier.
-      // Expo Image Picker 57 requests READ_EXTERNAL_STORAGE below API 33;
-      // blocking it causes permission denial before launchImageLibraryAsync().
-      { name: 'android.permission.READ_EXTERNAL_STORAGE', maxSdkVersion: 32 },
+      // READ_EXTERNAL_STORAGE is required by expo-image-picker on Android 12
+      // (API 32) and earlier. On API 33+ Android auto-denies this deprecated
+      // permission, so retaining it in the manifest is safe across all versions.
+      'android.permission.READ_EXTERNAL_STORAGE',
     ],
     blockedPermissions: [
       'android.permission.WRITE_EXTERNAL_STORAGE',
