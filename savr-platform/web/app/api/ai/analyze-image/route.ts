@@ -1,30 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest, checkRateLimit } from '@/lib/middleware';
+import { analyzePantrySnapshot } from '@/lib/services/pantrySnapshot';
 import { extractIngredientsFromImage } from '@/lib/services/ai';
 
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
-  
+
   const { user } = auth;
-  
-  // Rate limiting
   const rateCheck = await checkRateLimit(user.id, 'analyze-image', 100, 60000);
-  if (!rateCheck.allowed) {
-    return rateCheck.error;
-  }
-  
+  if (!rateCheck.allowed) return rateCheck.error;
+
   const { imageUrl } = await request.json();
-  
   if (!imageUrl) {
     return NextResponse.json({ error: 'Image URL required' }, { status: 400 });
   }
-  
+
   try {
-    const ingredients = await extractIngredientsFromImage(imageUrl);
-    return NextResponse.json({ success: true, ingredients });
+    const proposals = await analyzePantrySnapshot(imageUrl);
+    const ingredients = proposals.map((p) => ({
+      name: p.name,
+      quantity: p.quantity,
+      unit: p.unit,
+      confidence: p.confidence.overall,
+      category: p.location,
+      brand: p.brand,
+      packageSize: p.packageSize,
+      nutrition: p.nutrition,
+      nutritionSource: p.nutritionSource,
+      quantitySource: p.quantitySource,
+      needsReview: p.needsReview,
+      warnings: p.warnings,
+      barcode: p.barcode,
+      fdcId: p.fdcId,
+      expiryDate: p.expiryDate,
+      container: p.container,
+    }));
+    return NextResponse.json({ success: true, ingredients, proposals });
   } catch (error) {
-    console.error('Error analyzing image:', error);
-    return NextResponse.json({ error: 'Failed to analyze image' }, { status: 500 });
+    console.error('Pantry snapshot failed, falling back to basic vision:', error);
+    try {
+      const ingredients = await extractIngredientsFromImage(imageUrl);
+      return NextResponse.json({
+        success: true,
+        ingredients,
+        proposals: ingredients.map((ing, index) => ({
+          clientId: `fallback_${index}`,
+          name: ing.name,
+          genericName: ing.name,
+          container: 'unknown',
+          quantity: ing.quantity,
+          unit: ing.unit,
+          location: 'pantry',
+          nutritionSource: 'llm_estimate',
+          quantitySource: 'container_default',
+          confidence: { identity: ing.confidence, quantity: 0.5, overall: ing.confidence },
+          needsReview: true,
+          warnings: ['Size estimated from the photo.', 'Estimated nutrition — not from the label.'],
+        })),
+      });
+    } catch (fallbackError) {
+      console.error('Error analyzing image:', fallbackError);
+      return NextResponse.json({ error: 'Failed to analyze image' }, { status: 500 });
+    }
   }
 }
