@@ -319,6 +319,10 @@ test('getSafeRelativeRedirect falls back to next and rejects unsafe values', () 
   assert.equal(getSafeRelativeRedirect(null, '/dashboard'), '/dashboard');
   assert.equal(getSafeRelativeRedirect('https://example.com', '/dashboard'), '/dashboard');
   assert.equal(getSafeRelativeRedirect('//evil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('/\\evil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('/%2F%2Fevil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('/%252F%252Fevil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('/%5Cevil.com', '/dashboard'), '/dashboard');
   assert.equal(getSafeRelativeRedirect('chat', '/dashboard'), '/dashboard');
   assert.equal(getSafeRelativeRedirect('javascript:alert(1)', null), null);
 });
