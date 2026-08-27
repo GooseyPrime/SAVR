@@ -1,6 +1,9 @@
 import { supabase } from '../config/supabase';
 
-const API_BASE = process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:3000';
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_URL ||
+  process.env.EXPO_PUBLIC_APP_URL ||
+  'http://localhost:3000';
 
 export interface ApiError extends Error {
   code?: string;
@@ -96,4 +99,12 @@ export const chatWithAI = async (params: ChatWithAIParams) => {
 
 export const analyzeImage = async (imageUrl: string) => {
   return await callApi('/ai/analyze-image', { imageUrl });
+};
+
+export const lookupNutrition = async (input: {
+  name?: string;
+  brand?: string;
+  barcode?: string;
+}) => {
+  return await callApi('/nutrition/lookup', input);
 };

@@ -12,7 +12,8 @@ eas init                # create or link your Expo project
 eas credentials -p android
 eas env:create --scope project --environment production --name EXPO_PUBLIC_SUPABASE_URL --value ...
 eas env:create --scope project --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value ...
-eas env:create --scope project --environment production --name EXPO_PUBLIC_API_URL --value https://<your-vercel-deployment>.vercel.app
+eas env:create --scope project --environment production --name EXPO_PUBLIC_API_URL --value https://www.savr.cam
+eas env:create --scope project --environment production --name EXPO_PUBLIC_APP_URL --value https://www.savr.cam
 eas build --platform android --profile production
 ```
 
@@ -22,8 +23,8 @@ Package: `com.savr.app`  Version: `1.0.0`
 
 1. Create app SAVR — Food & Drink — free with subscriptions.
 2. Paste listing copy from the launch pack (`PLAY_STORE_LISTING.md`).
-3. Privacy: https://<your-production-domain>/privacy
-4. Terms: https://<your-production-domain>/terms
+3. Privacy: https://www.savr.cam/privacy
+4. Terms: https://www.savr.cam/terms
 5. Data safety: account email, user photos (optional), purchase history via Stripe. No precise location.
 6. Content rating questionnaire.
 7. Upload production AAB to **internal testing** first.
@@ -34,5 +35,5 @@ Package: `com.savr.app`  Version: `1.0.0`
 
 - EAS projectId is still empty
 - Live Stripe webhook is not pointed at the production host
-- Screenshots still show “Production workspace” (fixed on main; wait for Vercel deploy)
+- Screenshots still show “Production workspace” (removed from marketing; live site uses the official static logo)
 - iOS — parked until Apple Developer license
