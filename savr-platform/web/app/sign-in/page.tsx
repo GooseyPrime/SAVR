@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { trackCheckoutIntentIfReturning, hasRecentCheckoutIntent } from '@/lib/checkout';
+import { safeAppPath } from '@/lib/safeRedirect';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -17,27 +18,22 @@ export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Detect if user is returning from Stripe Checkout and set the checkout intent flag
-  // This is more reliable than setting it on the pricing page before they actually checkout
   useEffect(() => {
     trackCheckoutIntentIfReturning();
   }, []);
 
   async function redirectAfterAuth() {
-    // Check for explicit redirect parameter (e.g., from pricing page after checkout)
-    const redirectParam = searchParams.get('redirect');
+    const redirectParam = safeAppPath(searchParams.get('redirect') || searchParams.get('next'), '');
     if (redirectParam) {
       router.push(redirectParam);
       return;
     }
 
-    // Check for recent checkout intent via localStorage
     if (hasRecentCheckoutIntent()) {
       router.push('/dashboard?stripeSuccess=true');
       return;
     }
 
-    // AuthContext provides userData with subscription status from Supabase
     const status = userData?.subscription_status || 'pending';
     if (status === 'active' || status === 'trialing') {
       router.push('/dashboard');
