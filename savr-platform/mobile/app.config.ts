@@ -1,4 +1,8 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
+import type { ExpoConfig, ConfigContext } from 'expo/config';
+
+// Pin extra.eas.projectId after `eas init` for @intellme/savr.
+// Project IDs are not secret. Leave empty until the Expo project is linked.
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || '';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -7,25 +11,29 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   scheme: 'savr',
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.savr.app',
     infoPlist: {
-      NSCameraUsageDescription: 'SAVR uses your camera to scan and photograph pantry items for inventory management.',
-      NSPhotoLibraryUsageDescription: 'SAVR needs access to your photo library to select images of pantry items.',
-      NSPhotoLibraryAddUsageDescription: 'SAVR saves recipe photos and inventory images to your photo library.',
+      NSCameraUsageDescription:
+        'SAVR uses your camera to scan and photograph pantry items for inventory management.',
+      NSPhotoLibraryUsageDescription:
+        'SAVR needs access to your photo library to select images of pantry items.',
+      NSPhotoLibraryAddUsageDescription:
+        'SAVR saves recipe photos and inventory images to your photo library.',
     },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#0D1210',
     },
     package: 'com.savr.app',
     versionCode: 1,
     predictiveBackGestureEnabled: false,
+    softwareKeyboardLayoutMode: 'resize',
     intentFilters: [
       {
         action: 'VIEW',
@@ -36,29 +44,33 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     permissions: [
       'CAMERA',
-      'READ_EXTERNAL_STORAGE',
-      'WRITE_EXTERNAL_STORAGE',
       'INTERNET',
       'ACCESS_NETWORK_STATE',
+      // READ_EXTERNAL_STORAGE is required by expo-image-picker on Android 12
+      // (API 32) and earlier. On API 33+ Android auto-denies this deprecated
+      // permission, so retaining it in the manifest is safe across all versions.
+      'android.permission.READ_EXTERNAL_STORAGE',
+    ],
+    blockedPermissions: [
+      'android.permission.WRITE_EXTERNAL_STORAGE',
     ],
   },
   web: {
     favicon: './assets/favicon.png',
   },
   plugins: [
-    'expo-camera',
+    // Disable RECORD_AUDIO: this app captures images only.
+    ['expo-camera', { recordAudioAndroid: false }],
     'expo-font',
-    'expo-image-picker',
+    ['expo-image-picker', { photosPermission: 'SAVR needs access to your photo library to select images of pantry items.' }],
     'expo-status-bar',
   ],
   extra: {
     eas: {
-      projectId: process.env.EAS_PROJECT_ID || '',
+      projectId: EAS_PROJECT_ID,
     },
-    // Supabase configuration
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    // Google OAuth
     googleClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,

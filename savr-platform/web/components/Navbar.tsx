@@ -121,9 +121,7 @@ export default function Navbar() {
               <p className="font-[var(--font-display)] text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-secondary)]">
                 SAVR
               </p>
-              <p className="text-xs text-[var(--color-foreground-muted)]">
-                Production workspace
-              </p>
+              <p className="text-xs text-[var(--color-foreground-muted)]">Cook smarter. Save everything.</p>
             </div>
           </Link>
 
