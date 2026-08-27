@@ -76,7 +76,7 @@ export async function lookupOpenFoodFactsByBarcode(
   barcode: string
 ): Promise<CatalogNutritionHit | null> {
   const code = barcode.replace(/\D/g, '');
-  if (code.length < 8) return null;
+  if (code.length < 8 || !/^\d+$/.test(code)) return null;
 
   const data = (await fetchJson(
     `https://world.openfoodfacts.org/api/v2/product/${code}.json`,
