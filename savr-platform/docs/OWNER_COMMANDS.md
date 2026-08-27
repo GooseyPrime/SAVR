@@ -24,14 +24,6 @@ eas env:create --scope project --environment production --name EXPO_PUBLIC_GOOGL
 eas env:create --scope project --environment production --name EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID --value <android client id>
 ```
 
-Confirm Vercel production has:
-
-- `STRIPE_PRICE_BASIC_MONTHLY=price_1TswjQJF6bibA8netYlk5tmj`
-- `STRIPE_PRICE_BASIC_YEARLY=price_1TswjTJF6bibA8neA5OQJgNB`
-- `STRIPE_PRICE_PRO_MONTHLY=price_1TswjWJF6bibA8nedzOe1gu2`
-- `STRIPE_PRICE_PRO_YEARLY=price_1TswjaJF6bibA8ne2SIUE1bx`
-- Stripe webhook endpoint `https://www.savr.cam/api/stripe/webhook` in livemode
-
 ## 3. Build AAB
 
 ```bash

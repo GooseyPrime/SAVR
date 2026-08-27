@@ -19,6 +19,7 @@ interface ExtractedIngredient {
   confidence: number;
   category: 'pantry' | 'fridge' | 'freezer';
   price?: number;
+  notes?: string;
   isDuplicate?: boolean;
 }
 
@@ -235,6 +236,7 @@ function UploadContent() {
             unit: ingredient.unit,
             category: ingredient.category,
             image_url: imageUrl || undefined,
+            notes: ingredient.notes,
           })
         )
       );

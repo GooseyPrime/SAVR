@@ -19,7 +19,19 @@ export async function POST(request: NextRequest) {
 
   try {
     const proposals = await analyzePantrySnapshot(imageUrl);
-    const ingredients = proposals.map((p) => ({
+    const mappedProposals = proposals.map((p) => ({
+      ...p,
+      notes: encodePantryNutritionNote({
+        nutrition: p.nutrition,
+        nutritionSource: p.nutritionSource,
+        barcode: p.barcode,
+        fdcId: p.fdcId,
+        packageSize: p.packageSize,
+        quantitySource: p.quantitySource,
+        basis: 'per_100g',
+      }),
+    }));
+    const ingredients = mappedProposals.map((p) => ({
       name: p.name,
       quantity: p.quantity,
       unit: p.unit,
@@ -36,17 +48,9 @@ export async function POST(request: NextRequest) {
       fdcId: p.fdcId,
       expiryDate: p.expiryDate,
       container: p.container,
-      notes: encodePantryNutritionNote({
-        nutrition: p.nutrition,
-        nutritionSource: p.nutritionSource,
-        barcode: p.barcode,
-        fdcId: p.fdcId,
-        packageSize: p.packageSize,
-        quantitySource: p.quantitySource,
-        basis: 'per_100g',
-      }),
+      notes: p.notes,
     }));
-    return NextResponse.json({ success: true, ingredients, proposals });
+    return NextResponse.json({ success: true, ingredients, proposals: mappedProposals });
   } catch (error) {
     console.error('Pantry snapshot failed, falling back to basic vision:', error);
     try {
