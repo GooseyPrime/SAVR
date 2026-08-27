@@ -15,13 +15,17 @@ test.describe('public smoke coverage', () => {
     await expect(page.getByRole('heading', { name: /simple, transparent/i })).toBeVisible();
     const startTrialBtn = page.getByRole('button', { name: /start 5-day free trial/i });
     await expect(startTrialBtn).toBeVisible();
-    await expect(page.locator('a[href="/sign-in?redirect=%2Fpricing"]')).toBeVisible();
     await startTrialBtn.click();
-    await page.waitForURL(/\/sign-up/);
+    await page.waitForURL(/\/sign-up\?redirect=%2Fpricing/);
+  });
 
-    const redirectedUrl = new URL(page.url());
-    expect(redirectedUrl.pathname).toBe('/sign-up');
-    expect(redirectedUrl.searchParams.get('redirect')).toBe('/pricing');
+  test('pricing page keeps a sign-in link with pricing redirect', async ({ page }) => {
+    await page.goto('/pricing');
+
+    const signInLink = page.locator('a[href="/sign-in?redirect=%2Fpricing"]');
+    await expect(signInLink).toBeVisible();
+    await signInLink.click();
+    await page.waitForURL(/\/sign-in\?redirect=%2Fpricing/);
   });
 
   test('pricing page displays all four SAVR prices for logged-out visitors', async ({ page }) => {
