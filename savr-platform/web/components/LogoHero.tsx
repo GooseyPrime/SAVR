@@ -6,7 +6,7 @@ const OFFICIAL_LOGO =
   'https://res.cloudinary.com/intellme/image/upload/w_1280,c_fit,q_auto,f_png/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png';
 
 /** Homepage hero mark. Video rotation was removed — static official logo only. */
-export default function VideoHero() {
+export default function LogoHero() {
   return (
     <div className="relative mb-8 flex justify-center">
       <div className="relative w-full max-w-3xl px-4 sm:px-6">

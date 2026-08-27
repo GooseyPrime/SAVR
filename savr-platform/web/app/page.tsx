@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
-import VideoHero from '@/components/VideoHero';
+import LogoHero from '@/components/LogoHero';
 import { useAuth, hasActiveSubscription } from '@/contexts/AuthContext';
 import { trackCheckoutIntentIfReturning, hasRecentCheckoutIntent } from '@/lib/checkout';
 
@@ -48,7 +48,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             {/* Official static SAVR logo */}
-            <VideoHero />
+            <LogoHero />
 
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8" style={{ background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
