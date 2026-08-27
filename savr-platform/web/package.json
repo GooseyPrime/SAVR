@@ -12,7 +12,15 @@
   },
   "overrides": {
     "@tootallnate/once": "^3.0.1",
-    "brace-expansion": "5.0.9",
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.18"
+    },
+    "minimatch@9.0.9": {
+      "brace-expansion": "2.1.4"
+    },
+    "minimatch@10.2.4": {
+      "brace-expansion": "5.0.9"
+    },
     "micromatch@4.0.8": {
       "picomatch": "2.3.2"
     },
