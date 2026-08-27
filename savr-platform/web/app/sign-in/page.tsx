@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { trackCheckoutIntentIfReturning, hasRecentCheckoutIntent } from '@/lib/checkout';
+import { getSafeRelativeRedirect } from '@/lib/utils/authRedirect';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -24,10 +25,13 @@ export default function SignInPage() {
   }, []);
 
   async function redirectAfterAuth() {
-    // Check for explicit redirect parameter (e.g., from pricing page after checkout)
-    const redirectParam = searchParams.get('redirect');
-    if (redirectParam) {
-      router.push(redirectParam);
+    // Check for explicit redirect parameters (e.g., from pricing or gated pages)
+    const safeRedirect = getSafeRelativeRedirect(
+      searchParams.get('redirect'),
+      searchParams.get('next')
+    );
+    if (safeRedirect) {
+      router.push(safeRedirect);
       return;
     }
 

@@ -2,9 +2,10 @@
 
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { getSafeRelativeRedirect } from '@/lib/utils/authRedirect';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -16,11 +17,14 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   async function redirectBasedOnSubscription() {
-    // Redirect to pricing page for new signups
-    // AuthContext will handle user data fetching via Supabase
-    router.push('/pricing');
+    const safeRedirect = getSafeRelativeRedirect(
+      searchParams.get('redirect'),
+      searchParams.get('next')
+    );
+    router.push(safeRedirect ?? '/pricing');
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +75,7 @@ export default function SignUpPage() {
       
       // User record is automatically created in Supabase via database trigger
       // AuthContext will handle fetching user data and redirect happens in auth callback
-      router.push('/pricing');
+      await redirectBasedOnSubscription();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to sign up with Google';
       if (message.includes('auth/popup-closed-by-user')) {

@@ -23,6 +23,7 @@ import {
   getRecipeQuotaRule,
   getUtcMonthWindow,
 } from '../lib/ai-rate-limit';
+import { getSafeRelativeRedirect } from '../lib/utils/authRedirect';
 
 test('normalizeUnit maps known aliases and preserves unknown values', () => {
   assert.equal(normalizeUnit(' Cups '), 'cup');
@@ -307,4 +308,17 @@ test('getBurstLimitRule aligns rate-limit buckets to the requested window', () =
   assert.equal(rule.limit, 100);
   assert.equal(rule.code, AI_RATE_LIMIT_EXCEEDED_CODE);
   assert.equal(rule.windowStart.toISOString(), '2026-07-14T16:14:00.000Z');
+});
+
+test('getSafeRelativeRedirect prefers redirect and accepts safe app-relative paths', () => {
+  assert.equal(getSafeRelativeRedirect('/chat', '/pricing'), '/chat');
+  assert.equal(getSafeRelativeRedirect('/pricing?from=trial', null), '/pricing?from=trial');
+});
+
+test('getSafeRelativeRedirect falls back to next and rejects unsafe values', () => {
+  assert.equal(getSafeRelativeRedirect(null, '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('https://example.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('//evil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('chat', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('javascript:alert(1)', null), null);
 });
