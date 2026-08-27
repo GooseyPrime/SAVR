@@ -3,13 +3,16 @@
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 
-// Cloudinary raw video URLs for native <video> playback with onEnded support
+// Explicit mp4 delivery so the hero is never a black box in production.
 const VIDEOS = [
-  'https://res.cloudinary.com/intellme/video/upload/download_2_ontzhn',
-  'https://res.cloudinary.com/intellme/video/upload/11689587509115154621_sample_1_rddsv2',
+  'https://res.cloudinary.com/intellme/video/upload/f_mp4,q_auto/download_2_ontzhn.mp4',
+  'https://res.cloudinary.com/intellme/video/upload/f_mp4,q_auto/11689587509115154621_sample_1_rddsv2.mp4',
 ];
 
-const VIDEO_LOAD_TIMEOUT = 10000; // 10 seconds timeout for video loading
+const POSTER =
+  'https://res.cloudinary.com/intellme/image/upload/w_1280,h_720,c_fill,q_auto,f_auto/v1770328403/SAVR_Logo_NO_BG_3_hixen3.png';
+
+const VIDEO_LOAD_TIMEOUT = 8000;
 
 export default function VideoHero() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -31,18 +34,15 @@ export default function VideoHero() {
     }
   }, []);
 
-  // When a video ends, advance to the next one (loops back to first after last)
   const handleVideoEnded = useCallback(() => {
     setCurrentVideoIndex((prev) => (prev + 1) % VIDEOS.length);
   }, []);
 
-  // Video loaded successfully — cancel fallback timeout
   const handleCanPlay = useCallback(() => {
     clearLoadTimeout();
     setShowFallback(false);
   }, [clearLoadTimeout]);
 
-  // Video failed to load — show fallback
   const handleError = useCallback(() => {
     clearLoadTimeout();
     setShowFallback(true);
@@ -57,7 +57,7 @@ export default function VideoHero() {
             alt="SAVR Logo"
             width={280}
             height={280}
-            className="w-full h-auto drop-shadow-[0_0_60px_rgba(0,212,255,0.25)]"
+            className="mx-auto w-full max-w-xs h-auto drop-shadow-[0_0_60px_rgba(0,212,255,0.25)]"
             priority
             unoptimized
           />
@@ -67,6 +67,7 @@ export default function VideoHero() {
               ref={videoRef}
               key={currentVideoIndex}
               src={VIDEOS[currentVideoIndex]}
+              poster={POSTER}
               autoPlay
               muted
               playsInline
@@ -74,7 +75,7 @@ export default function VideoHero() {
               onCanPlay={handleCanPlay}
               onError={handleError}
               onLoadStart={startLoadTimeout}
-              className="w-full h-full rounded-lg drop-shadow-[0_0_60px_rgba(0,212,255,0.25)] object-cover"
+              className="w-full h-full rounded-lg drop-shadow-[0_0_60px_rgba(0,212,255,0.25)] object-cover bg-black"
               style={{ aspectRatio: '16 / 9' }}
             />
           </div>
