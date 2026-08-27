@@ -11,6 +11,7 @@ import { getInventory, addInventoryItem, TransferSession } from '@/lib/db';
 import { uploadImage, getPublicUrl } from '@/lib/storage';
 import { callApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { pantryCategory } from '@/lib/pantryPersist';
 
 interface ExtractedIngredient {
   name: string;
@@ -20,6 +21,11 @@ interface ExtractedIngredient {
   category: 'pantry' | 'fridge' | 'freezer';
   price?: number;
   isDuplicate?: boolean;
+  notes?: string;
+  nutrition?: unknown;
+  nutritionSource?: string;
+  barcode?: string;
+  expiryDate?: string;
 }
 
 type ScanMode = 'inventory' | 'receipt';
@@ -108,7 +114,7 @@ function UploadContent() {
       } else {
         // Standard inventory scanning
         const result = await callApi('/ai/analyze-image', { imageUrl: url });
-        const data = result as { success: boolean; ingredients: Array<{ name: string; quantity: number; unit: string; confidence: number }> };
+        const data = result as { success: boolean; ingredients: Array<{ name: string; quantity: number; unit: string; confidence: number; category?: unknown; notes?: string; expiryDate?: string }> };
 
         if (!data.success || !data.ingredients) {
           throw new Error('Image analysis failed');
@@ -116,7 +122,9 @@ function UploadContent() {
 
         const mapped: ExtractedIngredient[] = data.ingredients.map(ing => ({
           ...ing,
-          category: 'pantry' as const,
+          category: pantryCategory(ing.category),
+          notes: ing.notes,
+          expiryDate: ing.expiryDate,
           isDuplicate: existingItems.includes(ing.name.toLowerCase()),
         }));
         setIngredients(mapped);
@@ -200,11 +208,13 @@ function UploadContent() {
     setImageUrl(url);
     try {
       const result = await callApi('/ai/analyze-image', { imageUrl: url });
-      const data = result as { success: boolean; ingredients: Array<{ name: string; quantity: number; unit: string; confidence: number }> };
+      const data = result as { success: boolean; ingredients: Array<{ name: string; quantity: number; unit: string; confidence: number; category?: unknown; notes?: string; expiryDate?: string }> };
       if (data.success && data.ingredients) {
         const mapped: ExtractedIngredient[] = data.ingredients.map(ing => ({
           ...ing,
-          category: 'pantry' as const,
+          category: pantryCategory(ing.category),
+          notes: ing.notes,
+          expiryDate: ing.expiryDate,
           isDuplicate: existingItems.includes(ing.name.toLowerCase()),
         }));
         setIngredients(prev => [...prev, ...mapped]);
@@ -235,6 +245,8 @@ function UploadContent() {
             unit: ingredient.unit,
             category: ingredient.category,
             image_url: imageUrl || undefined,
+            notes: ingredient.notes,
+            expiry_date: ingredient.expiryDate,
           })
         )
       );

@@ -12,6 +12,9 @@ import {
   deleteInventoryItem,
   type InventoryItem as DBInventoryItem
 } from '@/lib/db';
+import { callApi } from '@/lib/api';
+import { pantryNotesFromScan, pantryCategory } from '@/lib/pantryPersist';
+import type { NutritionalInfo } from '@/lib/types/functions';
 
 interface InventoryItem {
   id: string;
@@ -130,30 +133,40 @@ function InventoryContent() {
     setBarcodeLoading(true);
     setBarcodeError('');
     try {
-      const res = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${code}.json`
-      );
-      const data = await res.json();
-      if (data.status !== 1 || !data.product) {
+      const result = await callApi('/nutrition/lookup', { barcode: code });
+      const data = result as {
+        success: boolean;
+        hit: {
+          name?: string;
+          brand?: string;
+          barcode?: string;
+          nutrition?: NutritionalInfo;
+          source?: string;
+          packageSize?: string;
+        } | null;
+      };
+      if (!data.hit || !data.hit.name) {
         setBarcodeError('Product not found. Try another barcode.');
         setBarcodeLoading(false);
         return;
       }
-      const p = data.product;
-      const name =
-        p.product_name_en || p.product_name || p.product_name_imported || 'Unknown product';
-      const qtyStr = String(p.quantity || '1');
-      const qtyMatch = qtyStr.match(/^([\d.]+)\s*(\w+)?$/);
-      const quantity = qtyMatch ? parseFloat(qtyMatch[1]) || 1 : 1;
-      const unit = (qtyMatch?.[2] || 'unit').toLowerCase();
-      
-      const addedItem = await addInventoryItem(user.id, {
-        name,
-        quantity,
-        unit,
-        category: 'pantry',
+
+      const hit = data.hit;
+      const notes = pantryNotesFromScan({
+        nutrition: hit.nutrition,
+        nutritionSource: hit.source,
+        barcode: hit.barcode ?? code,
+        packageSize: hit.packageSize,
       });
-      
+
+      const addedItem = await addInventoryItem(user.id, {
+        name: hit.name!,
+        quantity: 1,
+        unit: 'unit',
+        category: pantryCategory(undefined),
+        notes,
+      });
+
       setItems([
         ...items,
         {

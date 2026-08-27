@@ -150,8 +150,10 @@ export default function InventoryScreen() {
             name: ingredient.name,
             quantity: ingredient.quantity || 1,
             unit: ingredient.unit || 'units',
-            category: 'scanned',
+            category: ingredient.category === 'fridge' || ingredient.category === 'freezer' ? ingredient.category : 'pantry',
             image_url: imageUrl,
+            notes: ingredient.notes,
+            expiry_date: ingredient.expiryDate,
           })
         );
         await Promise.all(addPromises);
