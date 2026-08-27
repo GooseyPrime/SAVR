@@ -121,9 +121,7 @@ export default function Navbar() {
               <p className="font-[var(--font-display)] text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-secondary)]">
                 SAVR
               </p>
-              <p className="text-xs text-[var(--color-foreground-muted)]">
-                Production workspace
-              </p>
+              <p className="text-xs text-[var(--color-foreground-muted)]">Cook smarter. Save everything.</p>
             </div>
           </Link>
 
@@ -178,11 +176,12 @@ export default function Navbar() {
           </div>
 
           <button
+            type="button"
+            className="lg:hidden inline-flex items-center justify-center rounded-full border border-[var(--color-border)] p-2 text-[var(--color-foreground-secondary)]"
             onClick={() => setMenuOpen((open) => !open)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[rgba(20,26,23,0.92)] text-[var(--color-foreground-secondary)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-foreground)] lg:hidden"
-            aria-label="Toggle navigation menu"
             aria-expanded={menuOpen}
             aria-controls="savr-nav-menu"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           >
             {menuOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
@@ -190,84 +189,23 @@ export default function Navbar() {
       </div>
 
       {menuOpen && (
-        <div
-          id="savr-nav-menu"
-          className="border-t overflow-y-auto"
-          style={{
-            background: 'rgba(13, 18, 16, 0.96)',
-            borderColor: 'var(--color-border)',
-            maxHeight: 'calc(100vh - 72px)',
-          }}
-        >
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-            {user ? (
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-muted)]">
-                    Primary navigation
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {appPrimaryLinks.map(({ href, label }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setMenuOpen(false)}
-                        className={secondaryLinkClass(href)}
-                      >
-                        <span>{label}</span>
-                        <ChevronRightIcon />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground-muted)]">
-                    Workspace
-                  </p>
-                  <div className="grid gap-2">
-                    {appUtilityLinks.map(({ href, label }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setMenuOpen(false)}
-                        className={secondaryLinkClass(href)}
-                      >
-                        <span>{label}</span>
-                        <ChevronRightIcon />
-                      </Link>
-                    ))}
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-error-light)] bg-[rgba(255,107,107,0.08)] px-4 py-3 text-sm font-medium text-[var(--color-error)] transition hover:bg-[rgba(255,107,107,0.12)]"
-                  >
-                    <span>Logout</span>
-                    <ChevronRightIcon />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {publicLinks.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMenuOpen(false)}
-                    className={secondaryLinkClass(href)}
-                  >
-                    <span>{label}</span>
-                    <ChevronRightIcon />
-                  </Link>
-                ))}
-                <Link href="/sign-in" onClick={() => setMenuOpen(false)} className={secondaryLinkClass('/sign-in')}>
-                  <span>Sign In</span>
-                  <ChevronRightIcon />
-                </Link>
-                <Link href="/sign-up" onClick={() => setMenuOpen(false)} className="btn-primary flex justify-center text-sm">
-                  Get Started
-                </Link>
-              </div>
+        <div id="savr-nav-menu" className="border-t border-[var(--color-border)] bg-[rgba(13,18,16,0.96)] lg:hidden">
+          <div className="mx-auto max-w-7xl space-y-2 px-4 py-4">
+            {(user ? [...appPrimaryLinks, ...appUtilityLinks] : publicLinks).map(({ href, label }) => (
+              <Link key={href} href={href} className={secondaryLinkClass(href)} onClick={() => setMenuOpen(false)}>
+                <span>{label}</span>
+                <ChevronRightIcon />
+              </Link>
+            ))}
+            {!user && (
+              <Link href="/sign-up" className="btn-primary mt-2 block text-center" onClick={() => setMenuOpen(false)}>
+                Get Started
+              </Link>
+            )}
+            {user && (
+              <button type="button" onClick={handleLogout} className="mt-2 w-full rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left text-sm text-[var(--color-foreground-secondary)]">
+                Sign out
+              </button>
             )}
           </div>
         </div>
