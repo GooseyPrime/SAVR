@@ -211,7 +211,7 @@ export default function PricingPage() {
             {!user && (
               <div className="mb-8 text-center">
                 <p className="text-foreground-muted mb-4">
-                  Sign in to get started with your 5-day free trial
+                  Create an account to start your 5-day free trial
                 </p>
                 <button
                   onClick={() => router.push('/sign-up?redirect=%2Fpricing')}

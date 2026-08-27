@@ -45,6 +45,11 @@ export default function SignInPage() {
     }
   }
 
+  const safeRedirectTarget = getSafeRelativeRedirect(
+    searchParams.get('redirect'),
+    searchParams.get('next')
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -81,7 +86,7 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(safeRedirectTarget ?? undefined);
       await redirectAfterAuth();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to sign in with Google';

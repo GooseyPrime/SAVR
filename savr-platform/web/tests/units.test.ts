@@ -325,4 +325,11 @@ test('getSafeRelativeRedirect falls back to next and rejects unsafe values', () 
   assert.equal(getSafeRelativeRedirect('/%5Cevil.com', '/dashboard'), '/dashboard');
   assert.equal(getSafeRelativeRedirect('chat', '/dashboard'), '/dashboard');
   assert.equal(getSafeRelativeRedirect('javascript:alert(1)', null), null);
+  // Whitespace-character bypass: tab/CR/LF are stripped by browsers before navigation,
+  // so /%09/evil.com decodes to /\t/evil.com which parses as //evil.com.
+  assert.equal(getSafeRelativeRedirect('/%09/evil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('/%0D%0A/evil.com', '/dashboard'), '/dashboard');
+  assert.equal(getSafeRelativeRedirect('/path\t/../evil.com', '/dashboard'), '/dashboard');
+  // Doubly-encoded whitespace: %2509 → %09 → \t — must be caught on second decode pass.
+  assert.equal(getSafeRelativeRedirect('/%2509/evil.com', '/dashboard'), '/dashboard');
 });
