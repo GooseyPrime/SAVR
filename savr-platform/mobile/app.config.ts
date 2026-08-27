@@ -46,16 +46,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'CAMERA',
       'INTERNET',
       'ACCESS_NETWORK_STATE',
+      // Required by expo-image-picker on Android 12 (API 32) and earlier.
+      // Expo Image Picker 57 requests READ_EXTERNAL_STORAGE below API 33;
+      // blocking it causes permission denial before launchImageLibraryAsync().
+      { name: 'android.permission.READ_EXTERNAL_STORAGE', maxSdkVersion: 32 },
     ],
     blockedPermissions: [
-      'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.WRITE_EXTERNAL_STORAGE',
     ],
   },
   web: {
     favicon: './assets/favicon.png',
   },
-  plugins: ['expo-camera', 'expo-font', 'expo-image-picker', 'expo-status-bar'],
+  plugins: [
+    // Disable RECORD_AUDIO: this app captures images only.
+    ['expo-camera', { recordAudioAndroid: false }],
+    'expo-font',
+    ['expo-image-picker', { photosPermission: 'SAVR needs access to your photo library to select images of pantry items.' }],
+    'expo-status-bar',
+  ],
   extra: {
     eas: {
       projectId: EAS_PROJECT_ID,
