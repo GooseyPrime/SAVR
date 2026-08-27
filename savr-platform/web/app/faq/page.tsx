@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FAQCategory {
   title: string;
@@ -151,7 +152,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         question: 'Is my data secure?',
         answer:
-          'We use industry-standard encryption and security practices. Your data is stored on Google Cloud Platform with strict access controls. We never share your information with third parties.',
+          'We use industry-standard encryption and security practices. We use Supabase for secure data storage, Stripe to process payments, and AI providers to generate recipe and planning features. We do not sell your personal data.',
       },
       {
         question: 'Can I delete my data?',
@@ -188,6 +189,9 @@ const FAQ_DATA: FAQCategory[] = [
 ];
 
 export default function FAQPage() {
+  const { user } = useAuth();
+  const chatHref = user ? '/chat' : '/sign-up?redirect=%2Fchat';
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -203,7 +207,7 @@ export default function FAQPage() {
           </h1>
           <p className="text-lg max-w-xl mx-auto" style={{ color: '#9ca3c2' }}>
             Everything you need to know about using SAVR. Can&apos;t find what you&apos;re looking for?{' '}
-            <Link href="/chat" className="text-[#BAFF5C] hover:underline">
+            <Link href={chatHref} className="text-[#BAFF5C] hover:underline">
               Ask our AI assistant
             </Link>
             .

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSafeRelativeRedirect } from '@/lib/utils/authRedirect';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -14,6 +15,10 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Redirect to home page after successful authentication
-  return NextResponse.redirect(new URL('/', requestUrl.origin));
+  // Apply a sanitized return-path if the OAuth flow was initiated with one.
+  // `next` is populated by signInWithGoogle when a return path was provided.
+  const safeNext = getSafeRelativeRedirect(requestUrl.searchParams.get('next'), null);
+
+  const destination = safeNext ?? '/';
+  return NextResponse.redirect(new URL(destination, requestUrl.origin));
 }

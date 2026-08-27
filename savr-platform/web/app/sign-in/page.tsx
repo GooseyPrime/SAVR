@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { trackCheckoutIntentIfReturning, hasRecentCheckoutIntent } from '@/lib/checkout';
-import { safeAppPath } from '@/lib/safeRedirect';
+import { getSafeRelativeRedirect } from '@/lib/utils/authRedirect';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -23,9 +23,12 @@ export default function SignInPage() {
   }, []);
 
   async function redirectAfterAuth() {
-    const redirectParam = safeAppPath(searchParams.get('redirect') || searchParams.get('next'), '');
-    if (redirectParam) {
-      router.push(redirectParam);
+    const safeRedirect = getSafeRelativeRedirect(
+      searchParams.get('redirect'),
+      searchParams.get('next')
+    );
+    if (safeRedirect) {
+      router.push(safeRedirect);
       return;
     }
 
@@ -41,6 +44,11 @@ export default function SignInPage() {
       router.push('/pricing');
     }
   }
+
+  const safeRedirectTarget = getSafeRelativeRedirect(
+    searchParams.get('redirect'),
+    searchParams.get('next')
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +86,7 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(safeRedirectTarget ?? undefined);
       await redirectAfterAuth();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to sign in with Google';

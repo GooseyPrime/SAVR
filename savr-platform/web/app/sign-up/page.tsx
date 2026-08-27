@@ -2,9 +2,10 @@
 
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { getSafeRelativeRedirect } from '@/lib/utils/authRedirect';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -16,12 +17,24 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   async function redirectBasedOnSubscription() {
-    // Redirect to pricing page for new signups
-    // AuthContext will handle user data fetching via Supabase
-    router.push('/pricing');
+    const safeRedirect = getSafeRelativeRedirect(
+      searchParams.get('redirect'),
+      searchParams.get('next')
+    );
+    router.push(safeRedirect ?? '/pricing');
   }
+
+  const safeRedirectTarget = getSafeRelativeRedirect(
+    searchParams.get('redirect'),
+    searchParams.get('next')
+  );
+
+  const signInHref = safeRedirectTarget
+    ? `/sign-in?redirect=${encodeURIComponent(safeRedirectTarget)}`
+    : '/sign-in';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +64,7 @@ export default function SignUpPage() {
         setError(
           <span>
             An account with this email already exists. You may have previously signed up with Google.{' '}
-            <Link href="/sign-in" className="underline text-primary">Sign in instead</Link>
+            <Link href={signInHref} className="underline text-primary">Sign in instead</Link>
           </span>
         );
       } else {
@@ -67,11 +80,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      await signInWithGoogle();
-      
-      // User record is automatically created in Supabase via database trigger
-      // AuthContext will handle fetching user data and redirect happens in auth callback
-      router.push('/pricing');
+      await signInWithGoogle(safeRedirectTarget ?? undefined);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to sign up with Google';
       if (message.includes('auth/popup-closed-by-user')) {
@@ -80,14 +89,14 @@ export default function SignUpPage() {
         setError(
           <span>
             An account with this email already exists using email and password.{' '}
-            <Link href="/sign-in" className="underline text-primary">Sign in with your password</Link>, then link your Google account in Settings.
+            <Link href={signInHref} className="underline text-primary">Sign in with your password</Link>, then link your Google account in Settings.
           </span>
         );
       } else if (message.includes('auth/email-already-in-use')) {
         setError(
           <span>
             This email is already registered.{' '}
-            <Link href="/sign-in" className="underline text-primary">Sign in instead</Link>
+            <Link href={signInHref} className="underline text-primary">Sign in instead</Link>
           </span>
         );
       } else {
@@ -129,7 +138,7 @@ export default function SignUpPage() {
             </h2>
             <p className="mt-2 text-center text-sm text-foreground-muted">
               Start your 5-day free trial. Or{' '}
-              <Link href="/sign-in" className="font-medium text-primary hover:text-[#00bfa6] transition-colors">
+              <Link href={signInHref} className="font-medium text-primary hover:text-[#00bfa6] transition-colors">
                 sign in to existing account
               </Link>
             </p>

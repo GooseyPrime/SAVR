@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Script from 'next/script';
 import { callApi } from '@/lib/api';
@@ -210,14 +211,20 @@ export default function PricingPage() {
             {!user && (
               <div className="mb-8 text-center">
                 <p className="text-foreground-muted mb-4">
-                  Sign in to get started with your 5-day free trial
+                  Create an account to start your 5-day free trial
                 </p>
                 <button
-                  onClick={() => router.push('/sign-in')}
+                  onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
                   className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
                 >
-                  Sign in to continue
+                  Start 5-day free trial
                 </button>
+                <p className="mt-3 text-sm text-foreground-muted">
+                  Already have an account?{' '}
+                  <Link href="/sign-in?redirect=%2Fpricing" className="text-primary hover:underline">
+                    Sign in
+                  </Link>
+                </p>
               </div>
             )}
             {user && !stripeConfigured && (
@@ -273,7 +280,7 @@ export default function PricingPage() {
             />
             <FAQItem
               question="Is my data secure?"
-              answer="We use industry-standard encryption and security practices. Your data is stored securely on Google Cloud Platform and we never share your information with third parties."
+              answer="We use industry-standard encryption and security practices. We use Supabase for secure data storage, Stripe to process payments, and AI providers to generate recipe and planning features. We do not sell your personal data."
             />
             <FAQItem
               question="Can I get a refund?"
