@@ -9,14 +9,19 @@ test.describe('public smoke coverage', () => {
     await expect(page.getByRole('link', { name: /view pricing/i })).toBeVisible();
   });
 
-  test('pricing page keeps logged-out users on the sign-in path', async ({ page }) => {
+  test('pricing page sends logged-out users to trial sign-up', async ({ page }) => {
     await page.goto('/pricing');
 
     await expect(page.getByRole('heading', { name: /simple, transparent/i })).toBeVisible();
-    const signInBtn = page.getByRole('button', { name: /sign in to continue/i });
-    await expect(signInBtn).toBeVisible();
-    await signInBtn.click();
-    await page.waitForURL(/\/sign-in/);
+    const startTrialBtn = page.getByRole('button', { name: /start 5-day free trial/i });
+    await expect(startTrialBtn).toBeVisible();
+    await expect(page.locator('a[href="/sign-in?redirect=%2Fpricing"]')).toBeVisible();
+    await startTrialBtn.click();
+    await page.waitForURL(/\/sign-up/);
+
+    const redirectedUrl = new URL(page.url());
+    expect(redirectedUrl.pathname).toBe('/sign-up');
+    expect(redirectedUrl.searchParams.get('redirect')).toBe('/pricing');
   });
 
   test('pricing page displays all four SAVR prices for logged-out visitors', async ({ page }) => {
