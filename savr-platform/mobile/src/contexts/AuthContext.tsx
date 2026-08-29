@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
+import { AppState } from 'react-native';
 import { supabase } from '../config/supabase';
 import { UserData } from '../types';
 import { SubscriptionTier } from '../lib/billing';
@@ -34,14 +35,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const userIdRef = useRef<string | null>(null);
+
+  const fetchUserData = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user data:', error);
+        setUserData(null);
+      } else if (data) {
+        // Map snake_case to camelCase; normalize any legacy tier values to canonical.
+        setUserData({
+          uid: data.id,
+          email: data.email,
+          displayName: data.display_name,
+          subscriptionTier: normalizeLegacyTier(data.subscription_tier),
+          subscriptionStatus: data.subscription_status,
+          createdAt: data.created_at ? new Date(data.created_at) : new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserData(session.user.id);
+        userIdRef.current = session.user.id;
+        void fetchUserData(session.user.id);
       } else {
+        userIdRef.current = null;
         setLoading(false);
       }
     });
@@ -52,47 +85,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          userIdRef.current = session.user.id;
           await fetchUserData(session.user.id);
         } else {
+          userIdRef.current = null;
           setUserData(null);
           setLoading(false);
         }
       }
     );
 
-    const fetchUserData = async (userId: string) => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user data:', error);
-          setUserData(null);
-        } else if (data) {
-          // Map snake_case to camelCase; normalize any legacy tier values to canonical.
-          setUserData({
-            uid: data.id,
-            email: data.email,
-            displayName: data.display_name,
-            subscriptionTier: normalizeLegacyTier(data.subscription_tier),
-            subscriptionStatus: data.subscription_status,
-            createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setLoading(false);
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active' && userIdRef.current) {
+        void fetchUserData(userIdRef.current);
       }
-    };
+    });
 
     return () => {
       subscription.unsubscribe();
+      appStateSubscription.remove();
     };
-  }, []);
+  }, [fetchUserData]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({

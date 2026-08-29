@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { hasProAccess } from '../../lib/billing';
+import {
+  getSubscriptionPlanLabel,
+  getSubscriptionStatusLabel,
+  hasProAccess,
+  isSubscriptionActive,
+} from '../../lib/billing';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, shadowElevations } from '../../theme/index';
 
@@ -27,9 +32,13 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const isProPlan = userData?.subscriptionTier === 'pro';
+  const hasActiveSubscription = isSubscriptionActive(userData?.subscriptionStatus);
   const isPro = hasProAccess(userData);
   const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
-  const tierLabel = isPro ? 'Pro' : 'Basic';
+  const tierLabel = getSubscriptionPlanLabel(userData?.subscriptionTier);
+  const statusLabel = getSubscriptionStatusLabel(userData?.subscriptionStatus);
+  const isPlanKnown = tierLabel !== 'Unavailable';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -42,7 +51,7 @@ export default function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
         <View style={[styles.tierBadge, isPro && styles.tierBadgePro]}>
           <Text style={[styles.tierText, isPro && styles.tierTextPro]}>
-            {isPro ? '⭐ Pro' : '📦 Basic'}
+            {isPlanKnown ? `${isProPlan ? '⭐' : '📦'} ${tierLabel}` : 'Subscription unavailable'}
           </Text>
         </View>
       </View>
@@ -58,12 +67,24 @@ export default function ProfileScreen() {
         */}
         <View style={[styles.menuItem, styles.planItem]}>
           <Ionicons
-            name={isPro ? 'star' : 'star-outline'}
+            name={isProPlan ? 'star' : 'star-outline'}
             size={22}
-            color={isPro ? colors.primary : colors.foregroundMuted}
+            color={isPlanKnown ? colors.primary : colors.foregroundMuted}
           />
           <Text style={styles.menuItemText}>Current plan</Text>
-          <Text style={styles.planValue}>{tierLabel}</Text>
+          <Text style={[styles.planValue, !isPlanKnown && styles.planValueMuted]}>{tierLabel}</Text>
+        </View>
+
+        <View style={[styles.menuItem, styles.menuItemLast]}>
+          <Ionicons
+            name={hasActiveSubscription ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+            size={22}
+            color={hasActiveSubscription ? colors.primary : colors.foregroundMuted}
+          />
+          <Text style={styles.menuItemText}>Subscription status</Text>
+          <Text style={[styles.statusValue, !hasActiveSubscription && styles.planValueMuted]}>
+            {statusLabel}
+          </Text>
         </View>
       </View>
 
@@ -209,6 +230,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.primary,
+  },
+  statusValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.foreground,
+  },
+  planValueMuted: {
+    color: colors.foregroundMuted,
   },
   signOutButton: {
     flexDirection: 'row',

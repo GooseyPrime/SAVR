@@ -10,6 +10,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../../navigation/MainNavigator';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasProAccess } from '../../lib/billing';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { getInventory, getRecipes, getMealPlans, type InventoryItem, type Recipe, type MealPlan } from '../../lib/db';
@@ -286,7 +287,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       </View>
 
       {/* AI Chef Chat — Pro feature */}
-      {userData?.subscriptionTier === 'pro' && (
+      {hasProAccess(userData) && (
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.proAction}
