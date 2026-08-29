@@ -624,6 +624,9 @@ test('syncStripeSubscriptionResponse recovers when persisted customer no longer 
   assert.equal(result.status, 200);
   assert.equal(result.body.synced, true);
   assert.equal(result.body.stripe_customer_id, 'cus_recovered');
+  assert.equal(supabase.updates.length, 3);
   assert.equal(supabase.updates[0]?.data.stripe_customer_id, null);
   assert.equal(supabase.updates[1]?.data.stripe_customer_id, 'cus_recovered');
+  assert.equal(supabase.updates[2]?.data.subscription_status, 'active');
+  assert.equal(supabase.updates[2]?.data.stripe_customer_id, 'cus_recovered');
 });

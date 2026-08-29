@@ -42,7 +42,7 @@ interface SyncRouteResult {
   body: Record<string, unknown>;
 }
 
-function isStripeMissingCustomerError(error: unknown): boolean {
+function isStripeMissingCustomerError(error: unknown, customerId: string): boolean {
   if (!error || typeof error !== 'object') return false;
 
   const typedError = error as {
@@ -52,12 +52,19 @@ function isStripeMissingCustomerError(error: unknown): boolean {
     type?: string;
   };
 
+  const matchesAuthoritativeStripeType =
+    typedError.rawType === 'invalid_request_error' ||
+    typedError.type === 'StripeInvalidRequestError';
+  const matchesMessageForCustomer =
+    /no such customer/i.test(typedError.message ?? '') &&
+    typedError.message?.includes(customerId);
+
   return (
     typedError.code === 'resource_missing' &&
+    matchesMessageForCustomer &&
     (
-      typedError.rawType === 'invalid_request_error' ||
-      typedError.type === 'StripeInvalidRequestError' ||
-      /no such customer/i.test(typedError.message ?? '')
+      matchesAuthoritativeStripeType ||
+      (!typedError.rawType && !typedError.type)
     )
   );
 }
@@ -104,7 +111,7 @@ export async function syncStripeSubscriptionResponse(args: {
     try {
       customerActivity = await loadCustomerActivity(stripe, customerId);
     } catch (error) {
-      if (!isStripeMissingCustomerError(error)) {
+      if (!isStripeMissingCustomerError(error, customerId)) {
         console.error('sync: failed to load Stripe customer activity', error);
         return {
           status: 502,
@@ -120,7 +127,7 @@ export async function syncStripeSubscriptionResponse(args: {
       customerId = null;
       const { error: clearCustomerError } = await supabaseAdmin
         .from('users')
-        .update({ stripe_customer_id: null, updated_at: new Date().toISOString() })
+        .update({ stripe_customer_id: null })
         .eq('id', user.id);
 
       if (clearCustomerError) {
