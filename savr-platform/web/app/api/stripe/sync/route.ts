@@ -156,7 +156,18 @@ export async function syncStripeSubscriptionResponse(args: {
       };
     }
 
-    const snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, email);
+    let snapshots: Awaited<ReturnType<typeof loadCustomerBillingSnapshotsByEmail>>;
+    try {
+      snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, email);
+    } catch (error) {
+      console.error('sync: failed to discover Stripe customers by email', error);
+      return {
+        status: 502,
+        body: {
+          error: 'Could not look up Stripe customers for this account. Please try again shortly.',
+        },
+      };
+    }
     if (snapshots.length === 0) {
       return {
         status: 404,
@@ -322,7 +333,17 @@ export async function syncStripeSubscriptionResponse(args: {
 export async function POST(request: NextRequest) {
   try {
     // ── 1. Auth ──────────────────────────────────────────────────────────────
-    const auth = await authenticateRequest(request);
+    let auth: Awaited<ReturnType<typeof authenticateRequest>>;
+    try {
+      auth = await authenticateRequest(request);
+    } catch (error) {
+      console.error('sync: authentication check failed', error);
+      return NextResponse.json(
+        { error: 'Authentication service is temporarily unavailable. Please try again.' },
+        { status: 503 },
+      );
+    }
+
     if (auth.error) return auth.error;
     const { user } = auth;
 

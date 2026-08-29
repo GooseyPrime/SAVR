@@ -136,6 +136,7 @@ class MockStripe {
   public subscriptionsByCustomer = new Map<string, Stripe.Subscription[]>();
   public openSessionsByCustomer = new Map<string, Stripe.Checkout.Session[]>();
   public customersByEmail = new Map<string, Array<Stripe.Customer | Stripe.DeletedCustomer>>();
+  public customersListError: unknown = null;
   public missingCustomerIds = new Set<string>();
   public nextSession: Stripe.Checkout.Session = makeSession({ id: 'cs_new', url: 'https://checkout.stripe.test/new' });
 
@@ -168,9 +169,14 @@ class MockStripe {
   };
 
   customers = {
-    list: async (params: Stripe.CustomerListParams) => ({
-      data: this.customersByEmail.get(params.email ?? '') ?? [],
-    }),
+    list: async (params: Stripe.CustomerListParams) => {
+      if (this.customersListError) {
+        throw this.customersListError;
+      }
+      return {
+        data: this.customersByEmail.get(params.email ?? '') ?? [],
+      };
+    },
   };
 
   subscriptions = {
@@ -632,6 +638,32 @@ test('syncStripeSubscriptionResponse recovers when persisted customer no longer 
   assert.equal(supabase.updates[1]?.data.stripe_customer_id, 'cus_recovered');
   assert.equal(supabase.updates[2]?.data.subscription_status, 'active');
   assert.equal(supabase.updates[2]?.data.stripe_customer_id, 'cus_recovered');
+});
+
+test('syncStripeSubscriptionResponse returns 502 when Stripe customer discovery fails unexpectedly', async () => {
+  const stripe = new MockStripe();
+  stripe.customersListError = new Error('stripe upstream unavailable');
+
+  const supabase = new MockSupabase();
+  supabase.userRow = {
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    subscription_status: 'pending',
+    email: 'chef@example.com',
+  };
+
+  const result = await syncStripeSubscriptionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 502);
+  assert.equal(
+    result.body.error,
+    'Could not look up Stripe customers for this account. Please try again shortly.',
+  );
+  assert.equal(supabase.updates.length, 0);
 });
 
 test('syncStripeSubscriptionResponse clears stale entitlement when missing customer cannot be rediscovered', async () => {
