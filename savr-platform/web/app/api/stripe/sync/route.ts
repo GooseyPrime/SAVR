@@ -42,6 +42,12 @@ interface SyncRouteResult {
   body: Record<string, unknown>;
 }
 
+interface SyncPostDependencies {
+  authenticateRequest: typeof authenticateRequest;
+  getStripeInstance: typeof getStripeInstance;
+  getSupabaseAdmin: typeof getSupabaseAdmin;
+}
+
 function isStripeMissingCustomerError(error: unknown, customerId: string): boolean {
   if (!error || typeof error !== 'object') return false;
 
@@ -156,7 +162,18 @@ export async function syncStripeSubscriptionResponse(args: {
       };
     }
 
-    const snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, email);
+    let snapshots: Awaited<ReturnType<typeof loadCustomerBillingSnapshotsByEmail>>;
+    try {
+      snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, email);
+    } catch (error) {
+      console.error('sync: failed to discover Stripe customers by email', error);
+      return {
+        status: 502,
+        body: {
+          error: 'Could not look up Stripe customers for this account. Please try again shortly.',
+        },
+      };
+    }
     if (snapshots.length === 0) {
       return {
         status: 404,
@@ -319,17 +336,34 @@ export async function syncStripeSubscriptionResponse(args: {
   };
 }
 
-export async function POST(request: NextRequest) {
+export async function syncStripeSubscriptionPost(
+  request: NextRequest,
+  deps: SyncPostDependencies = {
+    authenticateRequest,
+    getStripeInstance,
+    getSupabaseAdmin,
+  },
+) {
   try {
     // ── 1. Auth ──────────────────────────────────────────────────────────────
-    const auth = await authenticateRequest(request);
+    let auth: Awaited<ReturnType<typeof deps.authenticateRequest>>;
+    try {
+      auth = await deps.authenticateRequest(request);
+    } catch (error) {
+      console.error('sync: authentication check failed', error);
+      return NextResponse.json(
+        { error: 'Authentication service is temporarily unavailable. Please try again.' },
+        { status: 503 },
+      );
+    }
+
     if (auth.error) return auth.error;
     const { user } = auth;
 
     // ── 2. Stripe init ───────────────────────────────────────────────────────
-    let stripe: ReturnType<typeof getStripeInstance>;
+    let stripe: ReturnType<typeof deps.getStripeInstance>;
     try {
-      stripe = getStripeInstance();
+      stripe = deps.getStripeInstance();
     } catch {
       return NextResponse.json(
         { error: 'Payment service is not configured' },
@@ -337,9 +371,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+    let supabaseAdmin: ReturnType<typeof deps.getSupabaseAdmin>;
     try {
-      supabaseAdmin = getSupabaseAdmin();
+      supabaseAdmin = deps.getSupabaseAdmin();
     } catch {
       return NextResponse.json(
         { error: 'Billing sync service is not configured' },
@@ -361,4 +395,8 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+export async function POST(request: NextRequest) {
+  return syncStripeSubscriptionPost(request);
 }
