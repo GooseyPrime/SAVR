@@ -42,6 +42,26 @@ interface SyncRouteResult {
   body: Record<string, unknown>;
 }
 
+function isStripeMissingCustomerError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const typedError = error as {
+    code?: string;
+    message?: string;
+    rawType?: string;
+    type?: string;
+  };
+
+  return (
+    typedError.code === 'resource_missing' &&
+    (
+      typedError.rawType === 'invalid_request_error' ||
+      typedError.type === 'StripeInvalidRequestError' ||
+      /no such customer/i.test(typedError.message ?? '')
+    )
+  );
+}
+
 function shouldClearStaleEntitlement(args: {
   localStatus?: string | null;
   localSubscriptionId?: string | null;
@@ -79,9 +99,36 @@ export async function syncStripeSubscriptionResponse(args: {
   };
 
   let customerId = typedUserRow.stripe_customer_id ?? null;
-  let customerActivity = customerId
-    ? await loadCustomerActivity(stripe, customerId)
-    : null;
+  let customerActivity = null as Awaited<ReturnType<typeof loadCustomerActivity>> | null;
+  if (customerId) {
+    try {
+      customerActivity = await loadCustomerActivity(stripe, customerId);
+    } catch (error) {
+      if (!isStripeMissingCustomerError(error)) {
+        console.error('sync: failed to load Stripe customer activity', error);
+        return {
+          status: 502,
+          body: {
+            error: 'Could not load billing details from Stripe. Please try again shortly.',
+          },
+        };
+      }
+
+      console.warn(
+        `sync: persisted stripe_customer_id (${customerId}) no longer exists; retrying discovery`,
+      );
+      customerId = null;
+      const { error: clearCustomerError } = await supabaseAdmin
+        .from('users')
+        .update({ stripe_customer_id: null, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (clearCustomerError) {
+        console.error('sync: failed to clear stale stripe_customer_id', clearCustomerError);
+        return { status: 500, body: { error: 'Failed to update subscription record' } };
+      }
+    }
+  }
 
   if (!customerId) {
     const email = typedUserRow.email ?? user.email;
@@ -282,11 +329,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await syncStripeSubscriptionResponse({
-    user: { id: user.id, email: user.email },
-    stripe,
-    supabaseAdmin,
-  });
+  try {
+    const result = await syncStripeSubscriptionResponse({
+      user: { id: user.id, email: user.email },
+      stripe,
+      supabaseAdmin,
+    });
 
-  return NextResponse.json(result.body, { status: result.status });
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error('sync: unexpected failure', error);
+    return NextResponse.json(
+      { error: 'Subscription sync failed unexpectedly. Please try again.' },
+      { status: 500 },
+    );
+  }
 }
