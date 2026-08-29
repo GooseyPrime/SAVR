@@ -42,6 +42,12 @@ interface SyncRouteResult {
   body: Record<string, unknown>;
 }
 
+interface SyncPostDependencies {
+  authenticateRequest: typeof authenticateRequest;
+  getStripeInstance: typeof getStripeInstance;
+  getSupabaseAdmin: typeof getSupabaseAdmin;
+}
+
 function isStripeMissingCustomerError(error: unknown, customerId: string): boolean {
   if (!error || typeof error !== 'object') return false;
 
@@ -330,12 +336,19 @@ export async function syncStripeSubscriptionResponse(args: {
   };
 }
 
-export async function POST(request: NextRequest) {
+export async function syncStripeSubscriptionPost(
+  request: NextRequest,
+  deps: SyncPostDependencies = {
+    authenticateRequest,
+    getStripeInstance,
+    getSupabaseAdmin,
+  },
+) {
   try {
     // ── 1. Auth ──────────────────────────────────────────────────────────────
-    let auth: Awaited<ReturnType<typeof authenticateRequest>>;
+    let auth: Awaited<ReturnType<typeof deps.authenticateRequest>>;
     try {
-      auth = await authenticateRequest(request);
+      auth = await deps.authenticateRequest(request);
     } catch (error) {
       console.error('sync: authentication check failed', error);
       return NextResponse.json(
@@ -348,9 +361,9 @@ export async function POST(request: NextRequest) {
     const { user } = auth;
 
     // ── 2. Stripe init ───────────────────────────────────────────────────────
-    let stripe: ReturnType<typeof getStripeInstance>;
+    let stripe: ReturnType<typeof deps.getStripeInstance>;
     try {
-      stripe = getStripeInstance();
+      stripe = deps.getStripeInstance();
     } catch {
       return NextResponse.json(
         { error: 'Payment service is not configured' },
@@ -358,9 +371,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+    let supabaseAdmin: ReturnType<typeof deps.getSupabaseAdmin>;
     try {
-      supabaseAdmin = getSupabaseAdmin();
+      supabaseAdmin = deps.getSupabaseAdmin();
     } catch {
       return NextResponse.json(
         { error: 'Billing sync service is not configured' },
@@ -382,4 +395,8 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+export async function POST(request: NextRequest) {
+  return syncStripeSubscriptionPost(request);
 }
