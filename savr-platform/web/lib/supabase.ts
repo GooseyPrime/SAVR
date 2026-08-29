@@ -10,12 +10,17 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Check required Supabase environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const sanitizeEnvValue = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
 
-const hasRealSupabaseConfig = supabaseUrl && 
+const supabaseUrl = sanitizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseAnonKey = sanitizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+const hasRealSupabaseConfig = supabaseUrl &&
                                supabaseUrl !== BUILD_DUMMY_KEY &&
-                               supabaseAnonKey && 
+                               supabaseAnonKey &&
                                supabaseAnonKey !== BUILD_DUMMY_KEY;
 
 // PRODUCTION BUILDS: warn about missing Supabase config but allow static export prerendering
@@ -114,7 +119,7 @@ export function getSupabaseAdmin(): any {
   }
 
   // Validate environment variables at runtime
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = sanitizeEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (!serviceRoleKey) {
     throw new Error(
       'SUPABASE_SERVICE_ROLE_KEY is not configured. Please set this environment variable in your Vercel project settings.'

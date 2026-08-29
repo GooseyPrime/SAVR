@@ -182,6 +182,31 @@ test('resolvePriceId maps every checkout plan to the configured Stripe price', (
   assert.equal(resolvePriceId('pro_yearly'), 'price_pro_yearly');
 });
 
+test('resolvePriceId supports legacy STRIPE_PRICE_ID_* env names', () => {
+  delete process.env.STRIPE_PRICE_BASIC_MONTHLY;
+  delete process.env.STRIPE_PRICE_BASIC_YEARLY;
+  delete process.env.STRIPE_PRICE_PRO_MONTHLY;
+  delete process.env.STRIPE_PRICE_PRO_YEARLY;
+  process.env.STRIPE_PRICE_ID_BASIC_MONTHLY = 'price_basic_monthly_legacy';
+  process.env.STRIPE_PRICE_ID_BASIC_YEARLY = 'price_basic_yearly_legacy';
+  process.env.STRIPE_PRICE_ID_PRO_MONTHLY = 'price_pro_monthly_legacy';
+  process.env.STRIPE_PRICE_ID_PRO_YEARLY = 'price_pro_yearly_legacy';
+
+  assert.equal(resolvePriceId('basic_monthly'), 'price_basic_monthly_legacy');
+  assert.equal(resolvePriceId('basic_yearly'), 'price_basic_yearly_legacy');
+  assert.equal(resolvePriceId('pro_monthly'), 'price_pro_monthly_legacy');
+  assert.equal(resolvePriceId('pro_yearly'), 'price_pro_yearly_legacy');
+
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly';
+  process.env.STRIPE_PRICE_BASIC_YEARLY = 'price_basic_yearly';
+  process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pro_monthly';
+  process.env.STRIPE_PRICE_PRO_YEARLY = 'price_pro_yearly';
+  delete process.env.STRIPE_PRICE_ID_BASIC_MONTHLY;
+  delete process.env.STRIPE_PRICE_ID_BASIC_YEARLY;
+  delete process.env.STRIPE_PRICE_ID_PRO_MONTHLY;
+  delete process.env.STRIPE_PRICE_ID_PRO_YEARLY;
+});
+
 test('buildCheckoutSessionParams includes coupon support and the 5-day trial policy', () => {
   const params = buildCheckoutSessionParams({
     priceId: 'price_pro_yearly',

@@ -6,6 +6,8 @@ import PwaRegister from "@/components/PwaRegister";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+const enableVercelAnalytics = process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === 'true';
+
 export const metadata: Metadata = {
   title: "SAVR - AI-Powered Smart Cooking Assistant",
   description: "Transform your pantry into restaurant-quality meals with AI-powered recipe generation. Smart inventory, personalized recipes, meal planning, and pet-safe treats.",
@@ -56,8 +58,8 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
-        <Analytics />
-        <SpeedInsights />
+        {enableVercelAnalytics && <Analytics />}
+        {enableVercelAnalytics && <SpeedInsights />}
       </body>
     </html>
   );

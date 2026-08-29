@@ -4,6 +4,14 @@ import { hasBasicAccess, hasProAccess } from './billing';
 import { getBurstLimitRule, type AiBillingSnapshot, type AiUsageLimitRule } from './ai-rate-limit';
 import { getSupabaseAdmin } from './supabase';
 
+function requiredEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'NEXT_PUBLIC_SUPABASE_ANON_KEY'): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 export async function authenticateRequest(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   
@@ -11,17 +19,22 @@ export async function authenticateRequest(request: NextRequest) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
   }
   
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
+  let supabaseUrl: string;
+  let supabaseAnonKey: string;
+  try {
+    supabaseUrl = requiredEnv('NEXT_PUBLIC_SUPABASE_URL');
+    supabaseAnonKey = requiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  } catch {
+    return { error: NextResponse.json({ error: 'Authentication service is not configured' }, { status: 503 }) };
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: authHeader,
       },
-    }
-  );
+    },
+  });
   
   const { data: { user }, error } = await supabase.auth.getUser();
   
