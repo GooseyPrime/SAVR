@@ -17,28 +17,236 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import type Stripe from 'stripe';
 import { authenticateRequest } from '@/lib/middleware';
 import { getStripeInstance } from '@/lib/stripe';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { resolveTierFromPriceId } from '@/lib/billing';
+import {
+  findOpenSubscriptionCheckoutSession,
+  loadCustomerActivity,
+  loadCustomerBillingSnapshotsByEmail,
+  mapStripeStatusToDatabase,
+  pickCurrentSubscription,
+  pickHistoricalSubscription,
+  resolveStripeSubscriptionSnapshot,
+  selectCustomerBillingSnapshot,
+} from '@/lib/stripe-billing';
 
-// Subscription statuses that confer product access, ordered by preference.
-const ACTIVE_STATUSES = ['active', 'trialing', 'past_due'];
+interface SyncRouteUser {
+  id: string;
+  email?: string | null;
+}
 
-/** Pick the best subscription from a list (active > trialing > past_due > newest). */
-function pickBestSubscription(
-  subs: Stripe.Subscription[],
-): Stripe.Subscription | null {
-  if (subs.length === 0) return null;
+interface SyncRouteResult {
+  status: number;
+  body: Record<string, unknown>;
+}
 
-  for (const status of ACTIVE_STATUSES) {
-    const match = subs.find((s) => s.status === status);
-    if (match) return match;
+function shouldClearStaleEntitlement(args: {
+  localStatus?: string | null;
+  localSubscriptionId?: string | null;
+}): boolean {
+  return Boolean(args.localSubscriptionId) || ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(args.localStatus ?? '');
+}
+
+export async function syncStripeSubscriptionResponse(args: {
+  user: SyncRouteUser;
+  stripe: ReturnType<typeof getStripeInstance>;
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+}): Promise<SyncRouteResult> {
+  const { user, stripe, supabaseAdmin } = args;
+
+  const { data: userRow, error: userError } = await supabaseAdmin
+    .from('users')
+    .select('stripe_customer_id, stripe_subscription_id, subscription_status, email')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userRow) {
+    return { status: 404, body: { error: 'User record not found' } };
   }
 
-  // Fallback: most recently created
-  return subs.sort((a: Stripe.Subscription, b: Stripe.Subscription) => b.created - a.created)[0] ?? null;
+  const typedUserRow = userRow as {
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+    subscription_status?: string | null;
+    email?: string | null;
+  };
+
+  let customerId = typedUserRow.stripe_customer_id ?? null;
+  let customerActivity = customerId
+    ? await loadCustomerActivity(stripe, customerId)
+    : null;
+
+  if (!customerId) {
+    const email = typedUserRow.email ?? user.email;
+    if (!email) {
+      return {
+        status: 400,
+        body: { error: 'No Stripe customer linked and no email available for lookup' },
+      };
+    }
+
+    const snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, email);
+    if (snapshots.length === 0) {
+      return {
+        status: 404,
+        body: {
+          error: 'No Stripe customer found for this account. Complete checkout first.',
+        },
+      };
+    }
+
+    const discovered = selectCustomerBillingSnapshot(snapshots, user.id);
+    if (!discovered) {
+      return {
+        status: 409,
+        body: {
+          error:
+            'Multiple Stripe customer records matched this account and none could be safely verified. Contact support with your billing email.',
+        },
+      };
+    }
+
+    customerId = discovered.customer.id;
+    customerActivity = {
+      subscriptions: discovered.subscriptions,
+      openCheckoutSessions: discovered.openCheckoutSessions,
+    };
+
+    const { error: persistCustomerError } = await supabaseAdmin
+      .from('users')
+      .update({ stripe_customer_id: customerId })
+      .eq('id', user.id);
+
+    if (persistCustomerError) {
+      console.error('sync: failed to persist stripe_customer_id', persistCustomerError);
+      return { status: 500, body: { error: 'Failed to update subscription record' } };
+    }
+  }
+
+  const currentSubscription = customerActivity
+    ? pickCurrentSubscription(customerActivity.subscriptions)
+    : null;
+
+  if (!currentSubscription) {
+    const openCheckoutSession = customerActivity
+      ? findOpenSubscriptionCheckoutSession(customerActivity.openCheckoutSessions)
+      : null;
+    if (openCheckoutSession) {
+      return {
+        status: 200,
+        body: {
+          synced: false,
+          message:
+            'A subscription checkout is still open in Stripe. Complete it, then try syncing again.',
+          stripe_customer_id: customerId,
+        },
+      };
+    }
+
+    const historicalSubscription = customerActivity
+      ? pickHistoricalSubscription(customerActivity.subscriptions)
+      : null;
+
+    if (
+      historicalSubscription ||
+      shouldClearStaleEntitlement({
+        localStatus: typedUserRow.subscription_status,
+        localSubscriptionId: typedUserRow.stripe_subscription_id,
+      })
+    ) {
+      const reconciledStatus = historicalSubscription
+        ? mapStripeStatusToDatabase(historicalSubscription.status)
+        : 'pending';
+      const { error: clearError } = await supabaseAdmin
+        .from('users')
+        .update({
+          stripe_customer_id: customerId,
+          stripe_subscription_id: null,
+          subscription_tier: 'basic',
+          subscription_status: reconciledStatus,
+          current_period_end: null,
+          trial_ends_at: null,
+          cancel_at_period_end: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (clearError) {
+        console.error('sync: failed to clear stale subscription state', clearError);
+        return { status: 500, body: { error: 'Failed to update subscription record' } };
+      }
+
+      return {
+        status: 200,
+        body: {
+          synced: true,
+          subscription_status: reconciledStatus,
+          subscription_tier: 'basic',
+          stripe_customer_id: customerId,
+          stripe_subscription_id: null,
+          message:
+            historicalSubscription
+              ? 'No current Stripe subscription remains for this account. SAVR access was cleared to match Stripe.'
+              : 'No Stripe subscription or open checkout remains for this account. SAVR access was reset to pending.',
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      body: {
+        synced: false,
+        message:
+          'No subscription found in Stripe for this customer. Complete checkout first.',
+        stripe_customer_id: customerId,
+      },
+    };
+  }
+
+  let snapshot: ReturnType<typeof resolveStripeSubscriptionSnapshot>;
+  try {
+    snapshot = resolveStripeSubscriptionSnapshot(currentSubscription);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { status: 500, body: { error: `Could not resolve tier: ${msg}` } };
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from('users')
+    .update({
+      stripe_customer_id: customerId,
+      stripe_subscription_id: snapshot.subscriptionId,
+      subscription_tier: snapshot.tier,
+      subscription_status: snapshot.status,
+      current_period_end: snapshot.currentPeriodEnd
+        ? new Date(snapshot.currentPeriodEnd * 1000).toISOString()
+        : null,
+      trial_ends_at: snapshot.trialEnd
+        ? new Date(snapshot.trialEnd * 1000).toISOString()
+        : null,
+      cancel_at_period_end: snapshot.cancelAtPeriodEnd,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id);
+
+  if (updateError) {
+    console.error('sync: failed to update user row', updateError);
+    return { status: 500, body: { error: 'Failed to update subscription record' } };
+  }
+
+  console.log(`✅ Subscription synced: status=${snapshot.status}, tier=${snapshot.tier}`);
+
+  return {
+    status: 200,
+    body: {
+      synced: true,
+      subscription_status: snapshot.status,
+      subscription_tier: snapshot.tier,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: snapshot.subscriptionId,
+    },
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -58,143 +266,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
-
-  // ── 3. Load user row ─────────────────────────────────────────────────────
-  const { data: userRow, error: userError } = await supabaseAdmin
-    .from('users')
-    .select('stripe_customer_id, email')
-    .eq('id', user.id)
-    .single();
-
-  if (userError || !userRow) {
-    return NextResponse.json({ error: 'User record not found' }, { status: 404 });
-  }
-
-  // ── 4. Resolve Stripe customer ───────────────────────────────────────────
-  let customerId: string | null =
-    (userRow as { stripe_customer_id?: string | null }).stripe_customer_id ?? null;
-
-  if (!customerId) {
-    // Discover by email — common after coupon-based $0 checkouts where
-    // the customer was created in Stripe but the webhook was not delivered.
-    const email = (userRow as { email?: string | null }).email ?? user.email;
-    if (!email) {
-      return NextResponse.json(
-        { error: 'No Stripe customer linked and no email available for lookup' },
-        { status: 400 },
-      );
-    }
-
-    const customers = await stripe.customers.list({ email, limit: 5 });
-    if (customers.data.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            'No Stripe customer found for this account. Complete checkout first.',
-        },
-        { status: 404 },
-      );
-    }
-
-    // Use the most recently created non-deleted customer.
-    const discovered = customers.data
-      .filter((c: Stripe.Customer | Stripe.DeletedCustomer): c is Stripe.Customer => !c.deleted)
-      .sort((a: Stripe.Customer, b: Stripe.Customer) => b.created - a.created)[0];
-
-    if (!discovered) {
-      return NextResponse.json(
-        { error: 'No active (non-deleted) Stripe customer found for this account' },
-        { status: 404 },
-      );
-    }
-
-    customerId = discovered.id;
-
-    // Persist so future calls skip this lookup.
-    await supabaseAdmin
-      .from('users')
-      .update({ stripe_customer_id: customerId })
-      .eq('id', user.id);
-  }
-
-  // ── 5. Fetch subscriptions ───────────────────────────────────────────────
-  const subscriptionList = await stripe.subscriptions.list({
-    customer: customerId,
-    limit: 10,
-    expand: ['data.items.data.price'],
+  const result = await syncStripeSubscriptionResponse({
+    user: { id: user.id, email: user.email },
+    stripe,
+    supabaseAdmin: getSupabaseAdmin(),
   });
 
-  const subscription = pickBestSubscription(subscriptionList.data);
-
-  if (!subscription) {
-    return NextResponse.json(
-      {
-        synced: false,
-        message:
-          'No subscription found in Stripe for this customer. If you recently completed checkout, wait 60 seconds and try again.',
-        stripe_customer_id: customerId,
-      },
-      { status: 200 },
-    );
-  }
-
-  // ── 6. Resolve tier ──────────────────────────────────────────────────────
-  const priceId = subscription.items.data[0]?.price.id;
-  if (!priceId) {
-    return NextResponse.json(
-      { error: 'Subscription has no price item — cannot resolve tier' },
-      { status: 500 },
-    );
-  }
-
-  let tier: 'basic' | 'pro';
-  try {
-    tier = resolveTierFromPriceId(priceId);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: `Could not resolve tier: ${msg}` },
-      { status: 500 },
-    );
-  }
-
-  // ── 7. Write back ────────────────────────────────────────────────────────
-  // current_period_end is a top-level Subscription field, not per-item.
-  const periodEnd = subscription.current_period_end;
-  const trialEnd = subscription.trial_end;
-
-  const { error: updateError } = await supabaseAdmin
-    .from('users')
-    .update({
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscription.id,
-      subscription_tier: tier,
-      subscription_status: subscription.status,
-      current_period_end: periodEnd
-        ? new Date(periodEnd * 1000).toISOString()
-        : null,
-      trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
-      cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
-
-  if (updateError) {
-    console.error('sync: failed to update user row', updateError);
-    return NextResponse.json(
-      { error: 'Failed to update subscription record' },
-      { status: 500 },
-    );
-  }
-
-  console.log(`✅ Subscription synced: status=${subscription.status}, tier=${tier}`);
-
-  return NextResponse.json({
-    synced: true,
-    subscription_status: subscription.status,
-    subscription_tier: tier,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscription.id,
-  });
+  return NextResponse.json(result.body, { status: result.status });
 }

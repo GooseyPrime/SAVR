@@ -11,6 +11,10 @@
 
 import type Stripe from 'stripe';
 import { resolveTierFromPriceId } from '@/lib/billing';
+import {
+  getSubscriptionPeriodEndUnix,
+  mapStripeStatusToDatabase,
+} from '@/lib/stripe-billing';
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -359,14 +363,14 @@ async function handleSubscriptionUpdated(
   // Throws on unknown price — propagates to outer catch and returns 500 so Stripe retries.
   const tier = resolveTierFromPriceId(priceId);
 
-  const periodEnd = subscription.items?.data?.[0]?.current_period_end;
+  const periodEnd = getSubscriptionPeriodEndUnix(subscription);
   const trialEnd = subscription.trial_end;
 
   await supabaseAdmin
     .from('users')
     .update({
       subscription_tier: tier,
-      subscription_status: subscription.status,
+      subscription_status: mapStripeStatusToDatabase(subscription.status),
       stripe_subscription_id: subscription.id,
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
@@ -422,7 +426,7 @@ async function handleSubscriptionPaused(
   await supabaseAdmin
     .from('users')
     .update({
-      subscription_status: 'paused',
+      subscription_status: mapStripeStatusToDatabase(subscription.status),
       updated_at: new Date().toISOString(),
     })
     .eq('id', userId);

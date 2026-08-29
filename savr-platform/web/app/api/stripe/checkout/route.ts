@@ -23,25 +23,159 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/middleware';
 import { getStripeInstance } from '@/lib/stripe';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import {
+  buildCheckoutIdempotencyKey,
+  buildCheckoutSessionParams,
+  findBlockingSubscription,
+  findOpenSubscriptionCheckoutSession,
+  isPlan,
+  loadCustomerActivity,
+  loadCustomerBillingSnapshotsByEmail,
+  resolvePriceId,
+  selectCustomerBillingSnapshot,
+  type Plan,
+} from '@/lib/stripe-billing';
 
-type Plan = 'basic_monthly' | 'basic_yearly' | 'pro_monthly' | 'pro_yearly';
+interface CheckoutRouteUser {
+  id: string;
+  email?: string | null;
+}
 
-const PLAN_ENV_MAP: Record<Plan, string> = {
-  basic_monthly: 'STRIPE_PRICE_BASIC_MONTHLY',
-  basic_yearly: 'STRIPE_PRICE_BASIC_YEARLY',
-  pro_monthly: 'STRIPE_PRICE_PRO_MONTHLY',
-  pro_yearly: 'STRIPE_PRICE_PRO_YEARLY',
-};
+interface CheckoutRouteResult {
+  status: number;
+  body: { url?: string; error?: string };
+}
 
-function resolvePriceId(plan: Plan): string {
-  const envKey = PLAN_ENV_MAP[plan];
-  const priceId = process.env[envKey];
-  if (!priceId) {
-    throw new Error(
-      `Environment variable ${envKey} is not set — cannot create checkout session`,
-    );
+export async function createCheckoutSessionResponse(args: {
+  user: CheckoutRouteUser;
+  plan: Plan;
+  origin: string;
+  stripe: ReturnType<typeof getStripeInstance>;
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+}): Promise<CheckoutRouteResult> {
+  const { user, plan, origin, stripe, supabaseAdmin } = args;
+
+  let priceId: string;
+  try {
+    priceId = resolvePriceId(plan);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { status: 503, body: { error: msg } };
   }
-  return priceId;
+
+  const { data: userRow } = await supabaseAdmin
+    .from('users')
+    .select('stripe_customer_id')
+    .eq('id', user.id)
+    .single();
+
+  let customerId =
+    (userRow as { stripe_customer_id?: string | null } | null)
+      ?.stripe_customer_id ?? null;
+  let customerActivity = customerId
+    ? await loadCustomerActivity(stripe, customerId)
+    : null;
+
+  if (!customerId && user.email) {
+    const snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, user.email);
+    if (snapshots.length > 0) {
+      const reusableCustomer = selectCustomerBillingSnapshot(snapshots, user.id);
+      if (!reusableCustomer) {
+        return {
+          status: 409,
+          body: {
+            error:
+              'We found multiple Stripe customer records for this account and could not safely choose one. Please use subscription sync from Settings or contact support.',
+          },
+        };
+      }
+
+      customerId = reusableCustomer.customer.id;
+      customerActivity = {
+        subscriptions: reusableCustomer.subscriptions,
+        openCheckoutSessions: reusableCustomer.openCheckoutSessions,
+      };
+
+      const { error: persistCustomerError } = await supabaseAdmin
+        .from('users')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', user.id);
+
+      if (persistCustomerError) {
+        console.error('checkout: failed to persist stripe_customer_id', persistCustomerError);
+        return {
+          status: 500,
+          body: { error: 'Failed to save billing customer for this account' },
+        };
+      }
+    }
+  }
+
+  const blockingSubscription = customerActivity
+    ? findBlockingSubscription(customerActivity.subscriptions)
+    : null;
+  if (blockingSubscription) {
+    return {
+      status: 409,
+      body: {
+        error:
+          'An active or trialing subscription already exists for this account. Use the billing portal to manage it.',
+      },
+    };
+  }
+
+  const openSession = customerActivity
+    ? findOpenSubscriptionCheckoutSession(customerActivity.openCheckoutSessions)
+    : null;
+  if (openSession?.url) {
+    return { status: 200, body: { url: openSession.url } };
+  }
+  if (openSession) {
+    return {
+      status: 409,
+      body: {
+        error:
+          'A subscription checkout is already in progress. Please complete it or wait for it to expire.',
+      },
+    };
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create(
+      buildCheckoutSessionParams({
+        priceId,
+        userId: user.id,
+        email: user.email,
+        customerId,
+        origin,
+      }),
+      {
+        idempotencyKey: buildCheckoutIdempotencyKey({
+          customerId,
+          userId: user.id,
+          plan,
+        }),
+      },
+    );
+
+    if (!session.url) {
+      return {
+        status: 500,
+        body: { error: 'Stripe did not return a checkout URL' },
+      };
+    }
+
+    return { status: 200, body: { url: session.url } };
+  } catch (err) {
+    console.error('Error creating checkout session:', err);
+    return {
+      status: 500,
+      body: {
+        error:
+          err instanceof Error ? err.message : 'Failed to create checkout session',
+      },
+    };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -54,15 +188,16 @@ export async function POST(request: NextRequest) {
   let plan: Plan;
   try {
     const body = await request.json() as { plan?: unknown };
-    if (!body.plan || !Object.keys(PLAN_ENV_MAP).includes(body.plan as string)) {
+    if (!isPlan(body.plan)) {
       return NextResponse.json(
         {
-          error: `Invalid plan. Must be one of: ${Object.keys(PLAN_ENV_MAP).join(', ')}`,
-        },
-        { status: 400 },
-      );
+         error:
+           'Invalid plan. Must be one of: basic_monthly, basic_yearly, pro_monthly, pro_yearly',
+       },
+       { status: 400 },
+     );
     }
-    plan = body.plan as Plan;
+    plan = body.plan;
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -78,76 +213,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 4. Resolve price ID ──────────────────────────────────────────────────
-  let priceId: string;
-  try {
-    priceId = resolvePriceId(plan);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 503 });
-  }
-
-  // ── 5. Look up existing Stripe customer (avoid creating duplicates) ───────
+  // ── 4. Load billing state / create session ───────────────────────────────
   const supabaseAdmin = getSupabaseAdmin();
-  const { data: userRow } = await supabaseAdmin
-    .from('users')
-    .select('stripe_customer_id')
-    .eq('id', user.id)
-    .single();
-
-  const existingCustomerId =
-    (userRow as { stripe_customer_id?: string | null } | null)
-      ?.stripe_customer_id ?? undefined;
-
-  // ── 6. Determine origin for redirect URLs ────────────────────────────────
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ??
     request.headers.get('origin') ??
     'https://savr.app';
 
-  // ── 7. Create Checkout Session ───────────────────────────────────────────
-  try {
-    const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
-      mode: 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
+  const result = await createCheckoutSessionResponse({
+    user: { id: user.id, email: user.email },
+    plan,
+    origin,
+    stripe,
+    supabaseAdmin,
+  });
 
-      // Skip payment form entirely when a promotion code zeroes the total.
-      payment_method_collection: 'if_required',
-
-      // Allow users to enter promotion / coupon codes at checkout.
-      allow_promotion_codes: true,
-
-      // Link session back to our user without relying on email matching.
-      client_reference_id: user.id,
-
-      // Pre-fill email to reduce friction and match Stripe customer records.
-      customer_email: existingCustomerId ? undefined : (user.email ?? undefined),
-
-      // Re-use existing Stripe customer when available.
-      ...(existingCustomerId ? { customer: existingCustomerId } : {}),
-
-      subscription_data: {
-        metadata: { userId: user.id },
-      },
-
-      success_url: `${origin}/dashboard?stripeSuccess=true`,
-      cancel_url: `${origin}/pricing`,
-    };
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    if (!session.url) {
-      return NextResponse.json(
-        { error: 'Stripe did not return a checkout URL' },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({ url: session.url });
-  } catch (err) {
-    console.error('Error creating checkout session:', err);
-    const msg =
-      err instanceof Error ? err.message : 'Failed to create checkout session';
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+  return NextResponse.json(result.body, { status: result.status });
 }

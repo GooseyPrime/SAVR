@@ -134,6 +134,8 @@ function SubscriptionDebugInner() {
 
             {syncResult && (
               <div
+                role={syncResult.success ? 'status' : 'alert'}
+                aria-live={syncResult.success ? 'polite' : 'assertive'}
                 className="mb-4 rounded-lg px-4 py-3 text-sm"
                 style={{
                   background: syncResult.success

@@ -97,6 +97,17 @@ export default function PricingPage() {
           <p className="text-lg max-w-xl mx-auto text-foreground-muted">
             Try any plan free for 5 days. No charge until your trial ends. Coupon codes accepted at checkout.
           </p>
+          {!user && (
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
+                className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
+              >
+                Start 5-day free trial
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -143,6 +154,7 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => setPeriod('monthly')}
+                aria-pressed={period === 'monthly'}
                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-150 ${
                   period === 'monthly'
                     ? 'bg-primary text-primary-foreground'
@@ -154,6 +166,7 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => setPeriod('yearly')}
+                aria-pressed={period === 'yearly'}
                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-150 ${
                   period === 'yearly'
                     ? 'bg-primary text-primary-foreground'
@@ -172,20 +185,20 @@ export default function PricingPage() {
               {/* Basic */}
               <div className="rounded-2xl p-8 bg-surface/60 border border-border/60 flex flex-col">
                 <h3 className="text-xl font-bold text-foreground mb-2">Basic</h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-foreground">
-                    {period === 'monthly' ? '$4.99' : '$49.99'}
-                  </span>
-                  <span className="text-foreground-muted text-sm">
-                    {period === 'monthly' ? '/ month' : '/ year'}
-                  </span>
+                <div className="mb-4 space-y-3">
+                  <PriceOption
+                    price="$4.99"
+                    periodLabel="/ month"
+                    selected={period === 'monthly'}
+                    detail={`Monthly billing. Switch to yearly to save ${yearlyDiscount}.`}
+                  />
+                  <PriceOption
+                    price="$49.99"
+                    periodLabel="/ year"
+                    selected={period === 'yearly'}
+                    detail={`billed annually — save ${yearlyDiscount}`}
+                  />
                 </div>
-                {period === 'yearly' && (
-                  <p className="text-sm text-foreground-muted mb-4">billed annually — save {yearlyDiscount}</p>
-                )}
-                {period === 'monthly' && (
-                  <p className="text-sm text-foreground-muted mb-4">or $49.99 / year — save {yearlyDiscount}</p>
-                )}
                 <ul className="space-y-2 text-sm text-foreground-muted mb-6 flex-1">
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Pantry &amp; inventory tracking</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> AI recipe generation</li>
@@ -200,7 +213,7 @@ export default function PricingPage() {
                     disabled={loadingPlan !== null}
                     className="w-full rounded-lg bg-secondary text-secondary-foreground font-semibold px-6 py-3 text-sm hover:bg-secondary-hover disabled:opacity-50 transition-all duration-200"
                   >
-                    {loadingPlan === planKey('basic', period) ? 'Redirecting…' : 'Start free trial'}
+                    {loadingPlan === planKey('basic', period) ? 'Redirecting…' : 'Start Basic 5-day trial'}
                   </button>
                 ) : (
                   <button
@@ -208,7 +221,7 @@ export default function PricingPage() {
                     onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
                     className="w-full rounded-lg bg-secondary text-secondary-foreground font-semibold px-6 py-3 text-sm hover:bg-secondary-hover transition-all duration-200"
                   >
-                    Start free trial
+                    Start Basic 5-day trial
                   </button>
                 )}
               </div>
@@ -217,20 +230,20 @@ export default function PricingPage() {
               <div className="rounded-2xl p-8 bg-surface/60 border border-primary/40 relative flex flex-col">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Most popular</div>
                 <h3 className="text-xl font-bold text-foreground mb-2">Pro</h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-foreground">
-                    {period === 'monthly' ? '$9.99' : '$99.99'}
-                  </span>
-                  <span className="text-foreground-muted text-sm">
-                    {period === 'monthly' ? '/ month' : '/ year'}
-                  </span>
+                <div className="mb-4 space-y-3">
+                  <PriceOption
+                    price="$9.99"
+                    periodLabel="/ month"
+                    selected={period === 'monthly'}
+                    detail={`Monthly billing. Switch to yearly to save ${yearlyDiscount}.`}
+                  />
+                  <PriceOption
+                    price="$99.99"
+                    periodLabel="/ year"
+                    selected={period === 'yearly'}
+                    detail={`billed annually — save ${yearlyDiscount}`}
+                  />
                 </div>
-                {period === 'yearly' && (
-                  <p className="text-sm text-foreground-muted mb-4">billed annually — save {yearlyDiscount}</p>
-                )}
-                {period === 'monthly' && (
-                  <p className="text-sm text-foreground-muted mb-4">or $99.99 / year — save {yearlyDiscount}</p>
-                )}
                 <ul className="space-y-2 text-sm text-foreground-muted mb-6 flex-1">
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Everything in Basic</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> AI Chef chat (unlimited)</li>
@@ -245,7 +258,7 @@ export default function PricingPage() {
                     disabled={loadingPlan !== null}
                     className="w-full rounded-lg bg-primary text-primary-foreground font-semibold px-6 py-3 text-sm hover:bg-primary-hover disabled:opacity-50 transition-all duration-200"
                   >
-                    {loadingPlan === planKey('pro', period) ? 'Redirecting…' : 'Start free trial'}
+                    {loadingPlan === planKey('pro', period) ? 'Redirecting…' : 'Start Pro 5-day trial'}
                   </button>
                 ) : (
                   <button
@@ -253,7 +266,7 @@ export default function PricingPage() {
                     onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
                     className="w-full rounded-lg bg-primary text-primary-foreground font-semibold px-6 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
                   >
-                    Start free trial
+                    Start Pro 5-day trial
                   </button>
                 )}
               </div>
@@ -269,7 +282,7 @@ export default function PricingPage() {
             )}
 
             <p className="text-center text-xs text-foreground-muted mt-4">
-              Coupon codes can be applied at checkout. When a coupon reduces your total to $0, no payment information is required.
+              Coupon codes can be applied at checkout. When Stripe determines no current or future payment method is required for a $0 total, it skips payment collection.
             </p>
           </div>
         )}
@@ -287,7 +300,7 @@ export default function PricingPage() {
             />
             <FAQItem
               question="Can I use a coupon code?"
-              answer="Yes! Both monthly and yearly plans accept coupon codes. Click 'Start free trial', then enter your code in the coupon field on the Stripe checkout page. If a coupon reduces your total to $0.00, no payment method is required."
+              answer="Yes! Both monthly and yearly plans accept coupon codes. Choose a plan, then enter your code in the coupon field on the Stripe checkout page. If Stripe determines your discounted checkout does not need a payment method, it will skip collecting one."
             />
             <FAQItem
               question="Can I switch plans anytime?"
@@ -308,6 +321,33 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PriceOption({
+  price,
+  periodLabel,
+  selected,
+  detail,
+}: {
+  price: string;
+  periodLabel: string;
+  selected: boolean;
+  detail: string;
+}) {
+  return (
+    <div className={`rounded-xl border px-4 py-3 transition-all duration-150 ${
+      selected
+        ? 'border-primary/40 bg-primary/5'
+        : 'border-border/40 bg-background/30'
+    }`}
+    >
+      <div className="flex items-baseline gap-1 mb-1">
+        <span className="text-3xl font-extrabold text-foreground">{price}</span>
+        <span className="text-foreground-muted text-sm">{periodLabel}</span>
+      </div>
+      <p className="text-sm text-foreground-muted">{detail}</p>
     </div>
   );
 }
