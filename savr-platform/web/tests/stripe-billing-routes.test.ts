@@ -454,6 +454,127 @@ test('createCheckoutSessionResponse reuses an open checkout session instead of c
   assert.equal(stripe.createCalls.length, 0);
 });
 
+test('createCheckoutSessionResponse returns 502 when loading customer activity fails unexpectedly', async () => {
+  const stripe = new MockStripe();
+  stripe.customerActivityErrors.set('cus_existing', new Error('stripe upstream unavailable'));
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 502);
+  assert.equal(
+    result.body.error,
+    'Could not load billing details from Stripe. Please try again shortly.',
+  );
+  assert.equal(stripe.createCalls.length, 0);
+  assert.equal(supabase.updates.length, 0);
+});
+
+test('createCheckoutSessionResponse clears stale entitlement and reconciles a recovered customer', async () => {
+  const stripe = new MockStripe();
+  stripe.missingCustomerIds.add('cus_stale');
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_recovered', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.subscriptionsByCustomer.set(
+    'cus_recovered',
+    [makeSubscription({ id: 'sub_active', customerId: 'cus_recovered', status: 'active' })],
+  );
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_stale' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'pro_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 409);
+  assert.match(String(result.body.error), /active or trialing subscription/i);
+  assert.equal(stripe.createCalls.length, 0);
+  assert.equal(supabase.updates.length, 2);
+  const clearedUpdatedAt = String(supabase.updates[0]?.data.updated_at ?? '');
+  assert.notEqual(clearedUpdatedAt.length, 0);
+  assert.equal(Number.isNaN(Date.parse(clearedUpdatedAt)), false);
+  assert.deepEqual(
+    {
+      stripe_customer_id: supabase.updates[0]?.data.stripe_customer_id,
+      stripe_subscription_id: supabase.updates[0]?.data.stripe_subscription_id,
+      subscription_tier: supabase.updates[0]?.data.subscription_tier,
+      subscription_status: supabase.updates[0]?.data.subscription_status,
+      current_period_end: supabase.updates[0]?.data.current_period_end,
+      trial_ends_at: supabase.updates[0]?.data.trial_ends_at,
+      cancel_at_period_end: supabase.updates[0]?.data.cancel_at_period_end,
+    },
+    {
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    subscription_tier: 'basic',
+    subscription_status: 'pending',
+    current_period_end: null,
+    trial_ends_at: null,
+    cancel_at_period_end: false,
+    },
+  );
+  assert.equal(supabase.updates[1]?.data.stripe_customer_id, 'cus_recovered');
+  assert.equal(supabase.updates[1]?.data.stripe_subscription_id, 'sub_active');
+  assert.equal(supabase.updates[1]?.data.subscription_tier, 'pro');
+  assert.equal(supabase.updates[1]?.data.subscription_status, 'active');
+});
+
+test('createCheckoutSessionResponse returns 500 when stale-customer reset write fails', async () => {
+  const stripe = new MockStripe();
+  stripe.missingCustomerIds.add('cus_stale');
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_stale' };
+  supabase.updateError = { message: 'write failed' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 500);
+  assert.equal(result.body.error, 'Failed to update billing record');
+  assert.equal(stripe.createCalls.length, 0);
+  assert.equal(supabase.updates.length, 1);
+});
+
+test('createCheckoutSessionResponse returns 502 when Stripe customer discovery fails unexpectedly', async () => {
+  const stripe = new MockStripe();
+  stripe.customersListError = new Error('stripe upstream unavailable');
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: null };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 502);
+  assert.equal(
+    result.body.error,
+    'Could not look up Stripe customers. Please try again shortly.',
+  );
+  assert.equal(stripe.createCalls.length, 0);
+  assert.equal(supabase.updates.length, 0);
+});
+
 test('syncStripeSubscriptionResponse prefers the verified customer, syncs paused safely, and persists the customer ID', async () => {
   const stripe = new MockStripe();
   const supabase = new MockSupabase();

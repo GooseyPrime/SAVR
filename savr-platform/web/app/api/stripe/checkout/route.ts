@@ -29,10 +29,15 @@ import {
   findBlockingSubscription,
   findOpenSubscriptionCheckoutSession,
   isPlan,
+  isStripeMissingCustomerError,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
+  mapStripeStatusToDatabase,
   PLAN_ENV_MAP,
+  pickCurrentSubscription,
+  pickHistoricalSubscription,
   resolvePriceId,
+  resolveStripeSubscriptionSnapshot,
   selectCustomerBillingSnapshot,
   type Plan,
 } from '@/lib/stripe-billing';
@@ -73,12 +78,55 @@ export async function createCheckoutSessionResponse(args: {
   let customerId =
     (userRow as { stripe_customer_id?: string | null } | null)
       ?.stripe_customer_id ?? null;
-  let customerActivity = customerId
-    ? await loadCustomerActivity(stripe, customerId)
-    : null;
+  let customerActivity = null as Awaited<ReturnType<typeof loadCustomerActivity>> | null;
+
+  if (customerId) {
+    try {
+      customerActivity = await loadCustomerActivity(stripe, customerId);
+    } catch (error) {
+      if (isStripeMissingCustomerError(error, customerId)) {
+        console.warn(
+          `checkout: persisted stripe_customer_id (${customerId}) no longer exists; clearing and retrying via email`,
+        );
+        const { error: clearError } = await supabaseAdmin
+          .from('users')
+          .update({
+            stripe_customer_id: null,
+            stripe_subscription_id: null,
+            subscription_tier: 'basic',
+            subscription_status: 'pending',
+            current_period_end: null,
+            trial_ends_at: null,
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+        if (clearError) {
+          console.error('checkout: failed to clear stale stripe_customer_id', clearError);
+          return { status: 500, body: { error: 'Failed to update billing record' } };
+        }
+        customerId = null;
+      } else {
+        console.error('checkout: failed to load Stripe customer activity', error);
+        return {
+          status: 502,
+          body: { error: 'Could not load billing details from Stripe. Please try again shortly.' },
+        };
+      }
+    }
+  }
 
   if (!customerId && user.email) {
-    const snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, user.email);
+    let snapshots: Awaited<ReturnType<typeof loadCustomerBillingSnapshotsByEmail>>;
+    try {
+      snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, user.email);
+    } catch (error) {
+      console.error('checkout: failed to discover Stripe customers by email', error);
+      return {
+        status: 502,
+        body: { error: 'Could not look up Stripe customers. Please try again shortly.' },
+      };
+    }
     if (snapshots.length > 0) {
       const reusableCustomer = selectCustomerBillingSnapshot(snapshots, user.id);
       if (!reusableCustomer) {
@@ -97,9 +145,34 @@ export async function createCheckoutSessionResponse(args: {
         openCheckoutSessions: reusableCustomer.openCheckoutSessions,
       };
 
+      const currentSubscription = pickCurrentSubscription(customerActivity.subscriptions);
+      const historicalSubscription = currentSubscription
+        ? null
+        : pickHistoricalSubscription(customerActivity.subscriptions);
+      const subscriptionSnapshot = currentSubscription
+        ? resolveStripeSubscriptionSnapshot(currentSubscription)
+        : null;
+
       const { error: persistCustomerError } = await supabaseAdmin
         .from('users')
-        .update({ stripe_customer_id: customerId })
+        .update({
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionSnapshot?.subscriptionId ?? null,
+          subscription_tier: subscriptionSnapshot?.tier ?? 'basic',
+          subscription_status: subscriptionSnapshot
+            ? subscriptionSnapshot.status
+            : historicalSubscription
+              ? mapStripeStatusToDatabase(historicalSubscription.status)
+              : 'pending',
+          current_period_end: subscriptionSnapshot?.currentPeriodEnd
+            ? new Date(subscriptionSnapshot.currentPeriodEnd * 1000).toISOString()
+            : null,
+          trial_ends_at: subscriptionSnapshot?.trialEnd
+            ? new Date(subscriptionSnapshot.trialEnd * 1000).toISOString()
+            : null,
+          cancel_at_period_end: subscriptionSnapshot?.cancelAtPeriodEnd ?? false,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', user.id);
 
       if (persistCustomerError) {
