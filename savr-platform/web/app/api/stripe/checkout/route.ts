@@ -200,14 +200,14 @@ export async function createCheckoutSessionResponse(args: {
     };
   }
 
+  const includeTrial = !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
+
   const reusableSession = customerActivity
-    ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId)
+    ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId, includeTrial)
     : null;
   if (reusableSession?.url) {
     return { status: 200, body: { url: reusableSession.url } };
   }
-
-  const includeTrial = !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
 
   const createSession = async (withTrial: boolean) =>
     stripe.checkout.sessions.create(
@@ -267,12 +267,12 @@ export async function createCheckoutSessionResponse(args: {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Auth ────────────────────────────────────────────────
+  // ── 1. Auth ────────────────────────────────
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   const { user } = auth;
 
-  // ── 2. Parse & validate body ─────────────────────────────
+  // ── 2. Parse & validate body ─────────────────────────
   let plan: Plan;
   try {
     const body = await request.json() as { plan?: unknown };
@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  // ── 3. Stripe init ───────────────────────────────────────
+  // ── 3. Stripe init ───────────────────────────────
   let stripe: ReturnType<typeof getStripeInstance>;
   try {
     stripe = getStripeInstance();
