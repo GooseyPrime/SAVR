@@ -150,7 +150,7 @@ class MockStripe {
     if (this.customerActivityErrors.has(customerId)) {
       throw this.customerActivityErrors.get(customerId);
     }
-    if (!customerId || !this.missingCustomerIds.has(customerId)) return;
+    if (!this.missingCustomerIds.has(customerId)) return;
     throw {
       code: 'resource_missing',
       rawType: 'invalid_request_error',
