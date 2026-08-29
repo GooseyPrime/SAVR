@@ -97,11 +97,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use the most recently created customer.
-    const discovered = customers.data.sort(
-      (a: Stripe.Customer | Stripe.DeletedCustomer, b: Stripe.Customer | Stripe.DeletedCustomer) =>
-        (b as Stripe.Customer).created - (a as Stripe.Customer).created,
-    )[0];
+    // Use the most recently created non-deleted customer.
+    const discovered = customers.data
+      .filter((c): c is Stripe.Customer => !c.deleted)
+      .sort((a: Stripe.Customer, b: Stripe.Customer) => b.created - a.created)[0];
     customerId = discovered.id;
 
     // Persist so future calls skip this lookup.
@@ -153,7 +152,8 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 7. Write back ────────────────────────────────────────────────────────
-  const periodEnd = subscription.items.data[0]?.current_period_end;
+  // current_period_end is a top-level Subscription field, not per-item.
+  const periodEnd = subscription.current_period_end;
   const trialEnd = subscription.trial_end;
 
   const { error: updateError } = await supabaseAdmin
