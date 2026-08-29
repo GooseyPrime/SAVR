@@ -34,8 +34,8 @@ All commands below were run on branch `copilot/corrective-pr-8` at commit `697ee
 ## Remaining gaps (corrective PR 8 exit state)
 
 - **E2E smoke failures (pre-existing)**: 7 Playwright smoke tests fail with exit 1. Failures existed on `main` before this branch and are not caused by corrective PR 8. Content-matching assertions need to be aligned with the actual rendered HTML in a dedicated E2E hardening PR.
-- **Live subscription regression**: Stripe checkout E2E requires repository secrets and a live Stripe-capable target. Workflow stub in `.github/workflows/live-environment-tests.yml`.
-- **Entitlement matrix**: Automated entitlement checks require live Supabase + Stripe test credentials. Workflow stub provided.
+- **Live subscription regression**: Stripe checkout E2E requires repository secrets and a live Stripe-capable target. Workflow now skips gracefully when prerequisites are missing and remains manually dispatched.
+- **Entitlement matrix**: Automated entitlement checks require live Supabase + Stripe test credentials. Workflow now skips gracefully when prerequisite tests/secrets are missing.
 - **Native device validation**: No committed EAS gate; pending signing credentials. Manual checklist in `docs/validation/RELEASE_CANDIDATE_REPORT.md`.
 - **Reference folder integrity on main**: `main` diverges from pinned snapshot `add8dd5c` (lockfiles removed, expo/react-native bumped during corrective PR 4). Corrective PR 8 introduced no new violations. A dedicated governance PR is needed to reconcile.
 - **ADR-002**: Firebase Storage backward-compat deferred until production database audit confirms no `firebasestorage.googleapis.com` URLs remain.
@@ -47,21 +47,21 @@ All commands below were run on branch `copilot/corrective-pr-8` at commit `697ee
 
 Workflow: `.github/workflows/live-environment-tests.yml`
 
-All jobs currently exit 1 with an instructional message until the corresponding test implementations and environment secrets are provisioned.
+The workflow is manual-only (`workflow_dispatch`) and each gate now exits successfully with a skip notice when required tests or environment secrets are missing.
 
 | Test | Status |
 |---|---|
-| Supabase authenticated CRUD smoke | ⏳ Stub — implementation required |
-| Stripe test-mode checkout | ⏳ Stub — requires `TEST_USER_*` secrets and `PLAYWRIGHT_BASE_URL` var |
-| Stripe webhook delivery | ⏳ Stub — requires Stripe CLI and `STAGING_WEBHOOK_URL` var |
-| Basic monthly entitlement | ⏳ Stub — implementation required |
-| Basic yearly entitlement | ⏳ Stub — implementation required |
-| Pro monthly entitlement | ⏳ Stub — implementation required |
-| Pro yearly entitlement | ⏳ Stub — implementation required |
-| Customer portal | ⏳ Stub — implementation required |
-| Subscription cancellation | ⏳ Stub — implementation required |
-| Subscription upgrade/downgrade | ⏳ Stub — implementation required |
-| AI request and rate-limit behavior | ⏳ Stub — implementation required |
+| Supabase authenticated CRUD smoke | ⏳ Optional skip until `savr-platform/e2e-tests/supabase-crud.spec.ts` and required secrets are present |
+| Stripe test-mode checkout | ⏳ Optional skip until required Stripe/Supabase/test-user secrets and base URL are present |
+| Stripe webhook delivery | ⏳ Optional skip until Stripe credentials and webhook URL var are present |
+| Basic monthly entitlement | ⏳ Optional skip until `savr-platform/web/tests/billing-entitlements.test.ts` and required secrets are present |
+| Basic yearly entitlement | ⏳ Optional skip until `savr-platform/web/tests/billing-entitlements.test.ts` and required secrets are present |
+| Pro monthly entitlement | ⏳ Optional skip until `savr-platform/web/tests/billing-entitlements.test.ts` and required secrets are present |
+| Pro yearly entitlement | ⏳ Optional skip until `savr-platform/web/tests/billing-entitlements.test.ts` and required secrets are present |
+| Customer portal | ⏳ Optional skip until `savr-platform/e2e-tests/customer-portal.spec.ts` and required secrets are present |
+| Subscription cancellation | ⏳ Optional skip until `savr-platform/web/tests/subscription-cancellation.live.test.ts` exists and required secrets are present |
+| Subscription upgrade/downgrade | ⏳ Optional skip until `savr-platform/web/tests/subscription-upgrade-downgrade.live.test.ts` exists and required secrets are present |
+| AI request and rate-limit behavior | ⏳ Optional skip until `savr-platform/web/tests/ai-rate-limit.live.test.ts` exists and required secrets are present |
 
 ---
 
