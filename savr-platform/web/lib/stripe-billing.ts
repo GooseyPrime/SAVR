@@ -75,6 +75,31 @@ export function isPlan(value: unknown): value is Plan {
   return typeof value === 'string' && value in PLAN_ENV_MAP;
 }
 
+export function isStripeMissingCustomerError(error: unknown, customerId: string): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const typedError = error as {
+    code?: string;
+    message?: string;
+    rawType?: string;
+    type?: string;
+  };
+
+  const matchesAuthoritativeStripeType =
+    typedError.rawType === 'invalid_request_error' ||
+    typedError.type === 'StripeInvalidRequestError';
+  const errorMessage = typedError.message ?? '';
+  const matchesMessageForCustomer =
+    /no such customer/i.test(errorMessage) &&
+    errorMessage.includes(customerId);
+
+  return (
+    typedError.code === 'resource_missing' &&
+    matchesMessageForCustomer &&
+    matchesAuthoritativeStripeType
+  );
+}
+
 function firstConfiguredEnvValue(...keys: string[]): string | undefined {
   for (const key of keys) {
     const value = process.env[key]?.trim();
@@ -208,12 +233,34 @@ export async function loadCustomerBillingSnapshotsByEmail(
     (customer): customer is Stripe.Customer => !customer.deleted,
   );
 
-  return Promise.all(
-    activeCustomers.map(async (customer) => ({
-      customer,
-      ...(await loadCustomerActivity(stripe, customer.id)),
-    })),
+  const snapshots: CustomerBillingSnapshot[] = [];
+  const hardErrors: Array<{ customerId: string; error: unknown }> = [];
+
+  await Promise.all(
+    activeCustomers.map(async (customer) => {
+      try {
+        const activity = await loadCustomerActivity(stripe, customer.id);
+        snapshots.push({
+          customer,
+          ...activity,
+        });
+      } catch (error) {
+        if (isStripeMissingCustomerError(error, customer.id)) {
+          return;
+        }
+        hardErrors.push({ customerId: customer.id, error });
+      }
+    }),
   );
+
+  if (hardErrors.length > 0) {
+    throw new AggregateError(
+      hardErrors.map((entry) => entry.error),
+      `Failed to load Stripe billing activity for customers: ${hardErrors.map((entry) => entry.customerId).join(', ')}`,
+    );
+  }
+
+  return snapshots;
 }
 
 function getBestCustomerSubscription(

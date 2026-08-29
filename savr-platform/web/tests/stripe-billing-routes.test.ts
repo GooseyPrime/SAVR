@@ -7,6 +7,7 @@ import {
   findBlockingSubscription,
   findOpenSubscriptionCheckoutSession,
   getSubscriptionPeriodEndUnix,
+  loadCustomerBillingSnapshotsByEmail,
   isPlan,
   mapStripeStatusToDatabase,
   pickCurrentSubscription,
@@ -141,10 +142,15 @@ class MockStripe {
   public customersByEmail = new Map<string, Array<Stripe.Customer | Stripe.DeletedCustomer>>();
   public customersListError: unknown = null;
   public missingCustomerIds = new Set<string>();
+  public customerActivityErrors = new Map<string, unknown>();
   public nextSession: Stripe.Checkout.Session = makeSession({ id: 'cs_new', url: 'https://checkout.stripe.test/new' });
 
   private throwIfMissingCustomer(customerId: string | null | undefined) {
-    if (!customerId || !this.missingCustomerIds.has(customerId)) return;
+    if (!customerId) return;
+    if (this.customerActivityErrors.has(customerId)) {
+      throw this.customerActivityErrors.get(customerId);
+    }
+    if (!this.missingCustomerIds.has(customerId)) return;
     throw {
       code: 'resource_missing',
       rawType: 'invalid_request_error',
@@ -667,6 +673,94 @@ test('syncStripeSubscriptionResponse returns 502 when Stripe customer discovery 
     'Could not look up Stripe customers for this account. Please try again shortly.',
   );
   assert.equal(supabase.updates.length, 0);
+});
+
+test('loadCustomerBillingSnapshotsByEmail ignores stale customer IDs when at least one customer remains valid', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_stale', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_valid', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.missingCustomerIds.add('cus_stale');
+  stripe.subscriptionsByCustomer.set(
+    'cus_valid',
+    [makeSubscription({ id: 'sub_active', customerId: 'cus_valid', status: 'active' })],
+  );
+
+  const snapshots = await loadCustomerBillingSnapshotsByEmail(
+    stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    'chef@example.com',
+  );
+
+  assert.equal(snapshots.length, 1);
+  assert.equal(snapshots[0]?.customer.id, 'cus_valid');
+  assert.equal(snapshots[0]?.subscriptions.length, 1);
+});
+
+test('loadCustomerBillingSnapshotsByEmail returns empty when all discovered customers are stale', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_stale_a', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_stale_b', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.missingCustomerIds.add('cus_stale_a');
+  stripe.missingCustomerIds.add('cus_stale_b');
+
+  const snapshots = await loadCustomerBillingSnapshotsByEmail(
+    stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    'chef@example.com',
+  );
+
+  assert.deepEqual(snapshots, []);
+});
+
+test('loadCustomerBillingSnapshotsByEmail throws when stale customers are mixed with hard Stripe errors and no valid snapshot remains', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_stale', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_error', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.missingCustomerIds.add('cus_stale');
+  stripe.customerActivityErrors.set('cus_error', new Error('stripe upstream unavailable'));
+
+  await assert.rejects(
+    () =>
+      loadCustomerBillingSnapshotsByEmail(
+        stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+        'chef@example.com',
+      ),
+    (error: unknown) => {
+      assert.ok(error instanceof AggregateError);
+      assert.match(error.message, /cus_error/);
+      return true;
+    },
+  );
+});
+
+test('loadCustomerBillingSnapshotsByEmail throws when a hard Stripe error occurs even if another snapshot succeeded', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_valid', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_error', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.subscriptionsByCustomer.set(
+    'cus_valid',
+    [makeSubscription({ id: 'sub_active', customerId: 'cus_valid', status: 'active' })],
+  );
+  stripe.customerActivityErrors.set('cus_error', new Error('stripe upstream unavailable'));
+
+  await assert.rejects(
+    () =>
+      loadCustomerBillingSnapshotsByEmail(
+        stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+        'chef@example.com',
+      ),
+    (error: unknown) => {
+      assert.ok(error instanceof AggregateError);
+      assert.match(error.message, /cus_error/);
+      return true;
+    },
+  );
 });
 
 test('POST /api/stripe/sync returns 503 when authentication throws unexpectedly', async () => {

@@ -22,6 +22,7 @@ import { getStripeInstance } from '@/lib/stripe';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import {
   findOpenSubscriptionCheckoutSession,
+  isStripeMissingCustomerError,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
   mapStripeStatusToDatabase,
@@ -46,34 +47,6 @@ interface SyncPostDependencies {
   authenticateRequest: typeof authenticateRequest;
   getStripeInstance: typeof getStripeInstance;
   getSupabaseAdmin: typeof getSupabaseAdmin;
-}
-
-function isStripeMissingCustomerError(error: unknown, customerId: string): boolean {
-  if (!error || typeof error !== 'object') return false;
-
-  const typedError = error as {
-    code?: string;
-    message?: string;
-    rawType?: string;
-    type?: string;
-  };
-
-  const matchesAuthoritativeStripeType =
-    typedError.rawType === 'invalid_request_error' ||
-    typedError.type === 'StripeInvalidRequestError';
-  const errorMessage = typedError.message ?? '';
-  const matchesMessageForCustomer =
-    /no such customer/i.test(errorMessage) &&
-    errorMessage.includes(customerId);
-
-  return (
-    typedError.code === 'resource_missing' &&
-    matchesMessageForCustomer &&
-    (
-      matchesAuthoritativeStripeType ||
-      (!typedError.rawType && !typedError.type)
-    )
-  );
 }
 
 function shouldClearStaleEntitlement(args: {
