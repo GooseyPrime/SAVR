@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'savr',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.savr.app',
+    bundleIdentifier: 'cam.savr.app',
     infoPlist: {
       NSCameraUsageDescription:
         'SAVR uses your camera to scan and photograph pantry items for inventory management.',
@@ -33,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0D1210',
     },
-    package: 'com.savr.app',
+    package: 'cam.savr.app',
     versionCode: 1,
     predictiveBackGestureEnabled: false,
     softwareKeyboardLayoutMode: 'resize',
