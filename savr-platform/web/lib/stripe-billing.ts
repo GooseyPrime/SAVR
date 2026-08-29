@@ -69,7 +69,10 @@ const CUSTOMER_SELECTION_PRIORITY = [
   ...HISTORICAL_SUBSCRIPTION_PRIORITY,
 ] as const;
 
-type StripeBillingClient = Pick<Stripe, 'customers' | 'subscriptions' | 'checkout'>;
+type StripeBillingClient = Pick<
+  Stripe,
+  'checkout' | 'customers' | 'prices' | 'promotionCodes' | 'subscriptions'
+>;
 
 export function isPlan(value: unknown): value is Plan {
   return typeof value === 'string' && value in PLAN_ENV_MAP;
@@ -214,15 +217,74 @@ export function findReusableCheckoutSession(
  * discount still bills later, so a payment method is required up front —
  * otherwise the subscription silently fails at the first real invoice.
  */
+function getPromotionCoupon(
+  promotionCode: Stripe.PromotionCode | null | undefined,
+): Stripe.Coupon | null {
+  const coupon = promotionCode?.promotion?.coupon;
+  return !coupon || typeof coupon === 'string' ? null : coupon;
+}
+
+function getPriceProductId(price: Stripe.Price): string | null {
+  if (typeof price.product === 'string') return price.product;
+  return price.product?.id ?? null;
+}
+
+function getPriceUnitAmount(price: Stripe.Price): number | null {
+  if (typeof price.unit_amount === 'number') return price.unit_amount;
+  if (typeof price.unit_amount_decimal !== 'string') return null;
+
+  const parsed = Number(price.unit_amount_decimal);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getCouponAmountOffForPrice(coupon: Stripe.Coupon, price: Stripe.Price): number | null {
+  if (coupon.amount_off != null) {
+    return coupon.currency?.toLowerCase() === price.currency.toLowerCase()
+      ? coupon.amount_off
+      : null;
+  }
+
+  const currencyOptions = coupon.currency_options as
+    | Record<string, { amount_off?: number | null }>
+    | null
+    | undefined;
+  const priceCurrencyOption = currencyOptions?.[price.currency.toLowerCase()];
+  return typeof priceCurrencyOption?.amount_off === 'number'
+    ? priceCurrencyOption.amount_off
+    : null;
+}
+
+export function promotionCodeAppliesToPrice(
+  promotionCode: Stripe.PromotionCode | null | undefined,
+  price: Stripe.Price | null | undefined,
+): boolean {
+  const coupon = getPromotionCoupon(promotionCode);
+  if (!coupon?.valid || !price) return false;
+
+  const appliesToProducts = coupon.applies_to?.products;
+  if (appliesToProducts?.length) {
+    const productId = getPriceProductId(price);
+    if (!productId || !appliesToProducts.includes(productId)) return false;
+  }
+
+  return coupon.amount_off == null || getCouponAmountOffForPrice(coupon, price) != null;
+}
+
 export function discountRemovesAllCharges(
   promotionCode: Stripe.PromotionCode | null | undefined,
+  price: Stripe.Price | null | undefined,
 ): boolean {
-  const coupon = promotionCode?.promotion?.coupon;
+  const coupon = getPromotionCoupon(promotionCode);
   // An unexpanded coupon is just an id, so the discount cannot be evaluated.
   // Fail closed: require a payment method rather than assume the plan is free.
-  if (!coupon || typeof coupon === 'string') return false;
-  if (!coupon.valid) return false;
-  return coupon.percent_off === 100 && coupon.duration === 'forever';
+  if (!coupon?.valid || !price) return false;
+  if (!promotionCodeAppliesToPrice(promotionCode, price)) return false;
+  if (coupon.duration !== 'forever') return false;
+  if (coupon.percent_off === 100) return true;
+
+  const amountOff = getCouponAmountOffForPrice(coupon, price);
+  const unitAmount = getPriceUnitAmount(price);
+  return amountOff != null && unitAmount != null && amountOff >= unitAmount;
 }
 
 /**
@@ -232,6 +294,7 @@ export function discountRemovesAllCharges(
 export async function findActivePromotionCode(
   stripe: Pick<Stripe, 'promotionCodes'>,
   code: string,
+  customerId?: string | null,
 ): Promise<Stripe.PromotionCode | null> {
   const trimmed = code.trim();
   if (!trimmed) return null;
@@ -239,13 +302,46 @@ export async function findActivePromotionCode(
   const result = await stripe.promotionCodes.list({
     code: trimmed,
     active: true,
-    limit: 1,
+    limit: 100,
     // The coupon carries the discount terms that decide whether a payment
     // method is needed, so it must come back expanded rather than as an id.
     expand: ['data.promotion.coupon'],
   });
 
-  return result.data[0] ?? null;
+  const matches = result.data.filter((promotionCode) => {
+    const promotionCustomerId =
+      typeof promotionCode.customer === 'string'
+        ? promotionCode.customer
+        : promotionCode.customer?.deleted
+          ? null
+          : promotionCode.customer?.id ?? null;
+    return promotionCustomerId == null || promotionCustomerId === customerId;
+  });
+
+  if (customerId) {
+    return (
+      matches.find((promotionCode) => {
+        const promotionCustomerId =
+          typeof promotionCode.customer === 'string'
+            ? promotionCode.customer
+            : promotionCode.customer?.deleted
+              ? null
+              : promotionCode.customer?.id ?? null;
+        return promotionCustomerId === customerId;
+      }) ??
+      matches.find((promotionCode) => promotionCode.customer == null) ??
+      null
+    );
+  }
+
+  return matches.find((promotionCode) => promotionCode.customer == null) ?? null;
+}
+
+export async function loadCheckoutPrice(
+  stripe: Pick<Stripe, 'prices'>,
+  priceId: string,
+): Promise<Stripe.Price> {
+  return stripe.prices.retrieve(priceId);
 }
 
 export function buildCheckoutSessionParams(args: {
@@ -289,11 +385,6 @@ export function buildCheckoutSessionParams(args: {
     },
     subscription_data: {
       ...(includeTrial ? { trial_period_days: TRIAL_PERIOD_DAYS } : {}),
-      // Only reachable when no card is collected; cancel rather than leave a
-      // subscription stranded with no way to bill.
-      ...(collectPaymentMethod
-        ? {}
-        : { trial_settings: { end_behavior: { missing_payment_method: 'cancel' as const } } }),
       metadata: { userId: args.userId },
     },
     success_url: `${args.origin}/dashboard?stripeSuccess=true`,

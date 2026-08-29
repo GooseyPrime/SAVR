@@ -4,17 +4,22 @@
  * Creates a Stripe Checkout Session for a new subscription.
  *
  * Key behaviours:
- *  - `payment_method_collection: 'if_required'` — Stripe skips the payment
- *    form entirely when a promotion code (coupon) reduces the session total to
- *    $0.00. Without this flag Stripe always collects card details even on
- *    fully-discounted orders.
- *  - `allow_promotion_codes: true` — keeps the coupon-code input visible in
- *    the Stripe Checkout UI so users can apply codes themselves.
+ *  - `payment_method_collection: 'always'` by default, so every checkout
+ *    starts with a payment method on file and a free trial can convert.
+ *  - A customer can optionally send a `promotionCode` in the request body.
+ *    The server resolves it before session creation and only drops card
+ *    collection when the discount makes the chosen plan permanently free.
+ *  - `allow_promotion_codes: true` stays enabled only when no promotion code
+ *    was pre-applied, so Stripe Checkout can still accept codes after a card
+ *    has been collected.
  *  - `client_reference_id` is set to the authenticated user's Supabase UID so
  *    the `checkout.session.completed` webhook can link the session back to the
  *    correct user row without relying on email matching.
  *
- * Body: { plan: 'basic_monthly' | 'basic_yearly' | 'pro_monthly' | 'pro_yearly' }
+ * Body: {
+ *   plan: 'basic_monthly' | 'basic_yearly' | 'pro_monthly' | 'pro_yearly',
+ *   promotionCode?: string
+ * }
  *
  * Response: { url: string } — redirect the browser to this Stripe-hosted URL.
  */
@@ -34,12 +39,14 @@ import {
   isPlan,
   isStripeMissingCustomerError,
   isStripeTrialIneligibleError,
+  loadCheckoutPrice,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
   mapStripeStatusToDatabase,
   PLAN_ENV_MAP,
   pickCurrentSubscription,
   pickHistoricalSubscription,
+  promotionCodeAppliesToPrice,
   resolvePriceId,
   resolveStripeSubscriptionSnapshot,
   selectCustomerBillingSnapshot,
@@ -74,31 +81,6 @@ export async function createCheckoutSessionResponse(args: {
     const msg = err instanceof Error ? err.message : String(err);
     return { status: 503, body: { error: msg } };
   }
-
-  // A payment method is required for every checkout. The single exception is a
-  // coupon that removes every charge for the life of the subscription — there
-  // is nothing to bill, so Stripe is told not to ask for a card.
-  let promotion: Awaited<ReturnType<typeof findActivePromotionCode>> = null;
-  if (args.promotionCode?.trim()) {
-    try {
-      promotion = await findActivePromotionCode(stripe, args.promotionCode);
-    } catch (error) {
-      console.error('checkout: failed to look up promotion code', error);
-      return {
-        status: 502,
-        body: { error: 'Could not verify that coupon code. Please try again shortly.' },
-      };
-    }
-    if (!promotion) {
-      return {
-        status: 400,
-        body: { error: 'That coupon code is not valid or is no longer available.' },
-      };
-    }
-  }
-
-  const fullyDiscounted = discountRemovesAllCharges(promotion);
-  const collectPaymentMethod = !fullyDiscounted;
 
   const { data: userRow } = await supabaseAdmin
     .from('users')
@@ -228,6 +210,52 @@ export async function createCheckoutSessionResponse(args: {
       },
     };
   }
+
+  // A payment method is required for every checkout. The single exception is a
+  // coupon that removes every charge for the chosen plan for the whole life of
+  // the subscription — there is nothing to bill, so Stripe is told not to ask
+  // for a card.
+  let promotion: Awaited<ReturnType<typeof findActivePromotionCode>> = null;
+  let fullyDiscounted = false;
+  if (args.promotionCode?.trim()) {
+    try {
+      promotion = await findActivePromotionCode(stripe, args.promotionCode, customerId);
+    } catch (error) {
+      console.error('checkout: failed to look up promotion code', error);
+      return {
+        status: 502,
+        body: { error: 'Could not verify that coupon code. Please try again shortly.' },
+      };
+    }
+    if (!promotion) {
+      return {
+        status: 400,
+        body: { error: 'That coupon code is not valid or is no longer available.' },
+      };
+    }
+
+    let price;
+    try {
+      price = await loadCheckoutPrice(stripe, priceId);
+    } catch (error) {
+      console.error('checkout: failed to load Stripe price for promotion code', error);
+      return {
+        status: 502,
+        body: { error: 'Could not verify that coupon code. Please try again shortly.' },
+      };
+    }
+
+    if (!promotionCodeAppliesToPrice(promotion, price)) {
+      return {
+        status: 400,
+        body: { error: 'That coupon code does not apply to this plan.' },
+      };
+    }
+
+    fullyDiscounted = discountRemovesAllCharges(promotion, price);
+  }
+
+  const collectPaymentMethod = !fullyDiscounted;
 
   // A permanently free plan has nothing to trial, so the trial is dropped.
   const includeTrial =

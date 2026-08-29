@@ -82,7 +82,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         question: 'Can I use a coupon code?',
         answer:
-          'Yes — both monthly and yearly subscriptions accept coupon codes at checkout. If a coupon reduces your total to $0.00, no payment method is required.',
+          'Yes — both monthly and yearly subscriptions accept coupon codes before checkout. Enter the code on the pricing page before choosing a plan. If it makes your plan permanently free, no payment method is required. Any other code still requires a card to cover any amount due now or in the future.',
       },
       {
         question: 'How do I cancel or change my plan?',

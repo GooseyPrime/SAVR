@@ -137,7 +137,7 @@ export default function PricingPage() {
             />
             <p className="mt-2 text-xs text-center text-foreground-muted">
               A code that makes your plan permanently free skips the card entirely. Every other
-              code still requires a card so we can bill you when the discount ends.
+              code still requires a card to cover any amount due now or in the future.
             </p>
           </div>
         )}
@@ -332,7 +332,7 @@ export default function PricingPage() {
             />
             <FAQItem
               question="Can I use a coupon code?"
-              answer="Yes. Enter your code in the coupon field above before choosing a plan, and the discount is applied to your checkout. If the code makes your plan permanently free, we skip collecting a card because there is nothing to bill. Any other code still requires a card so we can bill you correctly when the discount ends."
+              answer="Yes. Enter your code in the coupon field above before choosing a plan, and the discount is applied to your checkout. If the code makes your plan permanently free, we skip collecting a card because there is nothing to bill. Any other code still requires a card to cover any amount due now or in the future."
             />
             <FAQItem
               question="Can I switch plans anytime?"
