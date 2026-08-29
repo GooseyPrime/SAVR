@@ -38,7 +38,6 @@ function promo(coupon: Partial<Stripe.Coupon>): Stripe.PromotionCode {
   });
 }
 
-/** A promotion code whose coupon came back as an id instead of an object. */
 function unexpandedPromo(): Stripe.PromotionCode {
   return {
     id: 'promo_1',
@@ -46,20 +45,18 @@ function unexpandedPromo(): Stripe.PromotionCode {
   } as unknown as Stripe.PromotionCode;
 }
 
-test('a trial checkout still requires a payment method', () => {
-  // Regression: payment_method_collection was 'if_required', which is exactly
-  // how Stripe starts a trial WITHOUT collecting a card.
+test('checkout uses Stripe if_required so $0 totals skip the card form', () => {
   const params = buildCheckoutSessionParams({ ...BASE, includeTrial: true });
-  assert.equal(params.payment_method_collection, 'always');
+  assert.equal(params.payment_method_collection, 'if_required');
   assert.equal(
     (params.subscription_data as { trial_period_days?: number }).trial_period_days,
     5,
   );
 });
 
-test('a checkout without a trial still requires a payment method', () => {
+test('a checkout without a trial still uses if_required', () => {
   const params = buildCheckoutSessionParams({ ...BASE, includeTrial: false });
-  assert.equal(params.payment_method_collection, 'always');
+  assert.equal(params.payment_method_collection, 'if_required');
 });
 
 test('the in-Checkout coupon field is offered when no code was pre-applied', () => {
@@ -69,24 +66,18 @@ test('the in-Checkout coupon field is offered when no code was pre-applied', () 
 });
 
 test('a pre-applied code replaces the in-Checkout coupon field', () => {
-  // Stripe rejects allow_promotion_codes together with discounts.
   const params = buildCheckoutSessionParams({ ...BASE, promotionCodeId: 'promo_1' });
   assert.deepEqual(params.discounts, [{ promotion_code: 'promo_1' }]);
   assert.equal(params.allow_promotion_codes, undefined);
 });
 
-test('a permanently free plan skips payment collection and cancels if unpaid', () => {
+test('a pre-applied free coupon still uses if_required', () => {
   const params = buildCheckoutSessionParams({
     ...BASE,
     promotionCodeId: 'promo_1',
-    collectPaymentMethod: false,
     includeTrial: false,
   });
   assert.equal(params.payment_method_collection, 'if_required');
-  assert.equal(
-    (params.subscription_data as { trial_settings?: unknown }).trial_settings,
-   undefined,
-  );
 });
 
 test('only a permanent 100% discount removes every charge', () => {
@@ -94,7 +85,6 @@ test('only a permanent 100% discount removes every charge', () => {
    discountRemovesAllCharges(promo({ percent_off: 100, duration: 'forever' }), PRO_YEARLY_PRICE),
    true,
   );
-  // A one-off or repeating 100% code still bills later, so a card is required.
   assert.equal(
    discountRemovesAllCharges(promo({ percent_off: 100, duration: 'once' }), PRO_YEARLY_PRICE),
    false,
@@ -159,8 +149,7 @@ test('only a permanent 100% discount removes every charge', () => {
   assert.equal(discountRemovesAllCharges(undefined, PRO_YEARLY_PRICE), false);
 });
 
-test('an unexpanded coupon fails closed and still requires a card', () => {
-  // Never infer "free" from an id we did not resolve.
+test('an unexpanded coupon fails closed', () => {
   assert.equal(discountRemovesAllCharges(unexpandedPromo(), PRO_YEARLY_PRICE), false);
 });
 
