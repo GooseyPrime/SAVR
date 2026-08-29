@@ -237,6 +237,12 @@ function getPriceUnitAmount(price: Stripe.Price): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getPromotionCustomerId(promotionCode: Stripe.PromotionCode): string | null {
+  if (typeof promotionCode.customer === 'string') return promotionCode.customer;
+  if (promotionCode.customer?.deleted) return null;
+  return promotionCode.customer?.id ?? null;
+}
+
 function getCouponAmountOffForPrice(coupon: Stripe.Coupon, price: Stripe.Price): number | null {
   if (coupon.amount_off != null) {
     return coupon.currency?.toLowerCase() === price.currency.toLowerCase()
@@ -309,32 +315,19 @@ export async function findActivePromotionCode(
   });
 
   const matches = result.data.filter((promotionCode) => {
-    const promotionCustomerId =
-      typeof promotionCode.customer === 'string'
-        ? promotionCode.customer
-        : promotionCode.customer?.deleted
-          ? null
-          : promotionCode.customer?.id ?? null;
+    const promotionCustomerId = getPromotionCustomerId(promotionCode);
     return promotionCustomerId == null || promotionCustomerId === customerId;
   });
 
   if (customerId) {
     return (
-      matches.find((promotionCode) => {
-        const promotionCustomerId =
-          typeof promotionCode.customer === 'string'
-            ? promotionCode.customer
-            : promotionCode.customer?.deleted
-              ? null
-              : promotionCode.customer?.id ?? null;
-        return promotionCustomerId === customerId;
-      }) ??
-      matches.find((promotionCode) => promotionCode.customer == null) ??
+      matches.find((promotionCode) => getPromotionCustomerId(promotionCode) === customerId) ??
+      matches.find((promotionCode) => getPromotionCustomerId(promotionCode) == null) ??
       null
     );
   }
 
-  return matches.find((promotionCode) => promotionCode.customer == null) ?? null;
+  return matches.find((promotionCode) => getPromotionCustomerId(promotionCode) == null) ?? null;
 }
 
 export async function loadCheckoutPrice(
