@@ -87,17 +87,37 @@ export function isStripeMissingCustomerError(error: unknown, customerId: string)
 
   const matchesAuthoritativeStripeType =
     typedError.rawType === 'invalid_request_error' ||
+    typedError.type === 'invalid_request_error' ||
     typedError.type === 'StripeInvalidRequestError';
   const errorMessage = typedError.message ?? '';
   const matchesMessageForCustomer =
     /no such customer/i.test(errorMessage) &&
-    errorMessage.includes(customerId);
+    (!customerId || errorMessage.includes(customerId));
 
   return (
     typedError.code === 'resource_missing' &&
     matchesMessageForCustomer &&
     matchesAuthoritativeStripeType
   );
+}
+
+export function isStripeTrialIneligibleError(error: unknown): boolean {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'object' && error && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : String(error ?? '');
+
+  return /trial/i.test(message) && (
+    /already/i.test(message) ||
+    /cannot have a trial/i.test(message) ||
+    /not eligible/i.test(message) ||
+    /trial_end/i.test(message)
+  );
+}
+
+export function customerHasConsumedTrial(subscriptions: Stripe.Subscription[]): boolean {
+  return subscriptions.some((subscription) => subscription.trial_end != null);
 }
 
 function firstConfiguredEnvValue(...keys: string[]): string | undefined {
@@ -162,21 +182,53 @@ export function findOpenSubscriptionCheckoutSession(
   );
 }
 
+export function sessionIncludesTrial(session: Stripe.Checkout.Session): boolean {
+  // Legacy open sessions predate includeTrial metadata and always created a trial.
+  return session.metadata?.includeTrial !== 'false';
+}
+
+export function findReusableCheckoutSession(
+  sessions: Stripe.Checkout.Session[],
+  priceId: string,
+  includeTrial: boolean,
+): Stripe.Checkout.Session | null {
+  return (
+    sessions
+      .filter((session) => (
+        session.mode === 'subscription' &&
+        session.status === 'open' &&
+        Boolean(session.url) &&
+        session.metadata?.priceId === priceId &&
+        sessionIncludesTrial(session) === includeTrial
+      ))
+      .sort((a, b) => b.created - a.created)[0] ?? null
+  );
+}
+
 export function buildCheckoutSessionParams(args: {
   priceId: string;
   userId: string;
   email?: string | null;
   customerId?: string | null;
   origin: string;
+  includeTrial?: boolean;
+  plan?: Plan;
 }): Stripe.Checkout.SessionCreateParams {
+  const includeTrial = args.includeTrial !== false;
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
     line_items: [{ price: args.priceId, quantity: 1 }],
     payment_method_collection: 'if_required',
     allow_promotion_codes: true,
     client_reference_id: args.userId,
+    metadata: {
+      userId: args.userId,
+      priceId: args.priceId,
+      includeTrial: includeTrial ? 'true' : 'false',
+      ...(args.plan ? { plan: args.plan } : {}),
+    },
     subscription_data: {
-      trial_period_days: TRIAL_PERIOD_DAYS,
+      ...(includeTrial ? { trial_period_days: TRIAL_PERIOD_DAYS } : {}),
       metadata: { userId: args.userId },
     },
     success_url: `${args.origin}/dashboard?stripeSuccess=true`,
@@ -196,8 +248,10 @@ export function buildCheckoutIdempotencyKey(args: {
   userId: string;
   customerId?: string | null;
   plan: Plan;
+  includeTrial?: boolean;
 }): string {
-  return `stripe-checkout:${args.customerId ?? args.userId}:${args.plan}`;
+  const trialPart = args.includeTrial === false ? 'no-trial' : 'trial';
+  return `stripe-checkout:${args.customerId ?? args.userId}:${args.plan}:${trialPart}`;
 }
 
 export async function loadCustomerActivity(
@@ -312,12 +366,21 @@ export function selectCustomerBillingSnapshot(
 
   if (snapshots.length === 1) return snapshots[0];
 
+  const withCurrentSubscription = snapshots
+    .filter((snapshot) => Boolean(pickCurrentSubscription(snapshot.subscriptions)))
+    .sort(compareCustomerSnapshots);
+  if (withCurrentSubscription.length === 1) return withCurrentSubscription[0];
+  if (withCurrentSubscription.length > 1) return null;
+
   const withActivity = snapshots
     .filter(hasBillingActivity)
     .sort(compareCustomerSnapshots);
-  if (withActivity.length === 1) return withActivity[0];
+  // Multiple current subscriptions already failed closed above. Historical
+  // activity (canceled/expired subs or open sessions) is not a conflict —
+  // pick the newest ranked record so checkout/sync can recover.
+  if (withActivity[0]) return withActivity[0];
 
-  return null;
+  return snapshots.sort(compareCustomerSnapshots)[0] ?? null;
 }
 
 export function mapStripeStatusToDatabase(

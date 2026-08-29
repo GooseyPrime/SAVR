@@ -26,10 +26,12 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import {
   buildCheckoutIdempotencyKey,
   buildCheckoutSessionParams,
+  customerHasConsumedTrial,
   findBlockingSubscription,
-  findOpenSubscriptionCheckoutSession,
+  findReusableCheckoutSession,
   isPlan,
   isStripeMissingCustomerError,
+  isStripeTrialIneligibleError,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
   mapStripeStatusToDatabase,
@@ -198,39 +200,48 @@ export async function createCheckoutSessionResponse(args: {
     };
   }
 
-  const openSession = customerActivity
-    ? findOpenSubscriptionCheckoutSession(customerActivity.openCheckoutSessions)
+  const includeTrial = !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
+
+  const reusableSession = customerActivity
+    ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId, includeTrial)
     : null;
-  if (openSession?.url) {
-    return { status: 200, body: { url: openSession.url } };
-  }
-  if (openSession) {
-    return {
-      status: 409,
-      body: {
-        error:
-          'A subscription checkout is already in progress. Please complete it or wait for it to expire.',
-      },
-    };
+  if (reusableSession?.url) {
+    return { status: 200, body: { url: reusableSession.url } };
   }
 
-  try {
-    const session = await stripe.checkout.sessions.create(
+  const createSession = async (withTrial: boolean) =>
+    stripe.checkout.sessions.create(
       buildCheckoutSessionParams({
         priceId,
         userId: user.id,
         email: user.email,
         customerId,
         origin,
+        includeTrial: withTrial,
+        plan,
       }),
       {
         idempotencyKey: buildCheckoutIdempotencyKey({
           customerId,
           userId: user.id,
           plan,
+          includeTrial: withTrial,
         }),
       },
     );
+
+  try {
+    let session;
+    try {
+      session = await createSession(includeTrial);
+    } catch (err) {
+      if (includeTrial && isStripeTrialIneligibleError(err)) {
+        console.warn('checkout: customer is not eligible for another trial; retrying without trial_period_days');
+        session = await createSession(false);
+      } else {
+        throw err;
+      }
+    }
 
     if (!session.url) {
       return {
@@ -242,23 +253,26 @@ export async function createCheckoutSessionResponse(args: {
     return { status: 200, body: { url: session.url } };
   } catch (err) {
     console.error('Error creating checkout session:', err);
+    const raw = err instanceof Error ? err.message : 'Failed to create checkout session';
+    const friendly = /no such price/i.test(raw)
+      ? 'Checkout is misconfigured (unknown Stripe price). Please contact support.'
+      : /idempotency/i.test(raw)
+        ? 'A previous checkout attempt is still settling. Wait a moment and try again.'
+        : raw;
     return {
       status: 500,
-      body: {
-        error:
-          err instanceof Error ? err.message : 'Failed to create checkout session',
-      },
+      body: { error: friendly },
     };
   }
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Auth ──────────────────────────────────────────────────────────────
+  // ── 1. Auth ────────────────────────────────
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   const { user } = auth;
 
-  // ── 2. Parse & validate body ─────────────────────────────────────────────
+  // ── 2. Parse & validate body ─────────────────────────
   let plan: Plan;
   try {
     const body = await request.json() as { plan?: unknown };
@@ -273,7 +287,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  // ── 3. Stripe init ───────────────────────────────────────────────────────
+  // ── 3. Stripe init ───────────────────────────────
   let stripe: ReturnType<typeof getStripeInstance>;
   try {
     stripe = getStripeInstance();
@@ -284,7 +298,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 4. Load billing state / create session ───────────────────────────────
+  // ── 4. Load billing state / create session ───────────────────────
   let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
   try {
     supabaseAdmin = getSupabaseAdmin();
@@ -295,9 +309,9 @@ export async function POST(request: NextRequest) {
     );
   }
   const origin =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    request.headers.get('origin') ??
-    'https://savr.app';
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    request.headers.get('origin') ||
+    'https://www.savr.cam';
 
   const result = await createCheckoutSessionResponse({
     user: { id: user.id, email: user.email },
