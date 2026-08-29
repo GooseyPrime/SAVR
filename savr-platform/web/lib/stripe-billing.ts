@@ -182,9 +182,15 @@ export function findOpenSubscriptionCheckoutSession(
   );
 }
 
+export function sessionIncludesTrial(session: Stripe.Checkout.Session): boolean {
+  // Legacy open sessions predate includeTrial metadata and always created a trial.
+  return session.metadata?.includeTrial !== 'false';
+}
+
 export function findReusableCheckoutSession(
   sessions: Stripe.Checkout.Session[],
   priceId: string,
+  includeTrial: boolean,
 ): Stripe.Checkout.Session | null {
   return (
     sessions
@@ -192,7 +198,8 @@ export function findReusableCheckoutSession(
         session.mode === 'subscription' &&
         session.status === 'open' &&
         Boolean(session.url) &&
-        session.metadata?.priceId === priceId
+        session.metadata?.priceId === priceId &&
+        sessionIncludesTrial(session) === includeTrial
       ))
       .sort((a, b) => b.created - a.created)[0] ?? null
   );
@@ -217,6 +224,7 @@ export function buildCheckoutSessionParams(args: {
     metadata: {
       userId: args.userId,
       priceId: args.priceId,
+      includeTrial: includeTrial ? 'true' : 'false',
       ...(args.plan ? { plan: args.plan } : {}),
     },
     subscription_data: {
@@ -299,15 +307,6 @@ export async function loadCustomerBillingSnapshotsByEmail(
     }),
   );
 
-  if (snapshots.length > 0) {
-    if (hardErrors.length > 0) {
-      console.warn(
-        `stripe-billing: recovered ${snapshots.length} customer snapshot(s) with hard discovery errors for customer IDs: ${hardErrors.map((entry) => entry.customerId).join(', ')}`,
-      );
-    }
-    return snapshots;
-  }
-
   if (hardErrors.length > 0) {
     throw new AggregateError(
       hardErrors.map((entry) => entry.error),
@@ -376,8 +375,10 @@ export function selectCustomerBillingSnapshot(
   const withActivity = snapshots
     .filter(hasBillingActivity)
     .sort(compareCustomerSnapshots);
-  if (withActivity.length === 1) return withActivity[0];
-  if (withActivity.length > 1) return null;
+  // Multiple current subscriptions already failed closed above. Historical
+  // activity (canceled/expired subs or open sessions) is not a conflict —
+  // pick the newest ranked record so checkout/sync can recover.
+  if (withActivity[0]) return withActivity[0];
 
   return snapshots.sort(compareCustomerSnapshots)[0] ?? null;
 }
