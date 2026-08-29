@@ -12,6 +12,9 @@ import {
   deleteInventoryItem,
   type InventoryItem as DBInventoryItem
 } from '@/lib/db';
+import { callApi } from '@/lib/api';
+import { pantryNotesFromScan, pantryCategory } from '@/lib/pantryPersist';
+import type { NutritionalInfo } from '@/lib/types/functions';
 
 interface InventoryItem {
   id: string;
@@ -130,30 +133,55 @@ function InventoryContent() {
     setBarcodeLoading(true);
     setBarcodeError('');
     try {
-      const res = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${code}.json`
-      );
-      const data = await res.json();
-      if (data.status !== 1 || !data.product) {
+      const result = await callApi('/nutrition/lookup', { barcode: code });
+      const data = result as {
+        success: boolean;
+        hit: {
+          name?: string;
+          brand?: string;
+          barcode?: string;
+          nutrition?: NutritionalInfo;
+          source?: string;
+          packageSize?: string;
+        } | null;
+      };
+      if (!data.hit || !data.hit.name) {
         setBarcodeError('Product not found. Try another barcode.');
         setBarcodeLoading(false);
         return;
       }
-      const p = data.product;
-      const name =
-        p.product_name_en || p.product_name || p.product_name_imported || 'Unknown product';
-      const qtyStr = String(p.quantity || '1');
-      const qtyMatch = qtyStr.match(/^([\d.]+)\s*(\w+)?$/);
-      const quantity = qtyMatch ? parseFloat(qtyMatch[1]) || 1 : 1;
-      const unit = (qtyMatch?.[2] || 'unit').toLowerCase();
-      
-      const addedItem = await addInventoryItem(user.id, {
-        name,
-        quantity,
-        unit,
-        category: 'pantry',
+
+      const hit = data.hit;
+      const notes = pantryNotesFromScan({
+        nutrition: hit.nutrition,
+        nutritionSource: hit.source,
+        barcode: hit.barcode ?? code,
+        packageSize: hit.packageSize,
       });
-      
+
+      // Parse packageSize (e.g. "500 g", "1.5 kg", "12 oz") into quantity + unit.
+      // Fall back to 1 / 'unit' when the field is absent or unparseable.
+      let parsedQuantity = 1;
+      let parsedUnit = 'unit';
+      if (hit.packageSize) {
+        const match = hit.packageSize.match(/^(\d*\.?\d+)\s*([a-zA-Z]+)/);
+        if (match) {
+          const num = parseFloat(match[1]);
+          if (!Number.isNaN(num)) {
+            parsedQuantity = num;
+            parsedUnit = match[2].toLowerCase();
+          }
+        }
+      }
+
+      const addedItem = await addInventoryItem(user.id, {
+        name: hit.name!,
+        quantity: parsedQuantity,
+        unit: parsedUnit,
+        category: pantryCategory(undefined),
+        notes,
+      });
+
       setItems([
         ...items,
         {
