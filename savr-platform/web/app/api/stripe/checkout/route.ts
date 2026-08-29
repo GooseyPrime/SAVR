@@ -32,8 +32,12 @@ import {
   isStripeMissingCustomerError,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
+  mapStripeStatusToDatabase,
   PLAN_ENV_MAP,
+  pickCurrentSubscription,
+  pickHistoricalSubscription,
   resolvePriceId,
+  resolveStripeSubscriptionSnapshot,
   selectCustomerBillingSnapshot,
   type Plan,
 } from '@/lib/stripe-billing';
@@ -86,7 +90,16 @@ export async function createCheckoutSessionResponse(args: {
         );
         const { error: clearError } = await supabaseAdmin
           .from('users')
-          .update({ stripe_customer_id: null })
+          .update({
+            stripe_customer_id: null,
+            stripe_subscription_id: null,
+            subscription_tier: 'basic',
+            subscription_status: 'pending',
+            current_period_end: null,
+            trial_ends_at: null,
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', user.id);
         if (clearError) {
           console.error('checkout: failed to clear stale stripe_customer_id', clearError);
@@ -132,9 +145,34 @@ export async function createCheckoutSessionResponse(args: {
         openCheckoutSessions: reusableCustomer.openCheckoutSessions,
       };
 
+      const currentSubscription = pickCurrentSubscription(customerActivity.subscriptions);
+      const historicalSubscription = currentSubscription
+        ? null
+        : pickHistoricalSubscription(customerActivity.subscriptions);
+      const subscriptionSnapshot = currentSubscription
+        ? resolveStripeSubscriptionSnapshot(currentSubscription)
+        : null;
+
       const { error: persistCustomerError } = await supabaseAdmin
         .from('users')
-        .update({ stripe_customer_id: customerId })
+        .update({
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionSnapshot?.subscriptionId ?? null,
+          subscription_tier: subscriptionSnapshot?.tier ?? 'basic',
+          subscription_status: subscriptionSnapshot
+            ? subscriptionSnapshot.status
+            : historicalSubscription
+              ? mapStripeStatusToDatabase(historicalSubscription.status)
+              : 'pending',
+          current_period_end: subscriptionSnapshot?.currentPeriodEnd
+            ? new Date(subscriptionSnapshot.currentPeriodEnd * 1000).toISOString()
+            : null,
+          trial_ends_at: subscriptionSnapshot?.trialEnd
+            ? new Date(subscriptionSnapshot.trialEnd * 1000).toISOString()
+            : null,
+          cancel_at_period_end: subscriptionSnapshot?.cancelAtPeriodEnd ?? false,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', user.id);
 
       if (persistCustomerError) {
