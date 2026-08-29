@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     supabaseAdmin = getSupabaseAdmin();
   } catch {
     return NextResponse.json(
-      { error: 'Billing sync service is not configured' },
+      { error: 'Checkout database service is not configured' },
       { status: 503 },
     );
   }

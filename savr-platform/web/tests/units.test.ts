@@ -218,6 +218,19 @@ test('resolveTierFromPriceId maps legacy STRIPE_PRICE_ID_* values', () => {
   assert.equal(resolveTierFromPriceId('price_pro_yearly_legacy'),    'pro');
 });
 
+test('resolveTierFromPriceId trims env values and falls back from blank canonical values', () => {
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = '   ';
+  process.env.STRIPE_PRICE_BASIC_YEARLY = 'price_basic_yearly_test';
+  process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pro_monthly_test';
+  process.env.STRIPE_PRICE_PRO_YEARLY = 'price_pro_yearly_test';
+  process.env.STRIPE_PRICE_ID_BASIC_MONTHLY = '  price_basic_monthly_legacy  ';
+
+  assert.equal(resolveTierFromPriceId('price_basic_monthly_legacy'), 'basic');
+
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
+  delete process.env.STRIPE_PRICE_ID_BASIC_MONTHLY;
+});
+
 test('resolveTierFromPriceId throws on unknown price ID', () => {
   process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
   process.env.STRIPE_PRICE_BASIC_YEARLY  = 'price_basic_yearly_test';

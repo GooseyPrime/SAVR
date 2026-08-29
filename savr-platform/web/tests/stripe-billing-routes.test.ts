@@ -207,6 +207,16 @@ test('resolvePriceId supports legacy STRIPE_PRICE_ID_* env names', () => {
   delete process.env.STRIPE_PRICE_ID_PRO_YEARLY;
 });
 
+test('resolvePriceId trims values and falls back when canonical env is blank', () => {
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = '   ';
+  process.env.STRIPE_PRICE_ID_BASIC_MONTHLY = '  price_basic_monthly_legacy  ';
+
+  assert.equal(resolvePriceId('basic_monthly'), 'price_basic_monthly_legacy');
+
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly';
+  delete process.env.STRIPE_PRICE_ID_BASIC_MONTHLY;
+});
+
 test('buildCheckoutSessionParams includes coupon support and the 5-day trial policy', () => {
   const params = buildCheckoutSessionParams({
     priceId: 'price_pro_yearly',

@@ -75,10 +75,19 @@ export function isPlan(value: unknown): value is Plan {
   return typeof value === 'string' && value in PLAN_ENV_MAP;
 }
 
+function firstConfiguredEnvValue(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+
+  return undefined;
+}
+
 export function resolvePriceId(plan: Plan): string {
   const envKey = PLAN_ENV_MAP[plan];
   const legacyEnvKey = PLAN_LEGACY_ENV_MAP[plan];
-  const priceId = process.env[envKey] ?? process.env[legacyEnvKey];
+  const priceId = firstConfiguredEnvValue(envKey, legacyEnvKey);
   if (!priceId) {
     throw new Error(
       `Environment variable ${envKey} (or legacy ${legacyEnvKey}) is not set — cannot create checkout session`,
