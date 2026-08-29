@@ -42,6 +42,34 @@ interface SyncRouteResult {
   body: Record<string, unknown>;
 }
 
+function isStripeMissingCustomerError(error: unknown, customerId: string): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const typedError = error as {
+    code?: string;
+    message?: string;
+    rawType?: string;
+    type?: string;
+  };
+
+  const matchesAuthoritativeStripeType =
+    typedError.rawType === 'invalid_request_error' ||
+    typedError.type === 'StripeInvalidRequestError';
+  const errorMessage = typedError.message ?? '';
+  const matchesMessageForCustomer =
+    /no such customer/i.test(errorMessage) &&
+    errorMessage.includes(customerId);
+
+  return (
+    typedError.code === 'resource_missing' &&
+    matchesMessageForCustomer &&
+    (
+      matchesAuthoritativeStripeType ||
+      (!typedError.rawType && !typedError.type)
+    )
+  );
+}
+
 function shouldClearStaleEntitlement(args: {
   localStatus?: string | null;
   localSubscriptionId?: string | null;
@@ -79,9 +107,45 @@ export async function syncStripeSubscriptionResponse(args: {
   };
 
   let customerId = typedUserRow.stripe_customer_id ?? null;
-  let customerActivity = customerId
-    ? await loadCustomerActivity(stripe, customerId)
-    : null;
+  let customerActivity = null as Awaited<ReturnType<typeof loadCustomerActivity>> | null;
+  if (customerId) {
+    try {
+      customerActivity = await loadCustomerActivity(stripe, customerId);
+    } catch (error) {
+      if (!isStripeMissingCustomerError(error, customerId)) {
+        console.error('sync: failed to load Stripe customer activity', error);
+        return {
+          status: 502,
+          body: {
+            error: 'Could not load billing details from Stripe. Please try again shortly.',
+          },
+        };
+      }
+
+      console.warn(
+        `sync: persisted stripe_customer_id (${customerId}) no longer exists; retrying discovery`,
+      );
+      customerId = null;
+      const { error: clearCustomerError } = await supabaseAdmin
+        .from('users')
+        .update({
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          subscription_tier: 'basic',
+          subscription_status: 'pending',
+          current_period_end: null,
+          trial_ends_at: null,
+          cancel_at_period_end: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (clearCustomerError) {
+        console.error('sync: failed to clear stale stripe_customer_id', clearCustomerError);
+        return { status: 500, body: { error: 'Failed to update subscription record' } };
+      }
+    }
+  }
 
   if (!customerId) {
     const email = typedUserRow.email ?? user.email;
@@ -256,37 +320,45 @@ export async function syncStripeSubscriptionResponse(args: {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Auth ──────────────────────────────────────────────────────────────
-  const auth = await authenticateRequest(request);
-  if (auth.error) return auth.error;
-  const { user } = auth;
-
-  // ── 2. Stripe init ───────────────────────────────────────────────────────
-  let stripe: ReturnType<typeof getStripeInstance>;
   try {
-    stripe = getStripeInstance();
-  } catch {
+    // ── 1. Auth ──────────────────────────────────────────────────────────────
+    const auth = await authenticateRequest(request);
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
+    // ── 2. Stripe init ───────────────────────────────────────────────────────
+    let stripe: ReturnType<typeof getStripeInstance>;
+    try {
+      stripe = getStripeInstance();
+    } catch {
+      return NextResponse.json(
+        { error: 'Payment service is not configured' },
+        { status: 503 },
+      );
+    }
+
+    let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+    try {
+      supabaseAdmin = getSupabaseAdmin();
+    } catch {
+      return NextResponse.json(
+        { error: 'Billing sync service is not configured' },
+        { status: 503 },
+      );
+    }
+
+    const result = await syncStripeSubscriptionResponse({
+      user: { id: user.id, email: user.email },
+      stripe,
+      supabaseAdmin,
+    });
+
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error('sync: unexpected failure', error);
     return NextResponse.json(
-      { error: 'Payment service is not configured' },
-      { status: 503 },
+      { error: 'Subscription sync failed unexpectedly. Please try again.' },
+      { status: 500 },
     );
   }
-
-  let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
-  try {
-    supabaseAdmin = getSupabaseAdmin();
-  } catch {
-    return NextResponse.json(
-      { error: 'Billing sync service is not configured' },
-      { status: 503 },
-    );
-  }
-
-  const result = await syncStripeSubscriptionResponse({
-    user: { id: user.id, email: user.email },
-    stripe,
-    supabaseAdmin,
-  });
-
-  return NextResponse.json(result.body, { status: result.status });
 }

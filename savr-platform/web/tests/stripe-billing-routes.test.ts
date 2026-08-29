@@ -136,7 +136,18 @@ class MockStripe {
   public subscriptionsByCustomer = new Map<string, Stripe.Subscription[]>();
   public openSessionsByCustomer = new Map<string, Stripe.Checkout.Session[]>();
   public customersByEmail = new Map<string, Array<Stripe.Customer | Stripe.DeletedCustomer>>();
+  public missingCustomerIds = new Set<string>();
   public nextSession: Stripe.Checkout.Session = makeSession({ id: 'cs_new', url: 'https://checkout.stripe.test/new' });
+
+  private throwIfMissingCustomer(customerId: string | null | undefined) {
+    if (!customerId || !this.missingCustomerIds.has(customerId)) return;
+    throw {
+      code: 'resource_missing',
+      rawType: 'invalid_request_error',
+      type: 'StripeInvalidRequestError',
+      message: `No such customer: '${customerId}'`,
+    };
+  }
 
   checkout = {
     sessions: {
@@ -147,9 +158,12 @@ class MockStripe {
         this.createCalls.push({ params, options });
         return this.nextSession;
       },
-      list: async (params: Stripe.Checkout.SessionListParams) => ({
-        data: this.openSessionsByCustomer.get(params.customer ?? '') ?? [],
-      }),
+      list: async (params: Stripe.Checkout.SessionListParams) => {
+        this.throwIfMissingCustomer(params.customer);
+        return {
+          data: this.openSessionsByCustomer.get(params.customer ?? '') ?? [],
+        };
+      },
     },
   };
 
@@ -160,9 +174,12 @@ class MockStripe {
   };
 
   subscriptions = {
-    list: async (params: Stripe.SubscriptionListParams) => ({
-      data: this.subscriptionsByCustomer.get(params.customer ?? '') ?? [],
-    }),
+    list: async (params: Stripe.SubscriptionListParams) => {
+      this.throwIfMissingCustomer(params.customer);
+      return {
+        data: this.subscriptionsByCustomer.get(params.customer ?? '') ?? [],
+      };
+    },
   };
 }
 
@@ -577,4 +594,79 @@ test('syncStripeSubscriptionResponse surfaces failed database writes', async () 
 
   assert.equal(result.status, 500);
   assert.equal(result.body.error, 'Failed to update subscription record');
+});
+
+test('syncStripeSubscriptionResponse recovers when persisted customer no longer exists in Stripe', async () => {
+  const stripe = new MockStripe();
+  stripe.missingCustomerIds.add('cus_stale');
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_recovered', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.subscriptionsByCustomer.set(
+    'cus_recovered',
+    [makeSubscription({ id: 'sub_active', customerId: 'cus_recovered', status: 'active' })],
+  );
+
+  const supabase = new MockSupabase();
+  supabase.userRow = {
+    stripe_customer_id: 'cus_stale',
+    stripe_subscription_id: null,
+    subscription_status: 'pending',
+    email: 'chef@example.com',
+  };
+
+  const result = await syncStripeSubscriptionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.synced, true);
+  assert.equal(result.body.stripe_customer_id, 'cus_recovered');
+  assert.equal(supabase.updates.length, 3);
+  assert.equal(supabase.updates[0]?.data.stripe_customer_id, null);
+  assert.equal(supabase.updates[0]?.data.stripe_subscription_id, null);
+  assert.equal(supabase.updates[0]?.data.subscription_tier, 'basic');
+  assert.equal(supabase.updates[0]?.data.subscription_status, 'pending');
+  assert.equal(supabase.updates[1]?.data.stripe_customer_id, 'cus_recovered');
+  assert.equal(supabase.updates[2]?.data.subscription_status, 'active');
+  assert.equal(supabase.updates[2]?.data.stripe_customer_id, 'cus_recovered');
+});
+
+test('syncStripeSubscriptionResponse clears stale entitlement when missing customer cannot be rediscovered', async () => {
+  const stripe = new MockStripe();
+  stripe.missingCustomerIds.add('cus_stale');
+
+  const supabase = new MockSupabase();
+  supabase.userRow = {
+    stripe_customer_id: 'cus_stale',
+    stripe_subscription_id: 'sub_local_stale',
+    subscription_status: 'active',
+    email: null,
+  };
+
+  const result = await syncStripeSubscriptionResponse({
+    user: { id: 'user_123', email: null },
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(
+    result.body.error,
+    'No Stripe customer linked and no email available for lookup',
+  );
+  assert.equal(supabase.updates.length, 1);
+  assert.equal(typeof supabase.updates[0]?.data.updated_at, 'string');
+  assert.deepEqual(supabase.updates[0]?.data, {
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    subscription_tier: 'basic',
+    subscription_status: 'pending',
+    current_period_end: null,
+    trial_ends_at: null,
+    cancel_at_period_end: false,
+    updated_at: supabase.updates[0]?.data.updated_at,
+  });
 });
