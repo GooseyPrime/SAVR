@@ -737,6 +737,32 @@ test('loadCustomerBillingSnapshotsByEmail throws when stale customers are mixed 
   );
 });
 
+test('loadCustomerBillingSnapshotsByEmail throws when a hard Stripe error occurs even if another snapshot succeeded', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_valid', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_error', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.subscriptionsByCustomer.set(
+    'cus_valid',
+    [makeSubscription({ id: 'sub_active', customerId: 'cus_valid', status: 'active' })],
+  );
+  stripe.customerActivityErrors.set('cus_error', new Error('stripe upstream unavailable'));
+
+  await assert.rejects(
+    () =>
+      loadCustomerBillingSnapshotsByEmail(
+        stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+        'chef@example.com',
+      ),
+    (error: unknown) => {
+      assert.ok(error instanceof AggregateError);
+      assert.match(error.message, /cus_error/);
+      return true;
+    },
+  );
+});
+
 test('POST /api/stripe/sync returns 503 when authentication throws unexpectedly', async () => {
   const response = await syncStripeSubscriptionPost(
     new Request('https://savr.app/api/stripe/sync', { method: 'POST' }) as unknown as import('next/server').NextRequest,

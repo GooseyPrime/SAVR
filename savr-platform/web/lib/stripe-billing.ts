@@ -253,14 +253,6 @@ export async function loadCustomerBillingSnapshotsByEmail(
     }),
   );
 
-  if (snapshots.length > 0) {
-    if (hardErrors.length > 0) {
-      console.warn(
-        `stripe-billing: recovered ${snapshots.length} customer snapshot(s) with hard discovery errors for customer IDs: ${hardErrors.map((entry) => entry.customerId).join(', ')}`,
-      );
-    }
-    return snapshots;
-  }
   if (hardErrors.length > 0) {
     throw new AggregateError(
       hardErrors.map((entry) => entry.error),
@@ -268,7 +260,7 @@ export async function loadCustomerBillingSnapshotsByEmail(
     );
   }
 
-  return [];
+  return snapshots;
 }
 
 function getBestCustomerSubscription(
