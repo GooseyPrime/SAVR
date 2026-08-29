@@ -96,10 +96,7 @@ export function isStripeMissingCustomerError(error: unknown, customerId: string)
   return (
     typedError.code === 'resource_missing' &&
     matchesMessageForCustomer &&
-    (
-      matchesAuthoritativeStripeType ||
-      (!typedError.rawType && !typedError.type)
-    )
+    matchesAuthoritativeStripeType
   );
 }
 
