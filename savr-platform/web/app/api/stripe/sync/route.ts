@@ -101,6 +101,14 @@ export async function POST(request: NextRequest) {
     const discovered = customers.data
       .filter((c: Stripe.Customer | Stripe.DeletedCustomer): c is Stripe.Customer => !c.deleted)
       .sort((a: Stripe.Customer, b: Stripe.Customer) => b.created - a.created)[0];
+
+    if (!discovered) {
+      return NextResponse.json(
+        { error: 'No active (non-deleted) Stripe customer found for this account' },
+        { status: 404 },
+      );
+    }
+
     customerId = discovered.id;
 
     // Persist so future calls skip this lookup.
@@ -180,9 +188,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  console.log(
-    `✅ Subscription synced for user ${user.id}: ${subscription.status}, tier=${tier}`,
-  );
+  console.log(`✅ Subscription synced: status=${subscription.status}, tier=${tier}`);
 
   return NextResponse.json({
     synced: true,

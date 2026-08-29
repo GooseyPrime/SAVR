@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   // ── 1. Auth ──────────────────────────────────────────────────────────────
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
-  const { user, supabase } = auth;
+  const { user } = auth;
 
   // ── 2. Parse & validate body ─────────────────────────────────────────────
   let plan: Plan;
