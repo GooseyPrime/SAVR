@@ -88,9 +88,7 @@ export default function ChatScreen() {
         <Text style={styles.proOnlyText}>
           Upgrade to Pro to chat with our AI Chef and get personalized cooking advice!
         </Text>
-        <TouchableOpacity style={styles.upgradeButton}>
-          <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
-        </TouchableOpacity>
+        <Text style={styles.proOnlyText}>Manage your subscription at savr.cam.</Text>
       </View>
     );
   }

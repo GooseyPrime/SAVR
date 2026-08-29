@@ -75,7 +75,7 @@ Scan your pantry, cut food waste, and cook what you already have at home.
 ```
 SAVR turns the food you already own into meals you actually want to eat.
 
-Point your camera at a shelf, a fridge drawer, or a grocery receipt, and SAVR
+Point your camera at a shelf or a fridge drawer and SAVR
 builds your pantry for you — no typing item names one at a time. From there it
 suggests recipes you can cook right now, tells you what you are missing, and
 keeps track of what gets used up.
@@ -84,7 +84,7 @@ WHAT SAVR DOES
 
 Scan your pantry
 Photograph what you have and SAVR identifies items and adds them to your
-inventory. Scan a receipt after a shop and the whole trip goes in at once.
+inventory.
 
 Cook what you already have
 Recipe suggestions are built from your actual inventory, so you stop buying a
@@ -98,9 +98,6 @@ Waste less
 Track what you have, see what needs using, and stop discovering the spinach a
 week too late.
 
-Cook with guidance
-Step-by-step cooking mode with timers, so you are not scrolling with wet hands.
-
 AI Chef (Pro)
 Ask for substitutions, scale a recipe, adapt a dish to what is in the cupboard,
 or get help with a technique.
@@ -111,7 +108,7 @@ SAVR Basic and SAVR Pro are managed on savr.cam. Sign in with the same account
 on your phone and your plan comes with you. There is nothing to buy inside this
 app.
 
-Every plan starts with a five-day free trial.
+Eligible new subscribers receive a five-day free trial.
 
 ABOUT YOUR DATA
 
@@ -170,8 +167,8 @@ available, including AI Chef.
 Subscriptions are not sold inside this app. They are purchased on our website
 at savr.cam. The app only reads the plan attached to the signed-in account.
 
-To test pantry scanning, tap Scan and photograph any food item or grocery
-receipt. A printed photo of food on a screen also works.
+To test pantry scanning, tap Scan and photograph any food item.
+A printed photo of food on a screen also works.
 ```
 
 **YOU — create that account before submitting:**
@@ -194,7 +191,7 @@ actually does; do not soften them.
 
 **Does your app collect or share any of the required user data types?** — Yes
 **Is all user data encrypted in transit?** — Yes
-**Do you provide a way for users to request deletion?** — Yes (`https://savr.cam/settings`)
+**Do you provide a way for users to request deletion?** — **Blocked** (see §11 known gaps; in-app path not yet implemented)
 
 | Data type | Collected | Shared | Purpose | Required? |
 |---|---|---|---|---|
@@ -206,9 +203,13 @@ actually does; do not soften them.
 | Purchase history | Yes | No | App functionality (plan entitlement) | Required |
 
 **Why Photos and user content are marked shared:** images and recipe/inventory
-text are sent to third-party AI providers for processing. Google treats
-transfer to a third party as sharing even when it is a processor acting on your
-behalf. Declaring "not shared" here is a common cause of enforcement action.
+text are sent to third-party AI providers for processing. Whether this
+constitutes "sharing" under Play's Data safety policy depends on each
+provider's contract and data-use terms. Google excludes transfers to service
+providers acting solely on the developer's behalf, but only if the contract
+reflects that restriction. Verify each AI provider agreement before answering
+"Shared" or "Not shared" here; an incorrect declaration is a common cause of
+enforcement action.
 
 For each shared type, purpose is **App functionality** only — not advertising,
 not personalisation by a third party.
@@ -262,8 +263,9 @@ alternative-billing programmes.
 
 The position taken for this release is the conservative one: **the Android app
 sells nothing and links to nothing purchasable.** It reads the plan on the
-signed-in account and shows plan state as information only. PR #113 removed
-every "Upgrade to Pro" affordance for exactly this reason.
+signed-in account and shows plan state as information only. The inert
+"Upgrade to Pro" controls previously present in ChatScreen and ProfileScreen
+have been removed in this PR.
 
 Keep it that way. Before any future release, confirm no screen contains a
 purchase control, a price, or a link to `savr.cam/pricing`. Adding one without
@@ -273,15 +275,17 @@ enrolling in the external-links programme puts the listing at risk.
 
 ## 7. Screenshots — **YOU**, 30 minutes
 
-Play requires 2–8 phone screenshots, minimum 1080px on the long edge. Take them
-from the internal-testing build on a real device so they show real data.
+Play requires 2–8 phone screenshots. Each side must be 320–3,840px and the
+long side must be no more than twice the short side; use 1080px or higher for
+promotional eligibility. Take them from the internal-testing build on a real
+device so they show real data.
 
 Suggested set, in listing order:
 
 1. **Pantry / inventory** — a populated pantry. This is the product.
 2. **Scan in progress** — camera pointed at food, items being recognised.
 3. **Recipe suggestions** — recipes derived from that pantry.
-4. **Recipe detail / cooking mode** — steps and timers.
+4. **Recipe detail** — steps rendered for a real recipe.
 5. **Meal plan** — a filled week.
 6. **Grocery list** — generated from the plan.
 
@@ -308,13 +312,16 @@ cannot run until the app record exists and has accepted a release.
 
 **After that, automate it.** Create a Google Cloud service account, grant it
 release permissions in Play Console → Users and permissions, download the JSON
-key, and store it outside the repo. Then add to `eas.json`:
+key, and store it **one level above the repository checkout** (for example
+`~/secrets/google-play-service-account.json`). That directory is not tracked
+by git. Do not place it under the repo root — `secrets/` is not in `.gitignore`
+and would be committed. Then add to `eas.json`:
 
 ```json
 "submit": {
   "production": {
     "android": {
-      "serviceAccountKeyPath": "../../secrets/google-play-service-account.json",
+      "serviceAccountKeyPath": "../../../secrets/google-play-service-account.json",
       "track": "internal",
       "releaseStatus": "draft"
     }
@@ -355,7 +362,9 @@ Verify on the web before submitting, because the app depends on it:
 
 Carried forward from the original operator checklist, updated:
 
-- The EAS project id is empty in `app.config.ts` — **resolved**, pinned in PR #114
+- **The EAS project id is empty in `app.config.ts`** — `EAS_PROJECT_ID` defaults
+  to an empty string when not set; the UUID must be supplied as an environment
+  variable or pinned directly before any production build.
 - The live Stripe webhook is not reaching the production host, or its signing
   secret is malformed — check `/subscription-debug` reports billing healthy
 - Any screenshot still shows "Production workspace" branding, or an empty state
@@ -371,12 +380,16 @@ camera → pantry save → recipe generated.
 
 Recorded so they are decisions rather than surprises:
 
-- **Account deletion** is available on the website, not in the app. Google
-  accepts a web path, but an in-app route is stronger and will eventually be
-  expected.
+- **Account deletion** is not yet implemented. The `/settings` page logs out
+  only; there is no deletion endpoint or in-app path. Google Play requires a
+  functional deletion path for apps that support account creation. Do not answer
+  "Yes" to the deletion question in the Data safety form until this is
+  implemented; answer "No" or leave the section blocked.
 - **No tablet-specific layouts.** The app runs on tablets; it is not optimised
   for them.
-- **No mobile test suite.** `savr-platform/mobile` has no unit tests. Mobile
-  regressions are currently caught only by typecheck and manual testing.
+- **Mobile test coverage is limited.** `savr-platform/mobile` has a unit-test
+  suite (`npm run test:unit`) covering Google-auth callback and subscription
+  entitlement logic. Camera scanning, UI flows, and most screens have no
+  automated tests; regressions there are caught by typecheck and manual testing.
 - **iOS is not started.** `eas.json` is Android-only by design; the iOS submit
   block was removed until an Apple Developer account exists.

@@ -57,13 +57,6 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
-        {!isPro && (
-          <TouchableOpacity style={[styles.menuItem, styles.upgradeItem]}>
-            <Ionicons name="star-outline" size={22} color={colors.primary} />
-            <Text style={[styles.menuItemText, styles.upgradeText]}>Upgrade to Pro</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Preferences section */}
