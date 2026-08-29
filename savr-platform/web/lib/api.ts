@@ -20,6 +20,32 @@ async function parseApiError(response: Response): Promise<ApiError> {
   return error;
 }
 
+/**
+ * Authenticated GET against an internal API route.
+ *
+ * Read-only endpoints (for example billing configuration diagnostics) should
+ * not be modelled as POSTs just because callApi predates them.
+ */
+export async function callApiGet(endpoint: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api${endpoint}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+  });
+  if (!response.ok) {
+    throw await parseApiError(response);
+  }
+
+  return response.json();
+}
+
 export async function callApi(endpoint: string, data: any) {
   const { data: { session } } = await supabase.auth.getSession();
   

@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { hasProAccess } from '../../lib/billing';
+import {
+  getSubscriptionPlanLabel,
+  getSubscriptionStatusLabel,
+  hasProAccess,
+  isSubscriptionActive,
+} from '../../lib/billing';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, shadowElevations } from '../../theme/index';
 import { callApi } from '../../utils/api';
@@ -56,9 +61,13 @@ export default function ProfileScreen() {
     );
   };
 
+  const isProPlan = userData?.subscriptionTier === 'pro';
+  const hasActiveSubscription = isSubscriptionActive(userData?.subscriptionStatus);
   const isPro = hasProAccess(userData);
   const displayName = userData?.displayName || user?.email?.split('@')[0] || 'Chef';
-  const tierLabel = isPro ? 'Pro' : 'Basic';
+  const tierLabel = getSubscriptionPlanLabel(userData?.subscriptionTier);
+  const statusLabel = getSubscriptionStatusLabel(userData?.subscriptionStatus);
+  const isPlanKnown = tierLabel !== 'Unavailable';
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   return (
@@ -72,7 +81,7 @@ export default function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
         <View style={[styles.tierBadge, isPro && styles.tierBadgePro]}>
           <Text style={[styles.tierText, isPro && styles.tierTextPro]}>
-            {isPro ? '⭐ Pro' : '📦 Basic'}
+            {isPlanKnown ? `${isProPlan ? '⭐' : '📦'} ${tierLabel}` : 'Subscription unavailable'}
           </Text>
         </View>
       </View>
@@ -81,29 +90,32 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="person-outline" size={22} color={colors.foregroundMuted} />
-          <Text style={styles.menuItemText}>Edit Profile</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-        </TouchableOpacity>
+        {/*
+          Google Play Payments policy: this app sells nothing and must not
+          direct users to an outside purchase flow. Plan state is shown as
+          information only — no purchase control, no link to checkout.
+        */}
+        <View style={[styles.menuItem, styles.planItem]}>
+          <Ionicons
+            name={isPro ? 'star' : 'star-outline'}
+            size={22}
+            color={isPro ? colors.primary : colors.foregroundMuted}
+          />
+          <Text style={styles.menuItemText}>Current plan</Text>
+          <Text style={[styles.planValue, !isPlanKnown && styles.planValueMuted]}>{tierLabel}</Text>
+        </View>
 
-      </View>
-
-      {/* Preferences section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="notifications-outline" size={22} color={colors.foregroundMuted} />
-          <Text style={styles.menuItemText}>Notifications</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="language-outline" size={22} color={colors.foregroundMuted} />
-          <Text style={styles.menuItemText}>Language</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-        </TouchableOpacity>
+        <View style={[styles.menuItem, styles.menuItemLast]}>
+          <Ionicons
+            name={hasActiveSubscription ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+            size={22}
+            color={hasActiveSubscription ? colors.primary : colors.foregroundMuted}
+          />
+          <Text style={styles.menuItemText}>Subscription status</Text>
+          <Text style={[styles.statusValue, !hasActiveSubscription && styles.planValueMuted]}>
+            {statusLabel}
+          </Text>
+        </View>
       </View>
 
       {/* Support section */}
@@ -248,7 +260,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuItemLast: {},
-  upgradeItem: {
+  planItem: {
     backgroundColor: colors.primaryLight,
   },
   menuItemText: {
@@ -256,9 +268,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.foreground,
   },
-  upgradeText: {
-    color: colors.primary,
+  planValue: {
+    fontSize: 15,
     fontWeight: '600',
+    color: colors.primary,
+  },
+  statusValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.foreground,
+  },
+  planValueMuted: {
+    color: colors.foregroundMuted,
   },
   signOutButton: {
     flexDirection: 'row',

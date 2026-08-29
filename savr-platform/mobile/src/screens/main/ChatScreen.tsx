@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasProAccess } from '../../lib/billing';
 import { Ionicons } from '@expo/vector-icons';
 import { chatWithAI } from '../../utils/api';
 import { colors, radii } from '../../theme';
@@ -28,16 +29,6 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-
-  useEffect(() => {
-    if (userData?.subscriptionTier !== 'pro') {
-      Alert.alert(
-        'Pro Feature',
-        'AI Chef chat is only available for Pro subscribers. Upgrade to unlock this feature!',
-        [{ text: 'OK' }]
-      );
-    }
-  }, [userData]);
 
   const handleSend = async () => {
     if (!inputText.trim() || loading) return;
@@ -80,13 +71,16 @@ export default function ChatScreen() {
     }
   };
 
-  if (userData?.subscriptionTier !== 'pro') {
+  // ADR-001: entitlement requires an active or trialing Pro subscription.
+  // Tier alone never grants access, so this must go through hasProAccess.
+  if (!hasProAccess(userData)) {
     return (
       <View style={styles.proOnlyContainer}>
         <Ionicons name="lock-closed" size={64} color={colors.foregroundMuted} />
-        <Text style={styles.proOnlyTitle}>Pro Feature</Text>
+        <Text style={styles.proOnlyTitle}>Included with Pro</Text>
         <Text style={styles.proOnlyText}>
-          Upgrade to Pro to chat with our AI Chef and get personalized cooking advice!
+          AI Chef chat is part of the Pro plan. When your SAVR account has an active
+          Pro subscription, this screen unlocks automatically.
         </Text>
         <Text style={styles.proOnlyText}>Manage your subscription at savr.cam.</Text>
       </View>
@@ -267,16 +261,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  upgradeButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: radii.full,
-  },
-  upgradeButtonText: {
-    color: colors.primaryForeground,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
 });
-

@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isKnownTier, isSubscriptionActive, hasBasicAccess, hasProAccess } from '../src/lib/billing';
+import {
+  getSubscriptionPlanLabel,
+  getSubscriptionStatusLabel,
+  hasBasicAccess,
+  hasProAccess,
+  isKnownTier,
+  isSubscriptionActive,
+} from '../src/lib/billing';
 
 // isKnownTier
 test('isKnownTier accepts canonical tier values', () => {
@@ -34,6 +41,34 @@ test('isSubscriptionActive returns false for non-entitling statuses', () => {
   assert.equal(isSubscriptionActive('unpaid'), false);
   assert.equal(isSubscriptionActive(null), false);
   assert.equal(isSubscriptionActive(undefined), false);
+});
+
+test('getSubscriptionPlanLabel returns canonical plan names from tier', () => {
+  assert.equal(getSubscriptionPlanLabel('basic'), 'Basic');
+  assert.equal(getSubscriptionPlanLabel('pro'), 'Pro');
+});
+
+test('getSubscriptionPlanLabel surfaces unavailable or unknown plan state explicitly', () => {
+  assert.equal(getSubscriptionPlanLabel(null), 'Unavailable');
+  assert.equal(getSubscriptionPlanLabel(undefined), 'Unavailable');
+  assert.equal(getSubscriptionPlanLabel('legacy'), 'Unavailable');
+});
+
+test('getSubscriptionStatusLabel returns readable labels for known statuses', () => {
+  assert.equal(getSubscriptionStatusLabel('active'), 'Active');
+  assert.equal(getSubscriptionStatusLabel('trialing'), 'Trialing');
+  assert.equal(getSubscriptionStatusLabel('pending'), 'Pending');
+  assert.equal(getSubscriptionStatusLabel('past_due'), 'Past due');
+  assert.equal(getSubscriptionStatusLabel('canceled'), 'Canceled');
+  assert.equal(getSubscriptionStatusLabel('incomplete'), 'Incomplete');
+  assert.equal(getSubscriptionStatusLabel('incomplete_expired'), 'Expired');
+  assert.equal(getSubscriptionStatusLabel('unpaid'), 'Unpaid');
+});
+
+test('getSubscriptionStatusLabel surfaces unavailable state explicitly', () => {
+  assert.equal(getSubscriptionStatusLabel(null), 'Unavailable');
+  assert.equal(getSubscriptionStatusLabel(undefined), 'Unavailable');
+  assert.equal(getSubscriptionStatusLabel('legacy'), 'Unavailable');
 });
 
 // hasBasicAccess
@@ -94,4 +129,3 @@ test('hasProAccess: legacy tier values grant no Pro access', () => {
   assert.equal(hasProAccess({ subscriptionTier: 'premium' as never, subscriptionStatus: 'active' }), false);
   assert.equal(hasProAccess({ subscriptionTier: 'plus' as never, subscriptionStatus: 'active' }), false);
 });
-
