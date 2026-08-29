@@ -26,6 +26,43 @@ export function isSubscriptionActive(status: string | null | undefined): boolean
   return status === 'active' || status === 'trialing';
 }
 
+/**
+ * Returns a display label for the canonical subscription tier.
+ * Unknown or unavailable values are surfaced explicitly instead of being
+ * collapsed into a plan the user may not currently hold.
+ */
+export function getSubscriptionPlanLabel(tier: string | null | undefined): string {
+  if (tier === 'basic') return 'Basic';
+  if (tier === 'pro') return 'Pro';
+  return 'Unavailable';
+}
+
+/**
+ * Returns a display label for the server-driven subscription status.
+ */
+export function getSubscriptionStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case 'active':
+      return 'Active';
+    case 'trialing':
+      return 'Trialing';
+    case 'pending':
+      return 'Pending';
+    case 'past_due':
+      return 'Past due';
+    case 'canceled':
+      return 'Canceled';
+    case 'incomplete':
+      return 'Incomplete';
+    case 'incomplete_expired':
+      return 'Expired';
+    case 'unpaid':
+      return 'Unpaid';
+    default:
+      return 'Unavailable';
+  }
+}
+
 interface BillingUserData {
   subscriptionTier?: string | null;
   subscriptionStatus?: string | null;

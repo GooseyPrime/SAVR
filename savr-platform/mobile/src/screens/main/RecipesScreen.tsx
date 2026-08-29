@@ -122,7 +122,12 @@ export default function RecipesScreen({ navigation }: RecipesScreenProps) {
       loadRecipes();
     } catch (error: any) {
       const msg = error?.message || 'Failed to generate recipe';
-      Alert.alert('Error', msg.includes('limit') ? 'Monthly limit reached. Upgrade for more.' : msg);
+      Alert.alert(
+        'Error',
+        msg.includes('limit')
+          ? 'You have reached this month’s recipe generation limit for your plan.'
+          : msg,
+      );
     } finally {
       setGenerating(false);
     }
