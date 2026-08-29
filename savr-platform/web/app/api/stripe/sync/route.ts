@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     // Use the most recently created non-deleted customer.
     const discovered = customers.data
-      .filter((c): c is Stripe.Customer => !c.deleted)
+      .filter((c: Stripe.Customer | Stripe.DeletedCustomer): c is Stripe.Customer => !c.deleted)
       .sort((a: Stripe.Customer, b: Stripe.Customer) => b.created - a.created)[0];
     customerId = discovered.id;
 
