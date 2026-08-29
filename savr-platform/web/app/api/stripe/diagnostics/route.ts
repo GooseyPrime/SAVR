@@ -22,7 +22,7 @@ interface PriceEnvReport {
   looksLikePriceId: boolean;
 }
 
-export function reportPriceEnvs(): PriceEnvReport[] {
+function reportPriceEnvs(): PriceEnvReport[] {
   return (Object.keys(PLAN_ENV_MAP) as Plan[]).map((plan) => {
     let priceId: string | null = null;
     try {
@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
   const prices = reportPriceEnvs();
 
   const billingReady =
-    secretKey.usable && webhookSecret.usable && prices.every((price) => price.configured);
+    secretKey.usable &&
+    webhookSecret.usable &&
+    prices.every((price) => price.configured && price.looksLikePriceId);
 
   return NextResponse.json({
     billingReady,
