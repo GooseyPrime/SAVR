@@ -171,7 +171,9 @@ export default function PricingPage() {
         ) : (
           /* New Subscriber - Show Stripe Pricing Table */
           <div className="max-w-5xl mx-auto">
-            {/* Static plan comparison — visible before sign-in and when Stripe is unavailable */}
+            {/* Static plan comparison — visible before sign-in and when Stripe is unavailable.
+                Hidden for logged-in users when the Stripe Pricing Table is present (avoids duplication). */}
+            {(!user || !stripeConfigured) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12" aria-label="Plan comparison">
               {/* Basic plan */}
               <div className="rounded-2xl p-8 bg-surface/60 border border-border/60">
@@ -207,6 +209,7 @@ export default function PricingPage() {
                 </ul>
               </div>
             </div>
+            )}
 
             {!user && (
               <div className="mb-8 text-center">

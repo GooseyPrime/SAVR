@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { callApi } from '@/lib/api';
 
 export default function SubscriptionDebugContent() {
   return (
@@ -15,6 +17,40 @@ export default function SubscriptionDebugContent() {
 
 function SubscriptionDebugInner() {
   const { user, userData } = useAuth();
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await callApi('/stripe/sync', {}) as {
+        synced?: boolean;
+        message?: string;
+        subscription_status?: string;
+        subscription_tier?: string;
+        error?: string;
+      };
+      if (result.synced) {
+        setSyncResult({
+          success: true,
+          message: `Synced: status=${result.subscription_status}, tier=${result.subscription_tier}. Refresh the page to see updated values.`,
+        });
+      } else {
+        setSyncResult({
+          success: false,
+          message: result.message ?? result.error ?? 'Sync returned no subscription.',
+        });
+      }
+    } catch (err) {
+      setSyncResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Sync failed.',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const formatDate = (
     date: string | Date | { seconds: number; nanoseconds: number } | undefined
@@ -85,6 +121,40 @@ function SubscriptionDebugInner() {
                 value={formatDate(userData?.trial_ends_at)} 
               />
             </div>
+          </div>
+
+          {/* Manual sync */}
+          <div className="glass-card rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold text-white mb-2">Manual Subscription Sync</h2>
+            <p className="text-sm text-[#C8D9CF] mb-4">
+              If your subscription status is still &quot;pending&quot; or &quot;Not set&quot; after completing
+              checkout — which can happen when a coupon reduces the price to $0 or a webhook
+              was not delivered — click below to pull your subscription directly from Stripe.
+            </p>
+
+            {syncResult && (
+              <div
+                className="mb-4 rounded-lg px-4 py-3 text-sm"
+                style={{
+                  background: syncResult.success
+                    ? 'rgba(0, 191, 166, 0.1)'
+                    : 'rgba(239, 68, 68, 0.1)',
+                  border: `1px solid ${syncResult.success ? 'rgba(0, 191, 166, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                  color: syncResult.success ? '#00bfa6' : '#f87171',
+                }}
+              >
+                {syncResult.message}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={syncing}
+              className="rounded-lg bg-primary text-primary-foreground font-semibold px-5 py-2 text-sm hover:bg-primary-hover disabled:opacity-50 transition-all"
+            >
+              {syncing ? 'Syncing…' : 'Sync subscription from Stripe'}
+            </button>
           </div>
 
           {/* Instructions */}
