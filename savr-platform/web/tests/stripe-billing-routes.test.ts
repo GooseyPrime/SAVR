@@ -7,6 +7,7 @@ import {
   findBlockingSubscription,
   findOpenSubscriptionCheckoutSession,
   getSubscriptionPeriodEndUnix,
+  loadCustomerBillingSnapshotsByEmail,
   isPlan,
   mapStripeStatusToDatabase,
   pickCurrentSubscription,
@@ -667,6 +668,28 @@ test('syncStripeSubscriptionResponse returns 502 when Stripe customer discovery 
     'Could not look up Stripe customers for this account. Please try again shortly.',
   );
   assert.equal(supabase.updates.length, 0);
+});
+
+test('loadCustomerBillingSnapshotsByEmail ignores stale customer IDs when at least one customer remains valid', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_stale', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_valid', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.missingCustomerIds.add('cus_stale');
+  stripe.subscriptionsByCustomer.set(
+    'cus_valid',
+    [makeSubscription({ id: 'sub_active', customerId: 'cus_valid', status: 'active' })],
+  );
+
+  const snapshots = await loadCustomerBillingSnapshotsByEmail(
+    stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    'chef@example.com',
+  );
+
+  assert.equal(snapshots.length, 1);
+  assert.equal(snapshots[0]?.customer.id, 'cus_valid');
+  assert.equal(snapshots[0]?.subscriptions.length, 1);
 });
 
 test('POST /api/stripe/sync returns 503 when authentication throws unexpectedly', async () => {
