@@ -22,6 +22,7 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<Plan | null>(null);
   const [error, setError] = useState('');
   const [period, setPeriod] = useState<BillingPeriod>('yearly');
+  const [couponCode, setCouponCode] = useState('');
 
   const hasActiveSub = isSubscriptionActive(userData?.subscription_status);
   const isPro = hasProAccess(userData);
@@ -60,7 +61,11 @@ export default function PricingPage() {
     setLoadingPlan(plan);
     setError('');
     try {
-      const result = await callApi('/stripe/checkout', { plan }) as { url?: string; error?: string };
+      const trimmedCoupon = couponCode.trim();
+      const result = await callApi('/stripe/checkout', {
+        plan,
+        ...(trimmedCoupon ? { promotionCode: trimmedCoupon } : {}),
+      }) as { url?: string; error?: string };
       if (!result.url) throw new Error(result.error ?? 'No checkout URL returned');
       window.location.href = result.url;
     } catch (err) {
@@ -82,7 +87,7 @@ export default function PricingPage() {
           <div className="max-w-2xl mx-auto mb-10 rounded-xl px-6 py-5 text-center" style={{ background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
             <h3 className="text-lg font-semibold text-foreground mb-2">Choose a plan to get started</h3>
             <p className="text-sm text-foreground-muted">
-              Select a plan below to begin your 5-day free trial. Your payment info is collected now but you will not be charged until the trial ends. Cancel anytime.
+              Select a plan below to begin your 5-day free trial. Your payment details are collected now and you will not be charged until the trial ends. Cancel anytime.
             </p>
           </div>
         )}
@@ -95,7 +100,8 @@ export default function PricingPage() {
             <span className="gradient-text">pricing</span>
           </h1>
           <p className="text-lg max-w-xl mx-auto text-foreground-muted">
-            Try any plan free for 5 days. No charge until your trial ends. Coupon codes accepted at checkout.
+            Try any plan free for 5 days. Your card is required to start the trial and is not
+            charged until the trial ends.
           </p>
           {!user && (
             <div className="mt-8">
@@ -109,6 +115,32 @@ export default function PricingPage() {
             </div>
           )}
         </div>
+
+        {user && !hasActiveSub && (
+          <div className="max-w-md mx-auto mb-10">
+            <label
+              htmlFor="coupon-code"
+              className="block text-sm font-medium text-foreground-muted mb-2 text-center"
+            >
+              Have a coupon code? Enter it before choosing a plan.
+            </label>
+            <input
+              id="coupon-code"
+              type="text"
+              value={couponCode}
+              onChange={(event) => setCouponCode(event.target.value)}
+              maxLength={64}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Coupon code (optional)"
+              className="w-full rounded-lg bg-transparent border border-border px-4 py-2.5 text-sm text-foreground text-center tracking-wide uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-foreground-muted focus:outline-none focus:border-primary transition-colors"
+            />
+            <p className="mt-2 text-xs text-center text-foreground-muted">
+              A code that makes your plan permanently free skips the card entirely. Every other
+              code still requires a card to cover any amount due now or in the future.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="max-w-2xl mx-auto mb-8 px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#f87171' }}>
@@ -282,7 +314,7 @@ export default function PricingPage() {
             )}
 
             <p className="text-center text-xs text-foreground-muted mt-4">
-              Coupon codes can be applied at checkout. When Stripe determines no current or future payment method is required for a $0 total, it skips payment collection.
+              A card is required to start any trial. The only exception is a coupon that makes your plan permanently free, which skips payment collection entirely.
             </p>
           </div>
         )}
@@ -300,7 +332,7 @@ export default function PricingPage() {
             />
             <FAQItem
               question="Can I use a coupon code?"
-              answer="Yes! Both monthly and yearly plans accept coupon codes. Choose a plan, then enter your code in the coupon field on the Stripe checkout page. If Stripe determines your discounted checkout does not need a payment method, it will skip collecting one."
+              answer="Yes. Enter your code in the coupon field above before choosing a plan, and the discount is applied to your checkout. If the code makes your plan permanently free, we skip collecting a card because there is nothing to bill. Any other code still requires a card to cover any amount due now or in the future."
             />
             <FAQItem
               question="Can I switch plans anytime?"

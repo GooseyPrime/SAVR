@@ -69,7 +69,10 @@ const CUSTOMER_SELECTION_PRIORITY = [
   ...HISTORICAL_SUBSCRIPTION_PRIORITY,
 ] as const;
 
-type StripeBillingClient = Pick<Stripe, 'customers' | 'subscriptions' | 'checkout'>;
+type StripeBillingClient = Pick<
+  Stripe,
+  'checkout' | 'customers' | 'prices' | 'promotionCodes' | 'subscriptions'
+>;
 
 export function isPlan(value: unknown): value is Plan {
   return typeof value === 'string' && value in PLAN_ENV_MAP;
@@ -205,6 +208,135 @@ export function findReusableCheckoutSession(
   );
 }
 
+/**
+ * True when a promotion code removes every charge for the whole life of the
+ * subscription, so the customer will never owe anything and a card is
+ * pointless.
+ *
+ * Only a permanent 100%-off discount qualifies. A `once` or `repeating`
+ * discount still bills later, so a payment method is required up front —
+ * otherwise the subscription silently fails at the first real invoice.
+ */
+function getPromotionCoupon(
+  promotionCode: Stripe.PromotionCode | null | undefined,
+): Stripe.Coupon | null {
+  const coupon = promotionCode?.promotion?.coupon;
+  return !coupon || typeof coupon === 'string' ? null : coupon;
+}
+
+function getPriceProductId(price: Stripe.Price): string | null {
+  if (typeof price.product === 'string') return price.product;
+  return price.product?.id ?? null;
+}
+
+function getPriceUnitAmount(price: Stripe.Price): number | null {
+  if (typeof price.unit_amount === 'number') return price.unit_amount;
+  if (typeof price.unit_amount_decimal !== 'string') return null;
+
+  const parsed = Number(price.unit_amount_decimal);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getPromotionCustomerId(promotionCode: Stripe.PromotionCode): string | null {
+  if (typeof promotionCode.customer === 'string') return promotionCode.customer;
+  if (promotionCode.customer?.deleted) return null;
+  return promotionCode.customer?.id ?? null;
+}
+
+function getCouponAmountOffForPrice(coupon: Stripe.Coupon, price: Stripe.Price): number | null {
+  if (coupon.amount_off != null) {
+    return coupon.currency?.toLowerCase() === price.currency.toLowerCase()
+      ? coupon.amount_off
+      : null;
+  }
+
+  const currencyOptions = coupon.currency_options as
+    | Record<string, { amount_off?: number | null }>
+    | null
+    | undefined;
+  const priceCurrencyOption = currencyOptions?.[price.currency.toLowerCase()];
+  return typeof priceCurrencyOption?.amount_off === 'number'
+    ? priceCurrencyOption.amount_off
+    : null;
+}
+
+export function promotionCodeAppliesToPrice(
+  promotionCode: Stripe.PromotionCode | null | undefined,
+  price: Stripe.Price | null | undefined,
+): boolean {
+  const coupon = getPromotionCoupon(promotionCode);
+  if (!coupon?.valid || !price) return false;
+
+  const appliesToProducts = coupon.applies_to?.products;
+  if (appliesToProducts?.length) {
+    const productId = getPriceProductId(price);
+    if (!productId || !appliesToProducts.includes(productId)) return false;
+  }
+
+  return coupon.amount_off == null || getCouponAmountOffForPrice(coupon, price) != null;
+}
+
+export function discountRemovesAllCharges(
+  promotionCode: Stripe.PromotionCode | null | undefined,
+  price: Stripe.Price | null | undefined,
+): boolean {
+  const coupon = getPromotionCoupon(promotionCode);
+  // An unexpanded coupon is just an id, so the discount cannot be evaluated.
+  // Fail closed: require a payment method rather than assume the plan is free.
+  if (!coupon?.valid || !price) return false;
+  if (!promotionCodeAppliesToPrice(promotionCode, price)) return false;
+  if (coupon.duration !== 'forever') return false;
+  if (coupon.percent_off === 100) return true;
+
+  const amountOff = getCouponAmountOffForPrice(coupon, price);
+  const unitAmount = getPriceUnitAmount(price);
+  return amountOff != null && unitAmount != null && amountOff >= unitAmount;
+}
+
+/**
+ * Look up an active promotion code by the customer-facing code.
+ * Returns null when the code does not exist or is no longer redeemable.
+ */
+export async function findActivePromotionCode(
+  stripe: Pick<Stripe, 'promotionCodes'>,
+  code: string,
+  customerId?: string | null,
+): Promise<Stripe.PromotionCode | null> {
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+
+  const result = await stripe.promotionCodes.list({
+    code: trimmed,
+    active: true,
+    limit: 100,
+    // The coupon carries the discount terms that decide whether a payment
+    // method is needed, so it must come back expanded rather than as an id.
+    expand: ['data.promotion.coupon'],
+  });
+
+  const matches = result.data.filter((promotionCode) => {
+    const promotionCustomerId = getPromotionCustomerId(promotionCode);
+    return promotionCustomerId == null || promotionCustomerId === customerId;
+  });
+
+  if (customerId) {
+    return (
+      matches.find((promotionCode) => getPromotionCustomerId(promotionCode) === customerId) ??
+      matches.find((promotionCode) => getPromotionCustomerId(promotionCode) == null) ??
+      null
+    );
+  }
+
+  return matches.find((promotionCode) => getPromotionCustomerId(promotionCode) == null) ?? null;
+}
+
+export async function loadCheckoutPrice(
+  stripe: Pick<Stripe, 'prices'>,
+  priceId: string,
+): Promise<Stripe.Price> {
+  return stripe.prices.retrieve(priceId);
+}
+
 export function buildCheckoutSessionParams(args: {
   priceId: string;
   userId: string;
@@ -213,13 +345,30 @@ export function buildCheckoutSessionParams(args: {
   origin: string;
   includeTrial?: boolean;
   plan?: Plan;
+  /** Pre-applied promotion code. Mutually exclusive with the Checkout coupon field. */
+  promotionCodeId?: string | null;
+  /**
+   * Whether Stripe must collect a payment method. Defaults to true: a card is
+   * always required, including during the free trial, so the subscription can
+   * bill when the trial ends. Pass false only when the discount removes every
+   * charge for the life of the subscription.
+   */
+  collectPaymentMethod?: boolean;
 }): Stripe.Checkout.SessionCreateParams {
   const includeTrial = args.includeTrial !== false;
+  const collectPaymentMethod = args.collectPaymentMethod !== false;
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
     line_items: [{ price: args.priceId, quantity: 1 }],
-    payment_method_collection: 'if_required',
-    allow_promotion_codes: true,
+    // 'always' keeps the card requirement during the free trial. 'if_required'
+    // is what Stripe uses to start a trial WITHOUT payment details, which is
+    // only correct when nothing will ever be charged.
+    payment_method_collection: collectPaymentMethod ? 'always' : 'if_required',
+    // Stripe rejects allow_promotion_codes together with discounts, so the
+    // in-Checkout coupon field is offered only when no code was pre-applied.
+    ...(args.promotionCodeId
+      ? { discounts: [{ promotion_code: args.promotionCodeId }] }
+      : { allow_promotion_codes: true }),
     client_reference_id: args.userId,
     metadata: {
       userId: args.userId,
@@ -249,9 +398,13 @@ export function buildCheckoutIdempotencyKey(args: {
   customerId?: string | null;
   plan: Plan;
   includeTrial?: boolean;
+  promotionCodeId?: string | null;
 }): string {
   const trialPart = args.includeTrial === false ? 'no-trial' : 'trial';
-  return `stripe-checkout:${args.customerId ?? args.userId}:${args.plan}:${trialPart}`;
+  // The promotion code changes the session's discounts and its
+  // payment-collection rule, so it must change the identity of the request.
+  const promoPart = args.promotionCodeId ? `:${args.promotionCodeId}` : '';
+  return `stripe-checkout:${args.customerId ?? args.userId}:${args.plan}:${trialPart}${promoPart}`;
 }
 
 export async function loadCustomerActivity(

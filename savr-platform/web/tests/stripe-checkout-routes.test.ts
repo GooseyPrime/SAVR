@@ -3,7 +3,15 @@ import test from 'node:test';
 
 import { TRIAL_PERIOD_DAYS } from '../lib/stripe-billing';
 import { createCheckoutSessionResponse } from '../app/api/stripe/checkout/route';
-import { makeCustomer, makeSession, makeSubscription, MockStripe, MockSupabase } from './stripe-billing-kit';
+import {
+  makeCustomer,
+  makePrice,
+  makePromotionCode,
+  makeSession,
+  makeSubscription,
+  MockStripe,
+  MockSupabase,
+} from './stripe-billing-kit';
 
 process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly';
 process.env.STRIPE_PRICE_BASIC_YEARLY = 'price_basic_yearly';
@@ -298,4 +306,183 @@ test('createCheckoutSessionResponse returns 502 when Stripe customer discovery f
   );
   assert.equal(stripe.createCalls.length, 0);
   assert.equal(supabase.updates.length, 0);
+});
+
+test('createCheckoutSessionResponse keeps the trial when a coupon still leaves some amount due', async () => {
+  const stripe = new MockStripe();
+  stripe.pricesById.set(
+    'price_pro_monthly',
+    makePrice({ id: 'price_pro_monthly', productId: 'prod_pro', currency: 'usd', unitAmount: 999 }),
+  );
+  stripe.promotionCodesByCode.set('SAVE50', [
+    makePromotionCode({
+      id: 'promo_save50',
+      code: 'SAVE50',
+      coupon: { percent_off: 50, duration: 'forever', applies_to: { products: ['prod_pro'] } },
+    }),
+  ]);
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'pro_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+    promotionCode: 'SAVE50',
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.url, 'https://checkout.stripe.test/new');
+  assert.equal(stripe.createCalls.length, 1);
+  assert.equal(stripe.createCalls[0].params.payment_method_collection, 'always');
+  assert.equal(stripe.createCalls[0].params.subscription_data?.trial_period_days, TRIAL_PERIOD_DAYS);
+  assert.deepEqual(stripe.createCalls[0].params.discounts, [{ promotion_code: 'promo_save50' }]);
+});
+
+test('createCheckoutSessionResponse skips the card and trial when a matching forever-free coupon covers the plan', async () => {
+  const stripe = new MockStripe();
+  stripe.pricesById.set(
+    'price_pro_monthly',
+    makePrice({ id: 'price_pro_monthly', productId: 'prod_pro', currency: 'usd', unitAmount: 999 }),
+  );
+  stripe.promotionCodesByCode.set('FREEFOREVER', [
+    makePromotionCode({
+      id: 'promo_wrong_customer',
+      code: 'FREEFOREVER',
+      customerId: 'cus_other',
+      coupon: { percent_off: 100, duration: 'forever', applies_to: { products: ['prod_pro'] } },
+    }),
+    makePromotionCode({
+      id: 'promo_free',
+      code: 'FREEFOREVER',
+      customerId: 'cus_existing',
+      coupon: { percent_off: 100, duration: 'forever', applies_to: { products: ['prod_pro'] } },
+    }),
+  ]);
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'pro_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+    promotionCode: 'FREEFOREVER',
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.url, 'https://checkout.stripe.test/new');
+  assert.equal(stripe.createCalls.length, 1);
+  assert.equal(stripe.createCalls[0].params.payment_method_collection, 'if_required');
+  assert.equal(stripe.createCalls[0].params.subscription_data?.trial_period_days, undefined);
+  assert.deepEqual(stripe.createCalls[0].params.discounts, [{ promotion_code: 'promo_free' }]);
+  assert.equal(
+    stripe.createCalls[0].options?.idempotencyKey,
+    'stripe-checkout:cus_existing:pro_monthly:no-trial:promo_free',
+  );
+});
+
+test('createCheckoutSessionResponse rejects a coupon that does not apply to the selected plan', async () => {
+  const stripe = new MockStripe();
+  stripe.pricesById.set(
+    'price_basic_monthly',
+    makePrice({ id: 'price_basic_monthly', productId: 'prod_basic', currency: 'usd', unitAmount: 499 }),
+  );
+  stripe.promotionCodesByCode.set('PROONLY', [
+    makePromotionCode({
+      id: 'promo_pro_only',
+      code: 'PROONLY',
+      coupon: { percent_off: 100, duration: 'forever', applies_to: { products: ['prod_pro'] } },
+    }),
+  ]);
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+    promotionCode: 'PROONLY',
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.body.error, 'That coupon code does not apply to this plan.');
+  assert.equal(stripe.createCalls.length, 0);
+});
+
+test('createCheckoutSessionResponse returns 400 for an unknown coupon code', async () => {
+  const stripe = new MockStripe();
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+    promotionCode: 'NOPE',
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.body.error, 'That coupon code is not valid or is no longer available.');
+  assert.equal(stripe.createCalls.length, 0);
+});
+
+test('createCheckoutSessionResponse returns 502 when coupon lookup fails', async () => {
+  const stripe = new MockStripe();
+  stripe.promotionCodesListError = new Error('stripe upstream unavailable');
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+    promotionCode: 'BROKEN',
+  });
+
+  assert.equal(result.status, 502);
+  assert.equal(
+    result.body.error,
+    'Could not verify that coupon code. Please try again shortly.',
+  );
+  assert.equal(stripe.createCalls.length, 0);
+});
+
+test('createCheckoutSessionResponse returns 502 when price lookup for a coupon fails', async () => {
+  const stripe = new MockStripe();
+  stripe.promotionCodesByCode.set('FREEFOREVER', [
+    makePromotionCode({
+      id: 'promo_free',
+      code: 'FREEFOREVER',
+      coupon: { percent_off: 100, duration: 'forever' },
+    }),
+  ]);
+  stripe.priceRetrieveErrors.set('price_pro_monthly', new Error('stripe upstream unavailable'));
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'pro_monthly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+    promotionCode: 'FREEFOREVER',
+  });
+
+  assert.equal(result.status, 502);
+  assert.equal(
+    result.body.error,
+    'Could not verify that coupon code. Please try again shortly.',
+  );
+  assert.equal(stripe.createCalls.length, 0);
 });

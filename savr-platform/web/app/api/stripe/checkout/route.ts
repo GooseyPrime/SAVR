@@ -4,17 +4,22 @@
  * Creates a Stripe Checkout Session for a new subscription.
  *
  * Key behaviours:
- *  - `payment_method_collection: 'if_required'` — Stripe skips the payment
- *    form entirely when a promotion code (coupon) reduces the session total to
- *    $0.00. Without this flag Stripe always collects card details even on
- *    fully-discounted orders.
- *  - `allow_promotion_codes: true` — keeps the coupon-code input visible in
- *    the Stripe Checkout UI so users can apply codes themselves.
+ *  - `payment_method_collection: 'always'` by default, so every checkout
+ *    starts with a payment method on file and a free trial can convert.
+ *  - A customer can optionally send a `promotionCode` in the request body.
+ *    The server resolves it before session creation and only drops card
+ *    collection when the discount makes the chosen plan permanently free.
+ *  - `allow_promotion_codes: true` stays enabled only when no promotion code
+ *    was pre-applied, so Stripe Checkout can still accept codes after a card
+ *    has been collected.
  *  - `client_reference_id` is set to the authenticated user's Supabase UID so
  *    the `checkout.session.completed` webhook can link the session back to the
  *    correct user row without relying on email matching.
  *
- * Body: { plan: 'basic_monthly' | 'basic_yearly' | 'pro_monthly' | 'pro_yearly' }
+ * Body: {
+ *   plan: 'basic_monthly' | 'basic_yearly' | 'pro_monthly' | 'pro_yearly',
+ *   promotionCode?: string
+ * }
  *
  * Response: { url: string } — redirect the browser to this Stripe-hosted URL.
  */
@@ -27,17 +32,21 @@ import {
   buildCheckoutIdempotencyKey,
   buildCheckoutSessionParams,
   customerHasConsumedTrial,
+  discountRemovesAllCharges,
+  findActivePromotionCode,
   findBlockingSubscription,
   findReusableCheckoutSession,
   isPlan,
   isStripeMissingCustomerError,
   isStripeTrialIneligibleError,
+  loadCheckoutPrice,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
   mapStripeStatusToDatabase,
   PLAN_ENV_MAP,
   pickCurrentSubscription,
   pickHistoricalSubscription,
+  promotionCodeAppliesToPrice,
   resolvePriceId,
   resolveStripeSubscriptionSnapshot,
   selectCustomerBillingSnapshot,
@@ -60,6 +69,8 @@ export async function createCheckoutSessionResponse(args: {
   origin: string;
   stripe: ReturnType<typeof getStripeInstance>;
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+  /** Optional customer-facing coupon code entered before checkout. */
+  promotionCode?: string | null;
 }): Promise<CheckoutRouteResult> {
   const { user, plan, origin, stripe, supabaseAdmin } = args;
 
@@ -200,11 +211,63 @@ export async function createCheckoutSessionResponse(args: {
     };
   }
 
-  const includeTrial = !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
+  // A payment method is required for every checkout. The single exception is a
+  // coupon that removes every charge for the chosen plan for the whole life of
+  // the subscription — there is nothing to bill, so Stripe is told not to ask
+  // for a card.
+  let promotion: Awaited<ReturnType<typeof findActivePromotionCode>> = null;
+  let fullyDiscounted = false;
+  if (args.promotionCode?.trim()) {
+    try {
+      promotion = await findActivePromotionCode(stripe, args.promotionCode, customerId);
+    } catch (error) {
+      console.error('checkout: failed to look up promotion code', error);
+      return {
+        status: 502,
+        body: { error: 'Could not verify that coupon code. Please try again shortly.' },
+      };
+    }
+    if (!promotion) {
+      return {
+        status: 400,
+        body: { error: 'That coupon code is not valid or is no longer available.' },
+      };
+    }
 
-  const reusableSession = customerActivity
-    ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId, includeTrial)
-    : null;
+    let price;
+    try {
+      price = await loadCheckoutPrice(stripe, priceId);
+    } catch (error) {
+      console.error('checkout: failed to load Stripe price for promotion code', error);
+      return {
+        status: 502,
+        body: { error: 'Could not verify that coupon code. Please try again shortly.' },
+      };
+    }
+
+    if (!promotionCodeAppliesToPrice(promotion, price)) {
+      return {
+        status: 400,
+        body: { error: 'That coupon code does not apply to this plan.' },
+      };
+    }
+
+    fullyDiscounted = discountRemovesAllCharges(promotion, price);
+  }
+
+  const collectPaymentMethod = !fullyDiscounted;
+
+  // A permanently free plan has nothing to trial, so the trial is dropped.
+  const includeTrial =
+    !fullyDiscounted &&
+    !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
+
+  // Never hand back an earlier session when a coupon was supplied: that session
+  // carries different discounts and a different payment-collection rule.
+  const reusableSession =
+    customerActivity && !promotion
+      ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId, includeTrial)
+      : null;
   if (reusableSession?.url) {
     return { status: 200, body: { url: reusableSession.url } };
   }
@@ -219,6 +282,8 @@ export async function createCheckoutSessionResponse(args: {
         origin,
         includeTrial: withTrial,
         plan,
+        promotionCodeId: promotion?.id ?? null,
+        collectPaymentMethod,
       }),
       {
         idempotencyKey: buildCheckoutIdempotencyKey({
@@ -226,6 +291,7 @@ export async function createCheckoutSessionResponse(args: {
           userId: user.id,
           plan,
           includeTrial: withTrial,
+          promotionCodeId: promotion?.id ?? null,
         }),
       },
     );
@@ -274,8 +340,9 @@ export async function POST(request: NextRequest) {
 
   // ── 2. Parse & validate body ─────────────────────────
   let plan: Plan;
+  let promotionCode: string | null = null;
   try {
-    const body = await request.json() as { plan?: unknown };
+    const body = await request.json() as { plan?: unknown; promotionCode?: unknown };
     if (!isPlan(body.plan)) {
       return NextResponse.json(
         { error: `Invalid plan. Must be one of: ${Object.keys(PLAN_ENV_MAP).join(', ')}` },
@@ -283,6 +350,13 @@ export async function POST(request: NextRequest) {
       );
     }
     plan = body.plan;
+
+    if (body.promotionCode !== undefined && body.promotionCode !== null) {
+      if (typeof body.promotionCode !== 'string' || body.promotionCode.length > 64) {
+        return NextResponse.json({ error: 'Invalid coupon code' }, { status: 400 });
+      }
+      promotionCode = body.promotionCode.trim() || null;
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -319,6 +393,7 @@ export async function POST(request: NextRequest) {
     origin,
     stripe,
     supabaseAdmin,
+    promotionCode,
   });
 
   return NextResponse.json(result.body, { status: result.status });

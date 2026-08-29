@@ -67,6 +67,70 @@ export function makeCustomer(args: {
   } as Stripe.Customer;
 }
 
+export function makePrice(args: {
+  id: string;
+  productId?: string;
+  currency?: string;
+  unitAmount?: number | null;
+}): Stripe.Price {
+  return {
+    id: args.id,
+    object: 'price',
+    active: true,
+    billing_scheme: 'per_unit',
+    currency: args.currency ?? 'usd',
+    livemode: false,
+    metadata: {},
+    product: args.productId ?? 'prod_pro',
+    recurring: {
+      interval: 'month',
+      interval_count: 1,
+      usage_type: 'licensed',
+    },
+    type: 'recurring',
+    unit_amount: args.unitAmount ?? 999,
+    unit_amount_decimal: String(args.unitAmount ?? 999),
+  } as Stripe.Price;
+}
+
+export function makePromotionCode(args: {
+  id: string;
+  code?: string;
+  customerId?: string | null;
+  coupon?: Partial<Stripe.Coupon> & {
+    applies_to?: { products: string[] } | null;
+    currency_options?: Record<string, { amount_off?: number | null }> | null;
+  };
+}): Stripe.PromotionCode {
+  return {
+    id: args.id,
+    object: 'promotion_code',
+    active: true,
+    code: args.code ?? 'PROMO',
+    customer: args.customerId ?? null,
+    promotion: {
+      type: 'coupon',
+      coupon: {
+        id: `coupon_${args.id}`,
+        object: 'coupon',
+        valid: true,
+        duration: 'forever',
+        percent_off: 100,
+        amount_off: null,
+        currency: null,
+        livemode: false,
+        metadata: {},
+        ...args.coupon,
+      } as Stripe.Coupon,
+    },
+    restrictions: {
+      first_time_transaction: false,
+      minimum_amount: null,
+      minimum_amount_currency: null,
+    },
+  } as unknown as Stripe.PromotionCode;
+}
+
 type QueryResult = { data: unknown; error: unknown };
 
 export class MockSupabase {
@@ -118,6 +182,10 @@ export class MockStripe {
   public customersListError: unknown = null;
   public missingCustomerIds = new Set<string>();
   public customerActivityErrors = new Map<string, unknown>();
+  public promotionCodesByCode = new Map<string, Stripe.PromotionCode[]>();
+  public promotionCodesListError: unknown = null;
+  public pricesById = new Map<string, Stripe.Price>();
+  public priceRetrieveErrors = new Map<string, unknown>();
   public nextSession: Stripe.Checkout.Session = makeSession({ id: 'cs_new', url: 'https://checkout.stripe.test/new' });
   public createErrorWhenTrial: unknown = null;
 
@@ -166,6 +234,30 @@ export class MockStripe {
       }
       return {
         data: this.customersByEmail.get(params.email ?? '') ?? [],
+      };
+    },
+  };
+
+  prices = {
+    retrieve: async (priceId: string) => {
+      if (this.priceRetrieveErrors.has(priceId)) {
+        throw this.priceRetrieveErrors.get(priceId);
+      }
+      const price = this.pricesById.get(priceId);
+      if (!price) {
+        throw new Error(`No such price: '${priceId}'`);
+      }
+      return price;
+    },
+  };
+
+  promotionCodes = {
+    list: async (params: Stripe.PromotionCodeListParams) => {
+      if (this.promotionCodesListError) {
+        throw this.promotionCodesListError;
+      }
+      return {
+        data: this.promotionCodesByCode.get(params.code ?? '') ?? [],
       };
     },
   };

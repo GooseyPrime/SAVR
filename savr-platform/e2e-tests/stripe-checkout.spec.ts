@@ -1,11 +1,11 @@
 /**
  * E2E Test: Stripe Checkout with 100% Coupon
- * 
+ *
  * Tests the complete subscription flow:
  * 1. Login with test credentials
  * 2. Navigate to pricing page
- * 3. Select a plan and apply 100% coupon
- * 4. Complete checkout (billing info only, no card)
+ * 3. Enter a permanent-free coupon before selecting a plan
+ * 4. Complete checkout without card entry
  * 5. Return to site and verify Pro status
  */
 
@@ -54,7 +54,10 @@ test.describe('Stripe Subscription Flow with 100% Coupon', () => {
     await page.goto(`${BASE_URL}/pricing`);
     await page.waitForLoadState('networkidle');
 
-    console.log('Step 4: Select a plan (looking for Subscribe or Choose Plan button)');
+    console.log('Step 4: Enter coupon code before choosing a plan');
+    await page.fill('#coupon-code', COUPON_CODE);
+
+    console.log('Step 5: Select a plan (looking for Subscribe or Choose Plan button)');
     // Try to find and click a subscribe/plan button
     // This might vary based on the actual UI, so we try multiple selectors
     const planButtons = [
@@ -89,8 +92,8 @@ test.describe('Stripe Subscription Flow with 100% Coupon', () => {
     // Wait for Stripe checkout to load
     await page.waitForTimeout(3000);
 
-    console.log('Step 5: Handle Stripe checkout');
-    
+    console.log('Step 6: Handle Stripe checkout');
+
     // Check if we're on Stripe checkout page
     const currentUrl = page.url();
     console.log(`Current URL: ${currentUrl}`);
@@ -104,27 +107,30 @@ test.describe('Stripe Subscription Flow with 100% Coupon', () => {
     }
 
     if (isStripeCheckoutHost) {
-      console.log('On Stripe checkout page, filling out billing info');
-      
-      // Apply coupon code first if there's a coupon field
-      try {
-        const promoButton = page.locator('button:has-text("Add promotion code")');
-        if (await promoButton.isVisible({ timeout: 5000 })) {
-          await promoButton.click();
-          await page.waitForTimeout(1000);
-          
-          const promoInput = page.locator('input[name="discountCode"], input[placeholder*="promotion"], input[placeholder*="coupon"]');
-          await promoInput.fill(COUPON_CODE);
-          await page.click('button:has-text("Apply")');
-          await page.waitForTimeout(2000);
-          console.log('Coupon code applied');
-        }
-      } catch (e) {
-        console.log('Coupon field not found or error applying coupon:', e);
-      }
+      console.log('On Stripe checkout page, verifying the permanent-free flow stays cardless');
 
-      // Fill billing information
-      // Stripe forms can vary, so we try to fill available fields
+      const cardSelectors = [
+        'input[autocomplete="cc-number"]',
+        'input[name="cardNumber"]',
+        'iframe[title*="card" i]',
+        'text=/Card information/i',
+      ];
+      let cardRequested = false;
+      for (const selector of cardSelectors) {
+        try {
+          const locator = page.locator(selector).first();
+          if (await locator.isVisible({ timeout: 1000 })) {
+            cardRequested = true;
+            console.log(`Unexpected card field visible: ${selector}`);
+            break;
+          }
+        } catch {
+          // Try next selector
+        }
+      }
+      expect(cardRequested).toBeFalsy();
+
+      // Fill any remaining non-card fields Stripe asks for.
       try {
         // Email (might be pre-filled)
         const emailField = page.locator('input[type="email"]');
@@ -167,18 +173,18 @@ test.describe('Stripe Subscription Flow with 100% Coupon', () => {
       }
     }
 
-    console.log('Step 6: Wait for redirect back to SAVR');
+    console.log('Step 7: Wait for redirect back to SAVR');
     // Wait for redirect back to our site
     await page.waitForURL(/localhost|savr\.cam/, { timeout: 30000 });
     await page.waitForLoadState('networkidle');
 
-    console.log('Step 7: Navigate to settings to check subscription status');
+    console.log('Step 8: Navigate to settings to check subscription status');
     await page.goto(`${BASE_URL}/settings`);
     await page.waitForLoadState('networkidle');
 
     // Wait for subscription data to sync via webhook and onSnapshot
-    console.log('Step 8: Waiting for Pro status to appear (webhook + onSnapshot)');
-    
+    console.log('Step 9: Waiting for Pro status to appear (webhook + onSnapshot)');
+
     // Wait up to 30 seconds for Pro status to appear
     const proStatusLocator = page.locator('text=/Pro|pro|Premium|premium/i');
     await expect(proStatusLocator).toBeVisible({ timeout: 30000 });
