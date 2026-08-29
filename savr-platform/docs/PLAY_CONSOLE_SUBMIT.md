@@ -191,7 +191,7 @@ actually does; do not soften them.
 
 **Does your app collect or share any of the required user data types?** — Yes
 **Is all user data encrypted in transit?** — Yes
-**Do you provide a way for users to request deletion?** — **Blocked** (see §11 known gaps; in-app path not yet implemented)
+**Do you provide a way for users to request deletion?** — Yes — in-app (Profile → Delete Account) and web (`https://savr.cam/settings`)
 
 | Data type | Collected | Shared | Purpose | Required? |
 |---|---|---|---|---|
@@ -380,11 +380,10 @@ camera → pantry save → recipe generated.
 
 Recorded so they are decisions rather than surprises:
 
-- **Account deletion** is not yet implemented. The `/settings` page logs out
-  only; there is no deletion endpoint or in-app path. Google Play requires a
-  functional deletion path for apps that support account creation. Do not answer
-  "Yes" to the deletion question in the Data safety form until this is
-  implemented; answer "No" or leave the section blocked.
+- **Account deletion** is available in-app (Profile → Delete Account) and on
+  the web at `https://savr.cam/settings`. Both paths call `POST /api/account/delete`,
+  which cancels any active Stripe subscription and then hard-deletes the
+  `auth.users` row (cascading to all user data).
 - **No tablet-specific layouts.** The app runs on tablets; it is not optimised
   for them.
 - **Mobile test coverage is limited.** `savr-platform/mobile` has a unit-test
