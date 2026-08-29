@@ -237,7 +237,7 @@ export async function loadCustomerBillingSnapshotsByEmail(
   );
 
   const snapshots: CustomerBillingSnapshot[] = [];
-  const hardErrors: unknown[] = [];
+  const hardErrors: Array<{ customerId: string; error: unknown }> = [];
 
   await Promise.all(
     activeCustomers.map(async (customer) => {
@@ -251,7 +251,7 @@ export async function loadCustomerBillingSnapshotsByEmail(
         if (isStripeMissingCustomerError(error, customer.id)) {
           return;
         }
-        hardErrors.push(error);
+        hardErrors.push({ customerId: customer.id, error });
       }
     }),
   );
@@ -259,13 +259,16 @@ export async function loadCustomerBillingSnapshotsByEmail(
   if (snapshots.length > 0) {
     if (hardErrors.length > 0) {
       console.warn(
-        `stripe-billing: recovered ${snapshots.length} customer snapshot(s) with ${hardErrors.length} discovery error(s)`,
+        `stripe-billing: recovered ${snapshots.length} customer snapshot(s) with hard discovery errors for customer IDs: ${hardErrors.map((entry) => entry.customerId).join(', ')}`,
       );
     }
     return snapshots;
   }
   if (hardErrors.length > 0) {
-    throw hardErrors[0];
+    throw new AggregateError(
+      hardErrors.map((entry) => entry.error),
+      `Failed to load Stripe billing activity for customers: ${hardErrors.map((entry) => entry.customerId).join(', ')}`,
+    );
   }
 
   return [];

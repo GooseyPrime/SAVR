@@ -142,9 +142,14 @@ class MockStripe {
   public customersByEmail = new Map<string, Array<Stripe.Customer | Stripe.DeletedCustomer>>();
   public customersListError: unknown = null;
   public missingCustomerIds = new Set<string>();
+  public customerActivityErrors = new Map<string, unknown>();
   public nextSession: Stripe.Checkout.Session = makeSession({ id: 'cs_new', url: 'https://checkout.stripe.test/new' });
 
   private throwIfMissingCustomer(customerId: string | null | undefined) {
+    if (!customerId) return;
+    if (this.customerActivityErrors.has(customerId)) {
+      throw this.customerActivityErrors.get(customerId);
+    }
     if (!customerId || !this.missingCustomerIds.has(customerId)) return;
     throw {
       code: 'resource_missing',
@@ -690,6 +695,46 @@ test('loadCustomerBillingSnapshotsByEmail ignores stale customer IDs when at lea
   assert.equal(snapshots.length, 1);
   assert.equal(snapshots[0]?.customer.id, 'cus_valid');
   assert.equal(snapshots[0]?.subscriptions.length, 1);
+});
+
+test('loadCustomerBillingSnapshotsByEmail returns empty when all discovered customers are stale', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_stale_a', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_stale_b', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.missingCustomerIds.add('cus_stale_a');
+  stripe.missingCustomerIds.add('cus_stale_b');
+
+  const snapshots = await loadCustomerBillingSnapshotsByEmail(
+    stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    'chef@example.com',
+  );
+
+  assert.deepEqual(snapshots, []);
+});
+
+test('loadCustomerBillingSnapshotsByEmail throws when stale customers are mixed with hard Stripe errors and no valid snapshot remains', async () => {
+  const stripe = new MockStripe();
+  stripe.customersByEmail.set('chef@example.com', [
+    makeCustomer({ id: 'cus_stale', metadata: { userId: 'user_123' } }),
+    makeCustomer({ id: 'cus_error', metadata: { userId: 'user_123' } }),
+  ]);
+  stripe.missingCustomerIds.add('cus_stale');
+  stripe.customerActivityErrors.set('cus_error', new Error('stripe upstream unavailable'));
+
+  await assert.rejects(
+    () =>
+      loadCustomerBillingSnapshotsByEmail(
+        stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+        'chef@example.com',
+      ),
+    (error: unknown) => {
+      assert.ok(error instanceof AggregateError);
+      assert.match(error.message, /cus_error/);
+      return true;
+    },
+  );
 });
 
 test('POST /api/stripe/sync returns 503 when authentication throws unexpectedly', async () => {
