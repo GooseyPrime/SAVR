@@ -41,7 +41,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: savr-platform/web/package-lock.json
 
@@ -83,9 +83,11 @@ jobs:
           - package: web
             working-directory: savr-platform/web
             lockfile: savr-platform/web/package-lock.json
+            node-version: '22'
           - package: mobile
             working-directory: savr-platform/mobile
             lockfile: savr-platform/mobile/package-lock.json
+            node-version: '20'
     defaults:
       run:
         working-directory: ${{ matrix.working-directory }}
@@ -96,7 +98,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: ${{ matrix.lockfile }}
 
@@ -121,7 +123,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: |
             savr-platform/web/package-lock.json

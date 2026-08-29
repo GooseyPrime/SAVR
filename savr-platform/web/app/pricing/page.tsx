@@ -1,25 +1,32 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import Script from 'next/script';
 import { callApi } from '@/lib/api';
 import { hasProAccess, isSubscriptionActive } from '@/lib/billing';
+
+type BillingPeriod = 'monthly' | 'yearly';
+type Plan = 'basic_monthly' | 'basic_yearly' | 'pro_monthly' | 'pro_yearly';
+
+function planKey(tier: 'basic' | 'pro', period: BillingPeriod): Plan {
+  return `${tier}_${period}` as Plan;
+}
 
 export default function PricingPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<Plan | null>(null);
   const [error, setError] = useState('');
-  const pricingTableRef = useRef<HTMLDivElement>(null);
+  const [period, setPeriod] = useState<BillingPeriod>('yearly');
 
   const hasActiveSub = isSubscriptionActive(userData?.subscription_status);
   const isPro = hasProAccess(userData);
 
-  // Redirect logged-out users who try to use pricing table
+  // If a logged-out user returns with stripeSuccess, redirect to sign-in
   useEffect(() => {
     if (!user) {
       const urlParams = new URLSearchParams(window.location.search);
@@ -29,60 +36,14 @@ export default function PricingPage() {
     }
   }, [user, router]);
 
-  // Get Stripe configuration from environment variables
-  const pricingTableId = process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID || '';
-  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
-  const stripeConfigured = pricingTableId && publishableKey;
-
-  // Inject Stripe pricing table when ready - Official Stripe integration method
-  useEffect(() => {
-    if (!user || hasActiveSub || !stripeConfigured || !pricingTableRef.current) {
-      return;
-    }
-
-    // Check if pricing table already exists to avoid duplicates
-    const existingTable = pricingTableRef.current.querySelector('stripe-pricing-table');
-    if (existingTable) {
-      return; // Table already injected
-    }
-
-    // Create stripe-pricing-table element
-    const table = document.createElement('stripe-pricing-table');
-    table.setAttribute('pricing-table-id', pricingTableId);
-    table.setAttribute('publishable-key', publishableKey);
-
-    // Add a safety check for the UID
-    if (user.id) {
-      table.setAttribute('client-reference-id', user.id);
-      
-      // Set customer email to prevent init endpoint 400 errors
-      // This prefills and locks the email field in Stripe Checkout
-      if (user.email) {
-        table.setAttribute('customer-email', user.email);
-      }
-      
-      pricingTableRef.current.appendChild(table);
-    }
-  }, [user, hasActiveSub, stripeConfigured, pricingTableId, publishableKey]);
-
   async function handleManageBilling() {
-    if (!user) {
-      router.push('/sign-in');
-      return;
-    }
-
+    if (!user) { router.push('/sign-in'); return; }
     setLoadingPortal(true);
     setError('');
-
     try {
-      const result = await callApi('/stripe/portal', {});
-
-      const data = result as { success: boolean; url: string };
-      if (!data.success) {
-        throw new Error('Portal creation failed');
-      }
-
-      window.location.href = data.url;
+      const result = await callApi('/stripe/portal', {}) as { success: boolean; url: string };
+      if (!result.success) throw new Error('Portal creation failed');
+      window.location.href = result.url;
     } catch (err) {
       console.error('Error opening billing portal:', err);
       setError('Failed to open billing portal. Please try again.');
@@ -90,24 +51,30 @@ export default function PricingPage() {
     }
   }
 
-  // Helper to generate missing env vars message
-  const getMissingEnvVars = () => {
-    const missing = [];
-    if (!pricingTableId) missing.push('NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID');
-    if (!publishableKey) missing.push('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY');
-    return missing.join(', ');
-  };
+  async function handleSubscribe(tier: 'basic' | 'pro') {
+    if (!user) {
+      router.push('/sign-up?redirect=%2Fpricing');
+      return;
+    }
+    const plan = planKey(tier, period);
+    setLoadingPlan(plan);
+    setError('');
+    try {
+      const result = await callApi('/stripe/checkout', { plan }) as { url?: string; error?: string };
+      if (!result.url) throw new Error(result.error ?? 'No checkout URL returned');
+      window.location.href = result.url;
+    } catch (err) {
+      console.error('Error starting checkout:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start checkout. Please try again.');
+      setLoadingPlan(null);
+    }
+  }
+
+  const yearlyDiscount = '17%';
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-
-      {/* Load Stripe Pricing Table script - Stripe's official integration */}
-      <Script
-        async
-        src="https://js.stripe.com/v3/pricing-table.js"
-        strategy="afterInteractive"
-      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         {/* Onboarding banner for new users */}
@@ -130,6 +97,17 @@ export default function PricingPage() {
           <p className="text-lg max-w-xl mx-auto text-foreground-muted">
             Try any plan free for 5 days. No charge until your trial ends. Coupon codes accepted at checkout.
           </p>
+          {!user && (
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
+                className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
+              >
+                Start 5-day free trial
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -138,7 +116,7 @@ export default function PricingPage() {
           </div>
         )}
 
-        {/* Existing Subscriber - Show Billing Portal Access */}
+        {/* Existing Subscriber */}
         {hasActiveSub ? (
           <div className="max-w-2xl mx-auto">
             <div className="rounded-2xl p-8 text-center bg-surface/70 border border-primary/25">
@@ -151,7 +129,7 @@ export default function PricingPage() {
                 You&apos;re on the {isPro ? 'Pro' : 'Basic'} plan
               </h3>
               <p className="text-foreground-muted mb-6">
-                {isPro 
+                {isPro
                   ? 'You have access to unlimited recipes, meal plans, AI chat, and more.'
                   : 'Enjoying your subscription. Upgrade to Pro for unlimited access and AI chat.'}
               </p>
@@ -169,89 +147,143 @@ export default function PricingPage() {
             </div>
           </div>
         ) : (
-          /* New Subscriber - Show Stripe Pricing Table */
-          <div className="max-w-5xl mx-auto">
-            {/* Static plan comparison — visible before sign-in and when Stripe is unavailable */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12" aria-label="Plan comparison">
-              {/* Basic plan */}
-              <div className="rounded-2xl p-8 bg-surface/60 border border-border/60">
+          /* New Subscriber */
+          <div className="max-w-4xl mx-auto">
+            {/* Billing period toggle */}
+            <div className="flex items-center justify-center gap-3 mb-10">
+              <button
+                type="button"
+                onClick={() => setPeriod('monthly')}
+                aria-pressed={period === 'monthly'}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-150 ${
+                  period === 'monthly'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-surface/60 text-foreground-muted hover:text-foreground border border-border/50'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriod('yearly')}
+                aria-pressed={period === 'yearly'}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-150 ${
+                  period === 'yearly'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-surface/60 text-foreground-muted hover:text-foreground border border-border/50'
+                }`}
+              >
+                Yearly
+                <span className="ml-2 text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                  Save {yearlyDiscount}
+                </span>
+              </button>
+            </div>
+
+            {/* Plan cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10" aria-label="Plan comparison">
+              {/* Basic */}
+              <div className="rounded-2xl p-8 bg-surface/60 border border-border/60 flex flex-col">
                 <h3 className="text-xl font-bold text-foreground mb-2">Basic</h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-foreground">$4.99</span>
-                  <span className="text-foreground-muted text-sm">/ month</span>
+                <div className="mb-4 space-y-3">
+                  <PriceOption
+                    price="$4.99"
+                    periodLabel="/ month"
+                    selected={period === 'monthly'}
+                    detail={`Monthly billing. Switch to yearly to save ${yearlyDiscount}.`}
+                  />
+                  <PriceOption
+                    price="$49.99"
+                    periodLabel="/ year"
+                    selected={period === 'yearly'}
+                    detail={`Billed annually — save ${yearlyDiscount}`}
+                  />
                 </div>
-                <p className="text-sm text-foreground-muted mb-4">or <strong className="text-foreground">$49.99 / year</strong> — save 17%</p>
-                <ul className="space-y-2 text-sm text-foreground-muted">
+                <ul className="space-y-2 text-sm text-foreground-muted mb-6 flex-1">
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Pantry &amp; inventory tracking</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> AI recipe generation</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Meal planning</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Grocery lists</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> 5-day free trial</li>
                 </ul>
+                {user ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSubscribe('basic')}
+                    disabled={loadingPlan !== null}
+                    className="w-full rounded-lg bg-secondary text-secondary-foreground font-semibold px-6 py-3 text-sm hover:bg-secondary-hover disabled:opacity-50 transition-all duration-200"
+                  >
+                    {loadingPlan === planKey('basic', period) ? 'Redirecting…' : 'Start Basic 5-day trial'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
+                    className="w-full rounded-lg bg-secondary text-secondary-foreground font-semibold px-6 py-3 text-sm hover:bg-secondary-hover transition-all duration-200"
+                  >
+                    Start Basic 5-day trial
+                  </button>
+                )}
               </div>
-              {/* Pro plan */}
-              <div className="rounded-2xl p-8 bg-surface/60 border border-primary/40 relative">
+
+              {/* Pro */}
+              <div className="rounded-2xl p-8 bg-surface/60 border border-primary/40 relative flex flex-col">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Most popular</div>
                 <h3 className="text-xl font-bold text-foreground mb-2">Pro</h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-foreground">$9.99</span>
-                  <span className="text-foreground-muted text-sm">/ month</span>
+                <div className="mb-4 space-y-3">
+                  <PriceOption
+                    price="$9.99"
+                    periodLabel="/ month"
+                    selected={period === 'monthly'}
+                    detail={`Monthly billing. Switch to yearly to save ${yearlyDiscount}.`}
+                  />
+                  <PriceOption
+                    price="$99.99"
+                    periodLabel="/ year"
+                    selected={period === 'yearly'}
+                    detail={`Billed annually — save ${yearlyDiscount}`}
+                  />
                 </div>
-                <p className="text-sm text-foreground-muted mb-4">or <strong className="text-foreground">$99.99 / year</strong> — save 17%</p>
-                <ul className="space-y-2 text-sm text-foreground-muted">
+                <ul className="space-y-2 text-sm text-foreground-muted mb-6 flex-1">
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Everything in Basic</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> AI Chef chat (unlimited)</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Advanced meal planning</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> Priority support</li>
                   <li className="flex items-center gap-2"><span className="text-primary">✓</span> 5-day free trial</li>
                 </ul>
+                {user ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSubscribe('pro')}
+                    disabled={loadingPlan !== null}
+                    className="w-full rounded-lg bg-primary text-primary-foreground font-semibold px-6 py-3 text-sm hover:bg-primary-hover disabled:opacity-50 transition-all duration-200"
+                  >
+                    {loadingPlan === planKey('pro', period) ? 'Redirecting…' : 'Start Pro 5-day trial'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
+                    className="w-full rounded-lg bg-primary text-primary-foreground font-semibold px-6 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
+                  >
+                    Start Pro 5-day trial
+                  </button>
+                )}
               </div>
             </div>
 
             {!user && (
-              <div className="mb-8 text-center">
-                <p className="text-foreground-muted mb-4">
-                  Create an account to start your 5-day free trial
-                </p>
-                <button
-                  onClick={() => router.push('/sign-up?redirect=%2Fpricing')}
-                  className="inline-flex items-center rounded-lg bg-primary text-primary-foreground font-semibold px-8 py-3 text-sm hover:bg-primary-hover transition-all duration-200"
-                >
-                  Start 5-day free trial
-                </button>
-                <p className="mt-3 text-sm text-foreground-muted">
-                  Already have an account?{' '}
-                  <Link href="/sign-in?redirect=%2Fpricing" className="text-primary hover:underline">
-                    Sign in
-                  </Link>
-                </p>
-              </div>
+              <p className="text-center text-sm text-foreground-muted">
+                Already have an account?{' '}
+                <Link href="/sign-in?redirect=%2Fpricing" className="text-primary hover:underline">
+                  Sign in
+                </Link>
+              </p>
             )}
-            {user && !stripeConfigured && (
-              <div className="max-w-2xl mx-auto mb-8 px-6 py-8 rounded-xl text-center" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(239, 68, 68, 0.15)' }}>
-                  <svg className="w-8 h-8" fill="none" stroke="#f87171" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">Configuration Error</h3>
-                <p className="text-[#f87171] mb-4">
-                  The pricing table cannot be displayed because Stripe is not configured.
-                </p>
-                <p className="text-sm text-foreground-muted mb-6">
-                  Missing environment variables: {getMissingEnvVars()}
-                </p>
-                <div className="text-left bg-black/30 rounded-lg p-4 text-xs font-mono text-foreground-muted">
-                  <p className="mb-2">For administrators:</p>
-                  <p>1. Set GitHub Secrets in repository settings</p>
-                  <p>2. Redeploy the application</p>
-                  <p>3. See MANUAL_STEPS_REQUIRED.md for details</p>
-                </div>
-              </div>
-            )}
-            {user && stripeConfigured && (
-              <div ref={pricingTableRef} className="w-full" />
-            )}
+
+            <p className="text-center text-xs text-foreground-muted mt-4">
+              Coupon codes can be applied at checkout. When Stripe determines no current or future payment method is required for a $0 total, it skips payment collection.
+            </p>
           </div>
         )}
 
@@ -268,7 +300,7 @@ export default function PricingPage() {
             />
             <FAQItem
               question="Can I use a coupon code?"
-              answer="Yes! Both monthly and yearly plans accept coupon codes. Enter your code at checkout. If a coupon reduces your total to $0.00, no payment method is required."
+              answer="Yes! Both monthly and yearly plans accept coupon codes. Choose a plan, then enter your code in the coupon field on the Stripe checkout page. If Stripe determines your discounted checkout does not need a payment method, it will skip collecting one."
             />
             <FAQItem
               question="Can I switch plans anytime?"
@@ -289,6 +321,33 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PriceOption({
+  price,
+  periodLabel,
+  selected,
+  detail,
+}: {
+  price: string;
+  periodLabel: string;
+  selected: boolean;
+  detail: string;
+}) {
+  return (
+    <div className={`rounded-xl border px-4 py-3 transition-all duration-150 ${
+      selected
+        ? 'border-primary/40 bg-primary/5'
+        : 'border-border/40 bg-background/30'
+    }`}
+    >
+      <div className="flex items-baseline gap-1 mb-1">
+        <span className="text-3xl font-extrabold text-foreground">{price}</span>
+        <span className="text-foreground-muted text-sm">{periodLabel}</span>
+      </div>
+      <p className="text-sm text-foreground-muted">{detail}</p>
     </div>
   );
 }

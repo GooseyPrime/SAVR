@@ -19,6 +19,8 @@ export default function SettingsPage() {
 function SettingsContent() {
   const { user, userData, logout } = useAuth();
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [syncingSubscription, setSyncingSubscription] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
   const [error, setError] = useState('');
   const [consentLoading, setConsentLoading] = useState(true);
   const [consent, setConsent] = useState<{
@@ -96,6 +98,42 @@ function SettingsContent() {
       await logout();
     } catch (err) {
       console.error('Logout error:', err);
+    }
+  }
+
+  async function handleSyncSubscription() {
+    setSyncingSubscription(true);
+    setSyncResult(null);
+
+    try {
+      const result = await callApi('/stripe/sync', {}) as {
+        synced?: boolean;
+        message?: string;
+        subscription_status?: string;
+        subscription_tier?: string;
+        error?: string;
+      };
+
+      if (result.synced) {
+        setSyncResult({
+          success: true,
+          message:
+            result.message ??
+            `Stripe sync complete: status=${result.subscription_status}, tier=${result.subscription_tier}.`,
+        });
+      } else {
+        setSyncResult({
+          success: false,
+          message: result.message ?? result.error ?? 'Subscription sync returned no update.',
+        });
+      }
+    } catch (err) {
+      setSyncResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Subscription sync failed.',
+      });
+    } finally {
+      setSyncingSubscription(false);
     }
   }
 
@@ -184,6 +222,43 @@ function SettingsContent() {
               </Link>
             )}
           </div>
+          <div className="mt-4 rounded-lg border border-border/40 bg-background/30 px-4 py-4">
+            <p className="text-sm text-foreground-muted">
+              Need to recover a missed checkout or refresh subscription state from Stripe? Run a secure sync here.
+            </p>
+            {syncResult && (
+              <div
+                role={syncResult.success ? 'status' : 'alert'}
+                aria-live={syncResult.success ? 'polite' : 'assertive'}
+                className="mt-4 rounded-lg px-4 py-3 text-sm"
+                style={{
+                  background: syncResult.success
+                    ? 'rgba(0, 191, 166, 0.1)'
+                    : 'rgba(239, 68, 68, 0.1)',
+                  border: `1px solid ${syncResult.success ? 'rgba(0, 191, 166, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                  color: syncResult.success ? '#00bfa6' : '#f87171',
+                }}
+              >
+                {syncResult.message}
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleSyncSubscription}
+                disabled={syncingSubscription}
+                className="rounded-lg bg-secondary text-secondary-foreground font-semibold px-5 py-2 text-sm hover:bg-secondary-hover disabled:opacity-50"
+              >
+                {syncingSubscription ? 'Syncing…' : 'Sync subscription from Stripe'}
+              </button>
+              <Link
+                href="/subscription-debug"
+                className="inline-flex items-center rounded-lg border border-border/50 px-5 py-2 text-sm font-semibold text-foreground-muted hover:text-foreground"
+              >
+                View billing debug details
+              </Link>
+            </div>
+          </div>
         </section>
 
         {/* Preferences link */}
@@ -267,4 +342,3 @@ function SettingsContent() {
     </div>
   );
 }
-
