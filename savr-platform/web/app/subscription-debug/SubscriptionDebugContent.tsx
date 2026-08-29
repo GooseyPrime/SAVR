@@ -146,12 +146,7 @@ function SubscriptionDebugInner() {
           </p>
 
           {/* Supabase Auth Info */}
-          <div
-            className="glass-card rounded-lg p-6 mb-6"
-            role="status"
-            aria-live="polite"
-            aria-busy={!diagnostics && !diagnosticsError}
-          >
+          <div className="glass-card rounded-lg p-6 mb-6">
             <h2 className="text-xl font-semibold text-white mb-4">Supabase Authentication</h2>
             <div className="space-y-3">
               <InfoRow label="User ID" value={user?.id || 'N/A'} />
@@ -161,7 +156,12 @@ function SubscriptionDebugInner() {
           </div>
 
           {/* Billing configuration health */}
-          <div className="glass-card rounded-lg p-6 mb-6">
+          <div
+            className="glass-card rounded-lg p-6 mb-6"
+            role="status"
+            aria-live="polite"
+            aria-busy={!diagnostics && !diagnosticsError}
+          >
             <h2 className="text-xl font-semibold text-white mb-4">Billing Configuration</h2>
             {diagnosticsError && (
               <p className="text-sm text-[#f87171]">{diagnosticsError}</p>
