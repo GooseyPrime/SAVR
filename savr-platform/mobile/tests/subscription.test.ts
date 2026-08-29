@@ -57,8 +57,12 @@ test('getSubscriptionPlanLabel surfaces unavailable or unknown plan state explic
 test('getSubscriptionStatusLabel returns readable labels for known statuses', () => {
   assert.equal(getSubscriptionStatusLabel('active'), 'Active');
   assert.equal(getSubscriptionStatusLabel('trialing'), 'Trialing');
+  assert.equal(getSubscriptionStatusLabel('pending'), 'Pending');
   assert.equal(getSubscriptionStatusLabel('past_due'), 'Past due');
+  assert.equal(getSubscriptionStatusLabel('canceled'), 'Canceled');
+  assert.equal(getSubscriptionStatusLabel('incomplete'), 'Incomplete');
   assert.equal(getSubscriptionStatusLabel('incomplete_expired'), 'Expired');
+  assert.equal(getSubscriptionStatusLabel('unpaid'), 'Unpaid');
 });
 
 test('getSubscriptionStatusLabel surfaces unavailable state explicitly', () => {

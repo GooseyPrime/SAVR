@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const userIdRef = useRef<string | null>(null);
 
-  const fetchUserData = useCallback(async (userId: string) => {
+  const fetchUserData = useCallback(async (userId: string, finalizeLoading = true) => {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -62,7 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
-      setLoading(false);
+      if (finalizeLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -97,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active' && userIdRef.current) {
-        void fetchUserData(userIdRef.current);
+        void fetchUserData(userIdRef.current, false);
       }
     });
 
