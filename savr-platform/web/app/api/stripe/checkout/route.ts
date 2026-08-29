@@ -31,6 +31,7 @@ import {
   isPlan,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
+  PLAN_ENV_MAP,
   resolvePriceId,
   selectCustomerBillingSnapshot,
   type Plan,
@@ -190,12 +191,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as { plan?: unknown };
     if (!isPlan(body.plan)) {
       return NextResponse.json(
-        {
-         error:
-           'Invalid plan. Must be one of: basic_monthly, basic_yearly, pro_monthly, pro_yearly',
-       },
-       { status: 400 },
-     );
+        { error: `Invalid plan. Must be one of: ${Object.keys(PLAN_ENV_MAP).join(', ')}` },
+        { status: 400 },
+      );
     }
     plan = body.plan;
   } catch {

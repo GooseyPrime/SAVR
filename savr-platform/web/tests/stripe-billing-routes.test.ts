@@ -455,6 +455,8 @@ test('syncStripeSubscriptionResponse clears stale entitlement when Stripe has on
   assert.equal(result.status, 200);
   assert.equal(result.body.synced, true);
   assert.equal(result.body.subscription_status, 'canceled');
+  // Clearing stale entitlement intentionally resets the user to the canonical
+  // non-subscribed Basic baseline, matching the deletion webhook behavior.
   assert.equal(result.body.subscription_tier, 'basic');
   assert.equal(supabase.updates[0]?.data.stripe_subscription_id, null);
 });

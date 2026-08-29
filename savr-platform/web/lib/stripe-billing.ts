@@ -32,6 +32,23 @@ export const PLAN_ENV_MAP: Record<Plan, string> = {
 };
 
 const CHECKOUT_BLOCKING_STATUSES = ['active', 'trialing'] as const;
+const DATABASE_SUBSCRIPTION_STATUSES = [
+  'pending',
+  'active',
+  'trialing',
+  'past_due',
+  'canceled',
+  'incomplete',
+  'incomplete_expired',
+  'unpaid',
+] as const;
+export const STALE_LOCAL_SUBSCRIPTION_STATUSES = [
+  'active',
+  'trialing',
+  'past_due',
+  'unpaid',
+  'incomplete',
+] as const;
 const CURRENT_SUBSCRIPTION_PRIORITY = [
   'active',
   'trialing',
@@ -244,9 +261,23 @@ export function mapStripeStatusToDatabase(
   status: Stripe.Subscription.Status,
 ): DatabaseSubscriptionStatus {
   if (status === 'paused') {
+    // The canonical users.subscription_status constraint does not allow `paused`.
+    // Map it to a non-entitling recoverable status without changing the schema.
+    // This is a schema-compatibility workaround, not a semantic claim that
+    // Stripe's paused state is identical to a genuinely overdue payment.
+    // TODO: remove this fallback when the canonical users constraint allows paused.
     return 'past_due';
   }
-  return status as DatabaseSubscriptionStatus;
+
+  if (
+    DATABASE_SUBSCRIPTION_STATUSES.includes(
+      status as (typeof DATABASE_SUBSCRIPTION_STATUSES)[number],
+    )
+  ) {
+    return status;
+  }
+
+  throw new Error(`Unsupported Stripe subscription status: ${status}`);
 }
 
 export function getSubscriptionPeriodEndUnix(

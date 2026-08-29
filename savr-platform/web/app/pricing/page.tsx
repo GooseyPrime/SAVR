@@ -196,7 +196,7 @@ export default function PricingPage() {
                     price="$49.99"
                     periodLabel="/ year"
                     selected={period === 'yearly'}
-                    detail={`billed annually — save ${yearlyDiscount}`}
+                    detail={`Billed annually — save ${yearlyDiscount}`}
                   />
                 </div>
                 <ul className="space-y-2 text-sm text-foreground-muted mb-6 flex-1">
@@ -241,7 +241,7 @@ export default function PricingPage() {
                     price="$99.99"
                     periodLabel="/ year"
                     selected={period === 'yearly'}
-                    detail={`billed annually — save ${yearlyDiscount}`}
+                    detail={`Billed annually — save ${yearlyDiscount}`}
                   />
                 </div>
                 <ul className="space-y-2 text-sm text-foreground-muted mb-6 flex-1">

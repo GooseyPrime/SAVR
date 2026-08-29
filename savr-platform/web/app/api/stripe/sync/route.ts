@@ -28,6 +28,7 @@ import {
   pickCurrentSubscription,
   pickHistoricalSubscription,
   resolveStripeSubscriptionSnapshot,
+  STALE_LOCAL_SUBSCRIPTION_STATUSES,
   selectCustomerBillingSnapshot,
 } from '@/lib/stripe-billing';
 
@@ -45,7 +46,12 @@ function shouldClearStaleEntitlement(args: {
   localStatus?: string | null;
   localSubscriptionId?: string | null;
 }): boolean {
-  return Boolean(args.localSubscriptionId) || ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(args.localStatus ?? '');
+  return (
+    Boolean(args.localSubscriptionId) ||
+    STALE_LOCAL_SUBSCRIPTION_STATUSES.includes(
+      (args.localStatus ?? '') as (typeof STALE_LOCAL_SUBSCRIPTION_STATUSES)[number],
+    )
+  );
 }
 
 export async function syncStripeSubscriptionResponse(args: {
