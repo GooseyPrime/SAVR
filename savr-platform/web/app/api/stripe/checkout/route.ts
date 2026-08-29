@@ -27,6 +27,8 @@ import {
   buildCheckoutIdempotencyKey,
   buildCheckoutSessionParams,
   customerHasConsumedTrial,
+  discountRemovesAllCharges,
+  findActivePromotionCode,
   findBlockingSubscription,
   findReusableCheckoutSession,
   isPlan,
@@ -60,6 +62,8 @@ export async function createCheckoutSessionResponse(args: {
   origin: string;
   stripe: ReturnType<typeof getStripeInstance>;
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+  /** Optional customer-facing coupon code entered before checkout. */
+  promotionCode?: string | null;
 }): Promise<CheckoutRouteResult> {
   const { user, plan, origin, stripe, supabaseAdmin } = args;
 
@@ -70,6 +74,31 @@ export async function createCheckoutSessionResponse(args: {
     const msg = err instanceof Error ? err.message : String(err);
     return { status: 503, body: { error: msg } };
   }
+
+  // A payment method is required for every checkout. The single exception is a
+  // coupon that removes every charge for the life of the subscription — there
+  // is nothing to bill, so Stripe is told not to ask for a card.
+  let promotion: Awaited<ReturnType<typeof findActivePromotionCode>> = null;
+  if (args.promotionCode?.trim()) {
+    try {
+      promotion = await findActivePromotionCode(stripe, args.promotionCode);
+    } catch (error) {
+      console.error('checkout: failed to look up promotion code', error);
+      return {
+        status: 502,
+        body: { error: 'Could not verify that coupon code. Please try again shortly.' },
+      };
+    }
+    if (!promotion) {
+      return {
+        status: 400,
+        body: { error: 'That coupon code is not valid or is no longer available.' },
+      };
+    }
+  }
+
+  const fullyDiscounted = discountRemovesAllCharges(promotion);
+  const collectPaymentMethod = !fullyDiscounted;
 
   const { data: userRow } = await supabaseAdmin
     .from('users')
@@ -200,11 +229,17 @@ export async function createCheckoutSessionResponse(args: {
     };
   }
 
-  const includeTrial = !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
+  // A permanently free plan has nothing to trial, so the trial is dropped.
+  const includeTrial =
+    !fullyDiscounted &&
+    !(customerActivity && customerHasConsumedTrial(customerActivity.subscriptions));
 
-  const reusableSession = customerActivity
-    ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId, includeTrial)
-    : null;
+  // Never hand back an earlier session when a coupon was supplied: that session
+  // carries different discounts and a different payment-collection rule.
+  const reusableSession =
+    customerActivity && !promotion
+      ? findReusableCheckoutSession(customerActivity.openCheckoutSessions, priceId, includeTrial)
+      : null;
   if (reusableSession?.url) {
     return { status: 200, body: { url: reusableSession.url } };
   }
@@ -219,6 +254,8 @@ export async function createCheckoutSessionResponse(args: {
         origin,
         includeTrial: withTrial,
         plan,
+        promotionCodeId: promotion?.id ?? null,
+        collectPaymentMethod,
       }),
       {
         idempotencyKey: buildCheckoutIdempotencyKey({
@@ -226,6 +263,7 @@ export async function createCheckoutSessionResponse(args: {
           userId: user.id,
           plan,
           includeTrial: withTrial,
+          promotionCodeId: promotion?.id ?? null,
         }),
       },
     );
@@ -274,8 +312,9 @@ export async function POST(request: NextRequest) {
 
   // ── 2. Parse & validate body ─────────────────────────
   let plan: Plan;
+  let promotionCode: string | null = null;
   try {
-    const body = await request.json() as { plan?: unknown };
+    const body = await request.json() as { plan?: unknown; promotionCode?: unknown };
     if (!isPlan(body.plan)) {
       return NextResponse.json(
         { error: `Invalid plan. Must be one of: ${Object.keys(PLAN_ENV_MAP).join(', ')}` },
@@ -283,6 +322,13 @@ export async function POST(request: NextRequest) {
       );
     }
     plan = body.plan;
+
+    if (body.promotionCode !== undefined && body.promotionCode !== null) {
+      if (typeof body.promotionCode !== 'string' || body.promotionCode.length > 64) {
+        return NextResponse.json({ error: 'Invalid coupon code' }, { status: 400 });
+      }
+      promotionCode = body.promotionCode.trim() || null;
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -319,6 +365,7 @@ export async function POST(request: NextRequest) {
     origin,
     stripe,
     supabaseAdmin,
+    promotionCode,
   });
 
   return NextResponse.json(result.body, { status: result.status });
