@@ -51,36 +51,20 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="person-outline" size={22} color={colors.foregroundMuted} />
-          <Text style={styles.menuItemText}>Edit Profile</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-        </TouchableOpacity>
-
-        {!isPro && (
-          <TouchableOpacity style={[styles.menuItem, styles.upgradeItem]}>
-            <Ionicons name="star-outline" size={22} color={colors.primary} />
-            <Text style={[styles.menuItemText, styles.upgradeText]}>Upgrade to Pro</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Preferences section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="notifications-outline" size={22} color={colors.foregroundMuted} />
-          <Text style={styles.menuItemText}>Notifications</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="language-outline" size={22} color={colors.foregroundMuted} />
-          <Text style={styles.menuItemText}>Language</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.foregroundMuted} />
-        </TouchableOpacity>
+        {/*
+          Google Play Payments policy: this app sells nothing and must not
+          direct users to an outside purchase flow. Plan state is shown as
+          information only — no purchase control, no link to checkout.
+        */}
+        <View style={[styles.menuItem, styles.planItem]}>
+          <Ionicons
+            name={isPro ? 'star' : 'star-outline'}
+            size={22}
+            color={isPro ? colors.primary : colors.foregroundMuted}
+          />
+          <Text style={styles.menuItemText}>Current plan</Text>
+          <Text style={styles.planValue}>{tierLabel}</Text>
+        </View>
       </View>
 
       {/* Support section */}
@@ -213,7 +197,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuItemLast: {},
-  upgradeItem: {
+  planItem: {
     backgroundColor: colors.primaryLight,
   },
   menuItemText: {
@@ -221,9 +205,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.foreground,
   },
-  upgradeText: {
-    color: colors.primary,
+  planValue: {
+    fontSize: 15,
     fontWeight: '600',
+    color: colors.primary,
   },
   signOutButton: {
     flexDirection: 'row',
