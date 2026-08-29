@@ -256,7 +256,14 @@ export async function loadCustomerBillingSnapshotsByEmail(
     }),
   );
 
-  if (snapshots.length > 0) return snapshots;
+  if (snapshots.length > 0) {
+    if (hardErrors.length > 0) {
+      console.warn(
+        `stripe-billing: recovered ${snapshots.length} customer snapshot(s) with ${hardErrors.length} discovery error(s)`,
+      );
+    }
+    return snapshots;
+  }
   if (hardErrors.length > 0) {
     throw hardErrors[0];
   }
