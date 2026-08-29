@@ -4,14 +4,12 @@
  * Creates a Stripe Checkout Session for a new subscription.
  *
  * Key behaviours:
- *  - `payment_method_collection: 'always'` by default, so every checkout
- *    starts with a payment method on file and a free trial can convert.
+ *  - `payment_method_collection: 'if_required'` on every session. Stripe
+ *    Checkout collects a card only when the amount due is greater than $0.
+ *    A coupon, credit, or any other $0 method does not show the payment form.
  *  - A customer can optionally send a `promotionCode` in the request body.
- *    The server resolves it before session creation and only drops card
- *    collection when the discount makes the chosen plan permanently free.
  *  - `allow_promotion_codes: true` stays enabled only when no promotion code
- *    was pre-applied, so Stripe Checkout can still accept codes after a card
- *    has been collected.
+ *    was pre-applied.
  *  - `client_reference_id` is set to the authenticated user's Supabase UID so
  *    the `checkout.session.completed` webhook can link the session back to the
  *    correct user row without relying on email matching.
@@ -211,10 +209,9 @@ export async function createCheckoutSessionResponse(args: {
     };
   }
 
-  // A payment method is required for every checkout. The single exception is a
-  // coupon that removes every charge for the chosen plan for the whole life of
-  // the subscription — there is nothing to bill, so Stripe is told not to ask
-  // for a card.
+  // A forever-free coupon still drops the trial (nothing to convert). Card
+  // collection is not decided here — Stripe Checkout `if_required` hides the
+  // payment form whenever the amount due is $0.
   let promotion: Awaited<ReturnType<typeof findActivePromotionCode>> = null;
   let fullyDiscounted = false;
   if (args.promotionCode?.trim()) {
@@ -255,8 +252,6 @@ export async function createCheckoutSessionResponse(args: {
     fullyDiscounted = discountRemovesAllCharges(promotion, price);
   }
 
-  const collectPaymentMethod = !fullyDiscounted;
-
   // A permanently free plan has nothing to trial, so the trial is dropped.
   const includeTrial =
     !fullyDiscounted &&
@@ -283,7 +278,6 @@ export async function createCheckoutSessionResponse(args: {
         includeTrial: withTrial,
         plan,
         promotionCodeId: promotion?.id ?? null,
-        collectPaymentMethod,
       }),
       {
         idempotencyKey: buildCheckoutIdempotencyKey({
@@ -333,12 +327,10 @@ export async function createCheckoutSessionResponse(args: {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Auth ────────────────────────────────
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   const { user } = auth;
 
-  // ── 2. Parse & validate body ─────────────────────────
   let plan: Plan;
   let promotionCode: string | null = null;
   try {
@@ -361,7 +353,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  // ── 3. Stripe init ───────────────────────────────
   let stripe: ReturnType<typeof getStripeInstance>;
   try {
     stripe = getStripeInstance();
@@ -372,7 +363,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 4. Load billing state / create session ───────────────────────
   let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
   try {
     supabaseAdmin = getSupabaseAdmin();
