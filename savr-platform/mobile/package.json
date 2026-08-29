@@ -19,7 +19,7 @@
     "@react-navigation/native-stack": "^7.18.9",
     "@react-navigation/stack": "^7.7.1",
     "@supabase/supabase-js": "^2.112.4",
-    "expo": "^57.0.18",
+    "expo": "^46.0.21",
     "expo-auth-session": "^57.0.10",
     "expo-camera": "^57.0.4",
     "expo-constants": "^57.0.16",
