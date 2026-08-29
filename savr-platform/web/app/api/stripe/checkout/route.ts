@@ -29,6 +29,7 @@ import {
   findBlockingSubscription,
   findOpenSubscriptionCheckoutSession,
   isPlan,
+  isStripeMissingCustomerError,
   loadCustomerActivity,
   loadCustomerBillingSnapshotsByEmail,
   PLAN_ENV_MAP,
@@ -73,12 +74,46 @@ export async function createCheckoutSessionResponse(args: {
   let customerId =
     (userRow as { stripe_customer_id?: string | null } | null)
       ?.stripe_customer_id ?? null;
-  let customerActivity = customerId
-    ? await loadCustomerActivity(stripe, customerId)
-    : null;
+  let customerActivity = null as Awaited<ReturnType<typeof loadCustomerActivity>> | null;
+
+  if (customerId) {
+    try {
+      customerActivity = await loadCustomerActivity(stripe, customerId);
+    } catch (error) {
+      if (isStripeMissingCustomerError(error, customerId)) {
+        console.warn(
+          `checkout: persisted stripe_customer_id (${customerId}) no longer exists; clearing and retrying via email`,
+        );
+        const { error: clearError } = await supabaseAdmin
+          .from('users')
+          .update({ stripe_customer_id: null })
+          .eq('id', user.id);
+        if (clearError) {
+          console.error('checkout: failed to clear stale stripe_customer_id', clearError);
+          return { status: 500, body: { error: 'Failed to update billing record' } };
+        }
+        customerId = null;
+      } else {
+        console.error('checkout: failed to load Stripe customer activity', error);
+        return {
+          status: 502,
+          body: { error: 'Could not load billing details from Stripe. Please try again shortly.' },
+        };
+      }
+    }
+  }
 
   if (!customerId && user.email) {
-    const snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, user.email);
+    let snapshots: Awaited<ReturnType<typeof loadCustomerBillingSnapshotsByEmail>>;
+    try {
+      snapshots = await loadCustomerBillingSnapshotsByEmail(stripe, user.email);
+    } catch (error) {
+      console.error('checkout: failed to discover Stripe customers by email', error);
+      return {
+        status: 502,
+        body: { error: 'Could not look up Stripe customers. Please try again shortly.' },
+      };
+    }
     if (snapshots.length > 0) {
       const reusableCustomer = selectCustomerBillingSnapshot(snapshots, user.id);
       if (!reusableCustomer) {
