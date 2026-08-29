@@ -82,6 +82,7 @@ export default function ChatScreen() {
           AI Chef chat is part of the Pro plan. When your SAVR account has an active
           Pro subscription, this screen unlocks automatically.
         </Text>
+        <Text style={styles.proOnlyText}>Manage your subscription at savr.cam.</Text>
       </View>
     );
   }
@@ -261,4 +262,3 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 });
-

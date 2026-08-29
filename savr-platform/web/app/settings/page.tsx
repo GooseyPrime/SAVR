@@ -28,6 +28,8 @@ function SettingsContent() {
     interactionAnalytics: boolean;
     consentDate?: string;
   }>({ imageTraining: false, interactionAnalytics: false });
+  const [deletionPhase, setDeletionPhase] = useState<'idle' | 'confirming' | 'deleting'>('idle');
+  const [deletionError, setDeletionError] = useState('');
 
   useEffect(() => {
     async function loadConsent() {
@@ -98,6 +100,21 @@ function SettingsContent() {
       await logout();
     } catch (err) {
       console.error('Logout error:', err);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeletionError('');
+    setDeletionPhase('deleting');
+    try {
+      await callApi('/account/delete', {});
+      // Sign the user out locally — the session is invalid after deletion.
+      await logout();
+    } catch (err) {
+      setDeletionError(
+        err instanceof Error ? err.message : 'Account deletion failed. Please try again.'
+      );
+      setDeletionPhase('idle');
     }
   }
 
@@ -327,16 +344,65 @@ function SettingsContent() {
         {/* Danger zone */}
         <section className="rounded-lg border border-red-500/20 bg-red-500/10 p-6">
           <h2 className="text-xl font-semibold text-red-400 mb-3">Danger zone</h2>
+
           <p className="mb-4 text-sm text-red-400">
-            Log out of your account on this device. Account deletion is not yet available in the app.
+            Log out of your account on this device, or permanently delete your account and all
+            associated data (inventory, recipes, meal plans, grocery lists).
+            Deletion is irreversible.
           </p>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-foreground hover:bg-red-700"
-          >
-            Log out
-          </button>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={deletionPhase === 'deleting'}
+              className="rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-foreground hover:bg-red-700 disabled:opacity-50"
+            >
+              Log out
+            </button>
+
+            {deletionPhase === 'idle' && (
+              <button
+                type="button"
+                onClick={() => setDeletionPhase('confirming')}
+                className="rounded-lg border border-red-500/40 px-5 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10"
+              >
+                Delete my account
+              </button>
+            )}
+          </div>
+
+          {deletionPhase === 'confirming' && (
+            <div className="mt-4 rounded border border-red-500/30 bg-red-900/20 p-4">
+              <p className="mb-3 text-sm font-semibold text-red-300">
+                This will permanently delete your account and all data. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  className="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Yes, delete my account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDeletionPhase('idle'); setDeletionError(''); }}
+                  className="rounded-lg border border-border/50 px-5 py-2 text-sm font-medium text-foreground-muted hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {deletionPhase === 'deleting' && (
+            <p className="mt-4 text-sm text-red-400">Deleting account…</p>
+          )}
+
+          {deletionError && (
+            <p className="mt-3 text-sm text-red-400">{deletionError}</p>
+          )}
         </section>
       </div>
     </div>

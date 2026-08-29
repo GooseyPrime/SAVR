@@ -9,6 +9,7 @@ import {
 } from '../../lib/billing';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, shadowElevations } from '../../theme/index';
+import { callApi } from '../../utils/api';
 
 const APP_URL = 'https://savr.cam';
 
@@ -32,6 +33,34 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    if (isDeleting) return;
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all data — inventory, recipes, meal plans, and grocery lists. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete My Account',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await callApi('/account/delete', {});
+              await signOut();
+            } catch (error) {
+              setIsDeleting(false);
+              Alert.alert(
+                'Deletion Failed',
+                error instanceof Error ? error.message : 'Account deletion failed. Please contact support@savr.cam.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const isProPlan = userData?.subscriptionTier === 'pro';
   const hasActiveSubscription = isSubscriptionActive(userData?.subscriptionStatus);
   const isPro = hasProAccess(userData);
@@ -39,6 +68,7 @@ export default function ProfileScreen() {
   const tierLabel = getSubscriptionPlanLabel(userData?.subscriptionTier);
   const statusLabel = getSubscriptionStatusLabel(userData?.subscriptionStatus);
   const isPlanKnown = tierLabel !== 'Unavailable';
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -124,6 +154,18 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Ionicons name="log-out-outline" size={20} color={colors.error} />
         <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
+
+      {/* Delete account */}
+      <TouchableOpacity
+        style={[styles.deleteAccountButton, isDeleting && { opacity: 0.5 }]}
+        onPress={handleDeleteAccount}
+        disabled={isDeleting}
+      >
+        <Ionicons name="trash-outline" size={18} color={colors.error} />
+        <Text style={styles.deleteAccountText}>
+          {isDeleting ? 'Deleting…' : 'Delete Account'}
+        </Text>
       </TouchableOpacity>
 
       <Text style={styles.version}>SAVR v1.0.0</Text>
@@ -256,6 +298,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.error,
     fontWeight: '600',
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    marginHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: `${colors.error}22`,
+  },
+  deleteAccountText: {
+    fontSize: 14,
+    color: colors.error,
+    fontWeight: '500',
   },
   version: {
     textAlign: 'center',
