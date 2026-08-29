@@ -55,9 +55,10 @@ function isStripeMissingCustomerError(error: unknown, customerId: string): boole
   const matchesAuthoritativeStripeType =
     typedError.rawType === 'invalid_request_error' ||
     typedError.type === 'StripeInvalidRequestError';
+  const errorMessage = typedError.message ?? '';
   const matchesMessageForCustomer =
-    /no such customer/i.test(typedError.message ?? '') &&
-    typedError.message?.includes(customerId);
+    /no such customer/i.test(errorMessage) &&
+    errorMessage.includes(customerId);
 
   return (
     typedError.code === 'resource_missing' &&
@@ -127,7 +128,16 @@ export async function syncStripeSubscriptionResponse(args: {
       customerId = null;
       const { error: clearCustomerError } = await supabaseAdmin
         .from('users')
-        .update({ stripe_customer_id: null })
+        .update({
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          subscription_tier: 'basic',
+          subscription_status: 'pending',
+          current_period_end: null,
+          trial_ends_at: null,
+          cancel_at_period_end: false,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', user.id);
 
       if (clearCustomerError) {
@@ -310,33 +320,33 @@ export async function syncStripeSubscriptionResponse(args: {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Auth ──────────────────────────────────────────────────────────────
-  const auth = await authenticateRequest(request);
-  if (auth.error) return auth.error;
-  const { user } = auth;
-
-  // ── 2. Stripe init ───────────────────────────────────────────────────────
-  let stripe: ReturnType<typeof getStripeInstance>;
   try {
-    stripe = getStripeInstance();
-  } catch {
-    return NextResponse.json(
-      { error: 'Payment service is not configured' },
-      { status: 503 },
-    );
-  }
+    // ── 1. Auth ──────────────────────────────────────────────────────────────
+    const auth = await authenticateRequest(request);
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
-  let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
-  try {
-    supabaseAdmin = getSupabaseAdmin();
-  } catch {
-    return NextResponse.json(
-      { error: 'Billing sync service is not configured' },
-      { status: 503 },
-    );
-  }
+    // ── 2. Stripe init ───────────────────────────────────────────────────────
+    let stripe: ReturnType<typeof getStripeInstance>;
+    try {
+      stripe = getStripeInstance();
+    } catch {
+      return NextResponse.json(
+        { error: 'Payment service is not configured' },
+        { status: 503 },
+      );
+    }
 
-  try {
+    let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+    try {
+      supabaseAdmin = getSupabaseAdmin();
+    } catch {
+      return NextResponse.json(
+        { error: 'Billing sync service is not configured' },
+        { status: 503 },
+      );
+    }
+
     const result = await syncStripeSubscriptionResponse({
       user: { id: user.id, email: user.email },
       stripe,

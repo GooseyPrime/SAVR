@@ -626,7 +626,47 @@ test('syncStripeSubscriptionResponse recovers when persisted customer no longer 
   assert.equal(result.body.stripe_customer_id, 'cus_recovered');
   assert.equal(supabase.updates.length, 3);
   assert.equal(supabase.updates[0]?.data.stripe_customer_id, null);
+  assert.equal(supabase.updates[0]?.data.stripe_subscription_id, null);
+  assert.equal(supabase.updates[0]?.data.subscription_tier, 'basic');
+  assert.equal(supabase.updates[0]?.data.subscription_status, 'pending');
   assert.equal(supabase.updates[1]?.data.stripe_customer_id, 'cus_recovered');
   assert.equal(supabase.updates[2]?.data.subscription_status, 'active');
   assert.equal(supabase.updates[2]?.data.stripe_customer_id, 'cus_recovered');
+});
+
+test('syncStripeSubscriptionResponse clears stale entitlement when missing customer cannot be rediscovered', async () => {
+  const stripe = new MockStripe();
+  stripe.missingCustomerIds.add('cus_stale');
+
+  const supabase = new MockSupabase();
+  supabase.userRow = {
+    stripe_customer_id: 'cus_stale',
+    stripe_subscription_id: 'sub_local_stale',
+    subscription_status: 'active',
+    email: null,
+  };
+
+  const result = await syncStripeSubscriptionResponse({
+    user: { id: 'user_123', email: null },
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(
+    result.body.error,
+    'No Stripe customer linked and no email available for lookup',
+  );
+  assert.equal(supabase.updates.length, 1);
+  assert.equal(typeof supabase.updates[0]?.data.updated_at, 'string');
+  assert.deepEqual(supabase.updates[0]?.data, {
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    subscription_tier: 'basic',
+    subscription_status: 'pending',
+    current_period_end: null,
+    trial_ends_at: null,
+    cancel_at_period_end: false,
+    updated_at: supabase.updates[0]?.data.updated_at,
+  });
 });
