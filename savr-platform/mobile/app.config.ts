@@ -1,8 +1,10 @@
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
-// Pin extra.eas.projectId after `eas init` for @intellme/savr.
-// Project IDs are not secret. Leave empty until the Expo project is linked.
-const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || '';
+// EAS project for @intellme/savr, created by `eas init`.
+// Project IDs are not secret; the env var override exists for forks and CI.
+// EAS cannot write this itself because the config is dynamic, so it is pinned here.
+const EAS_PROJECT_ID =
+  process.env.EAS_PROJECT_ID || 'acf58b96-e2fd-4d00-b289-e0686d13875c';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
