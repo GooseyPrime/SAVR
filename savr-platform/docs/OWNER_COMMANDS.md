@@ -31,7 +31,7 @@ cd savr-platform/mobile
 eas build --platform android --profile production
 ```
 
-Package `com.savr.app`, version `1.0.0`. Do not run an iOS submit.
+Package `cam.savr.app`, version `1.0.0`. Do not run an iOS submit.
 
 ## 4. Play Console
 

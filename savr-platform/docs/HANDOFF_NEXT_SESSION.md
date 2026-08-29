@@ -3,7 +3,7 @@
 Canonical repo: `GooseyPrime/SAVR`. Product code only under `savr-platform/`.
 Live web: https://www.savr.cam (308 from https://savr.cam) and https://savr-eta.vercel.app
 Vercel project: `savr` / `prj_FZMDZzHr13xd5JeY4ucoKRqtngiZ` / team `team_ne195izCVxKLkrwqMfs9JNuY`
-Package: `com.savr.app`  Owner: Michael Brandon Lane / InTellMe / brandon@intellmeai.com
+Package: `cam.savr.app`  Owner: Michael Brandon Lane / InTellMe / brandon@intellmeai.com
 
 ## Locked decisions
 

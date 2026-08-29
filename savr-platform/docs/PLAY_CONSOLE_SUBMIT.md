@@ -17,7 +17,7 @@ eas env:create --scope project --environment production --name EXPO_PUBLIC_APP_U
 eas build --platform android --profile production
 ```
 
-Package: `com.savr.app`  Version: `1.0.0`
+Package: `cam.savr.app`  Version: `1.0.0`
 
 ## 2. Play Console
 

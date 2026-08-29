@@ -1,7 +1,7 @@
 # Task: Make EAS work for the SAVR mobile app — Android / Google Play ONLY
 
 Repo: `GooseyPrime/SAVR`  ·  App: `savr-platform/mobile` (Expo, owner `intellme`,
-slug `savr`, Android package `com.savr.app`).
+slug `savr`, Android package `cam.savr.app`).
 
 There is **no Apple Developer account yet**. Configure everything for an
 Android/Google Play first release. Leave the iOS *app* config in place but

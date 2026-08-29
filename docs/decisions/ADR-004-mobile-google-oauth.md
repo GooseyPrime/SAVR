@@ -70,8 +70,8 @@ The exact Expo Go URL depends on the local development IP and port. During devel
 | Client type | Use | Configuration |
 |---|---|---|
 | **Web application** | Supabase server-side OAuth | Add the Supabase Auth callback URL as an authorized redirect URI: `https://<project>.supabase.co/auth/v1/callback` |
-| **Android** | Android standalone build | Package name: `com.savr.app`; SHA-1 from your keystore |
-| **iOS** | iOS standalone build | Bundle ID: `com.savr.app` |
+| **Android** | Android standalone build | Package name: `cam.savr.app`; SHA-1 from your keystore |
+| **iOS** | iOS standalone build | Bundle ID: `cam.savr.app` |
 
 4. Copy the **Web client ID** and **client secret** into the Supabase dashboard under **Authentication → Providers → Google**.
 5. Copy the **Android client ID** and **iOS client ID** into `.env`:
