@@ -22,7 +22,6 @@ interface ExtractedIngredient {
   price?: number;
   notes?: string;
   isDuplicate?: boolean;
-  notes?: string;
   nutrition?: unknown;
   nutritionSource?: string;
   barcode?: string;
