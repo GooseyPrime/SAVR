@@ -152,6 +152,7 @@ export default function InventoryScreen() {
             unit: ingredient.unit || 'units',
             category: 'scanned',
             image_url: imageUrl,
+            notes: ingredient.notes,
           })
         );
         await Promise.all(addPromises);
