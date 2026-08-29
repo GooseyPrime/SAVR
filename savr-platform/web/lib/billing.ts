@@ -50,6 +50,15 @@ export function hasProAccess(userData: BillingUserData | null | undefined): bool
   return isSubscriptionActive(userData.subscription_status) && userData.subscription_tier === 'pro';
 }
 
+function firstConfiguredEnvValue(...values: Array<string | undefined>): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+
+  return null;
+}
+
 /**
  * Resolve a Stripe price ID to a canonical billing tier.
  *
@@ -62,13 +71,25 @@ export function hasProAccess(userData: BillingUserData | null | undefined): bool
  * Throws when the price ID is not recognized — never silently defaults.
  */
 export function resolveTierFromPriceId(priceId: string): SubscriptionTier {
-  const basicMonthly = process.env.STRIPE_PRICE_BASIC_MONTHLY;
-  const basicYearly  = process.env.STRIPE_PRICE_BASIC_YEARLY;
-  const proMonthly   = process.env.STRIPE_PRICE_PRO_MONTHLY;
-  const proYearly    = process.env.STRIPE_PRICE_PRO_YEARLY;
+  const basicMonthly = firstConfiguredEnvValue(
+    process.env.STRIPE_PRICE_BASIC_MONTHLY,
+    process.env.STRIPE_PRICE_ID_BASIC_MONTHLY,
+  );
+  const basicYearly = firstConfiguredEnvValue(
+    process.env.STRIPE_PRICE_BASIC_YEARLY,
+    process.env.STRIPE_PRICE_ID_BASIC_YEARLY,
+  );
+  const proMonthly = firstConfiguredEnvValue(
+    process.env.STRIPE_PRICE_PRO_MONTHLY,
+    process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
+  );
+  const proYearly = firstConfiguredEnvValue(
+    process.env.STRIPE_PRICE_PRO_YEARLY,
+    process.env.STRIPE_PRICE_ID_PRO_YEARLY,
+  );
 
   if (!basicMonthly || !basicYearly || !proMonthly || !proYearly) {
-    throw new Error('One or more STRIPE_PRICE_* environment variables are not configured');
+    throw new Error('One or more STRIPE_PRICE_* (or legacy STRIPE_PRICE_ID_*) environment variables are not configured');
   }
 
   if (priceId === basicMonthly || priceId === basicYearly) return 'basic';
@@ -76,4 +97,3 @@ export function resolveTierFromPriceId(priceId: string): SubscriptionTier {
 
   throw new Error(`Unknown Stripe price ID: ${priceId} — tier cannot be resolved`);
 }
-

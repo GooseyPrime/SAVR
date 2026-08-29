@@ -1,18 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { callApi } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 export default function SubscriptionDebugContent() {
-  return (
-    <ProtectedRoute>
-      <SubscriptionDebugInner />
-    </ProtectedRoute>
-  );
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/sign-in');
+    }
+  }, [loading, router, user]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
+        <div className="flex items-center gap-4 rounded-3xl border border-[var(--color-border)] bg-[rgba(20,26,23,0.82)] px-6 py-5 shadow-[var(--shadow-md)]">
+          <div className="h-11 w-11 animate-spin rounded-full border-[3px] border-[var(--color-border-strong)] border-t-[var(--color-primary)]" />
+          <div>
+            <p className="font-[var(--font-display)] text-sm font-semibold text-[var(--color-foreground)]">
+              Loading your workspace
+            </p>
+            <p className="text-sm text-[var(--color-foreground-muted)]">
+              Checking auth access.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return <SubscriptionDebugInner />;
 }
 
 function SubscriptionDebugInner() {

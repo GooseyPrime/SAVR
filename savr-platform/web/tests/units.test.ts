@@ -202,6 +202,35 @@ test('resolveTierFromPriceId maps configured price IDs correctly', () => {
   assert.equal(resolveTierFromPriceId('price_pro_yearly_test'),    'pro');
 });
 
+test('resolveTierFromPriceId maps legacy STRIPE_PRICE_ID_* values', () => {
+  delete process.env.STRIPE_PRICE_BASIC_MONTHLY;
+  delete process.env.STRIPE_PRICE_BASIC_YEARLY;
+  delete process.env.STRIPE_PRICE_PRO_MONTHLY;
+  delete process.env.STRIPE_PRICE_PRO_YEARLY;
+  process.env.STRIPE_PRICE_ID_BASIC_MONTHLY = 'price_basic_monthly_legacy';
+  process.env.STRIPE_PRICE_ID_BASIC_YEARLY  = 'price_basic_yearly_legacy';
+  process.env.STRIPE_PRICE_ID_PRO_MONTHLY   = 'price_pro_monthly_legacy';
+  process.env.STRIPE_PRICE_ID_PRO_YEARLY    = 'price_pro_yearly_legacy';
+
+  assert.equal(resolveTierFromPriceId('price_basic_monthly_legacy'), 'basic');
+  assert.equal(resolveTierFromPriceId('price_basic_yearly_legacy'),  'basic');
+  assert.equal(resolveTierFromPriceId('price_pro_monthly_legacy'),   'pro');
+  assert.equal(resolveTierFromPriceId('price_pro_yearly_legacy'),    'pro');
+});
+
+test('resolveTierFromPriceId trims env values and falls back from blank canonical values', () => {
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = '   ';
+  process.env.STRIPE_PRICE_BASIC_YEARLY = 'price_basic_yearly_test';
+  process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pro_monthly_test';
+  process.env.STRIPE_PRICE_PRO_YEARLY = 'price_pro_yearly_test';
+  process.env.STRIPE_PRICE_ID_BASIC_MONTHLY = '  price_basic_monthly_legacy  ';
+
+  assert.equal(resolveTierFromPriceId('price_basic_monthly_legacy'), 'basic');
+
+  process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
+  delete process.env.STRIPE_PRICE_ID_BASIC_MONTHLY;
+});
+
 test('resolveTierFromPriceId throws on unknown price ID', () => {
   process.env.STRIPE_PRICE_BASIC_MONTHLY = 'price_basic_monthly_test';
   process.env.STRIPE_PRICE_BASIC_YEARLY  = 'price_basic_yearly_test';
@@ -219,6 +248,10 @@ test('resolveTierFromPriceId throws when env vars are missing', () => {
   delete process.env.STRIPE_PRICE_BASIC_YEARLY;
   delete process.env.STRIPE_PRICE_PRO_MONTHLY;
   delete process.env.STRIPE_PRICE_PRO_YEARLY;
+  delete process.env.STRIPE_PRICE_ID_BASIC_MONTHLY;
+  delete process.env.STRIPE_PRICE_ID_BASIC_YEARLY;
+  delete process.env.STRIPE_PRICE_ID_PRO_MONTHLY;
+  delete process.env.STRIPE_PRICE_ID_PRO_YEARLY;
 
   assert.throws(
     () => resolveTierFromPriceId('price_basic_monthly_test'),

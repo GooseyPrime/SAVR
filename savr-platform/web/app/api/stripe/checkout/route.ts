@@ -212,7 +212,15 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 4. Load billing state / create session ───────────────────────────────
-  const supabaseAdmin = getSupabaseAdmin();
+  let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch {
+    return NextResponse.json(
+      { error: 'Checkout database service is not configured' },
+      { status: 503 },
+    );
+  }
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ??
     request.headers.get('origin') ??

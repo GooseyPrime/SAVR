@@ -59,45 +59,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchUserData(session.user.id);
-        } else {
-          setUserData(null);
-          setLoading(false);
-        }
-
-        // Clear checkout intent flag once subscription is confirmed active
-        if (event === 'SIGNED_IN' && userData?.subscription_status === 'active' || userData?.subscription_status === 'trialing') {
-          try {
-            localStorage.removeItem('savr_checkout_pending');
-          } catch {
-            // non-critical
-          }
-        }
-      }
-    );
-
-    // Set up realtime subscription for user data changes (webhook updates)
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+    let subscribedUserId: string | null = null;
+
+    const teardownRealtimeSubscription = () => {
+      if (!realtimeChannel) return;
+      void supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+      subscribedUserId = null;
+    };
 
     const setupRealtimeSubscription = (userId: string) => {
+      if (subscribedUserId === userId && realtimeChannel) return;
+
+      teardownRealtimeSubscription();
+      subscribedUserId = userId;
       realtimeChannel = supabase
-        .channel(`user_${userId}`)
+        .channel(`user_${userId}_${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -146,11 +124,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        void fetchUserData(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchUserData(session.user.id);
+        } else {
+          teardownRealtimeSubscription();
+          setUserData(null);
+          setLoading(false);
+        }
+
+        // Clear checkout intent flag once subscription is confirmed active
+        if (event === 'SIGNED_IN' && (userData?.subscription_status === 'active' || userData?.subscription_status === 'trialing')) {
+          try {
+            localStorage.removeItem('savr_checkout_pending');
+          } catch {
+            // non-critical
+          }
+        }
+      }
+    );
+
     return () => {
       subscription.unsubscribe();
-      if (realtimeChannel) {
-        realtimeChannel.unsubscribe();
-      }
+      teardownRealtimeSubscription();
     };
   }, []);
 

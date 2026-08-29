@@ -272,10 +272,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let supabaseAdmin: ReturnType<typeof getSupabaseAdmin>;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch {
+    return NextResponse.json(
+      { error: 'Billing sync service is not configured' },
+      { status: 503 },
+    );
+  }
+
   const result = await syncStripeSubscriptionResponse({
     user: { id: user.id, email: user.email },
     stripe,
-    supabaseAdmin: getSupabaseAdmin(),
+    supabaseAdmin,
   });
 
   return NextResponse.json(result.body, { status: result.status });

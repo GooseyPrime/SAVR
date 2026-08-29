@@ -30,6 +30,12 @@ export const PLAN_ENV_MAP: Record<Plan, string> = {
   pro_monthly: 'STRIPE_PRICE_PRO_MONTHLY',
   pro_yearly: 'STRIPE_PRICE_PRO_YEARLY',
 };
+const PLAN_LEGACY_ENV_MAP: Record<Plan, string> = {
+  basic_monthly: 'STRIPE_PRICE_ID_BASIC_MONTHLY',
+  basic_yearly: 'STRIPE_PRICE_ID_BASIC_YEARLY',
+  pro_monthly: 'STRIPE_PRICE_ID_PRO_MONTHLY',
+  pro_yearly: 'STRIPE_PRICE_ID_PRO_YEARLY',
+};
 
 const CHECKOUT_BLOCKING_STATUSES = ['active', 'trialing'] as const;
 const DATABASE_SUBSCRIPTION_STATUSES = [
@@ -69,12 +75,22 @@ export function isPlan(value: unknown): value is Plan {
   return typeof value === 'string' && value in PLAN_ENV_MAP;
 }
 
+function firstConfiguredEnvValue(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+
+  return undefined;
+}
+
 export function resolvePriceId(plan: Plan): string {
   const envKey = PLAN_ENV_MAP[plan];
-  const priceId = process.env[envKey];
+  const legacyEnvKey = PLAN_LEGACY_ENV_MAP[plan];
+  const priceId = firstConfiguredEnvValue(envKey, legacyEnvKey);
   if (!priceId) {
     throw new Error(
-      `Environment variable ${envKey} is not set — cannot create checkout session`,
+      `Environment variable ${envKey} (or legacy ${legacyEnvKey}) is not set — cannot create checkout session`,
     );
   }
   return priceId;
