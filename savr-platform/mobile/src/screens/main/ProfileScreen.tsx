@@ -67,9 +67,9 @@ export default function ProfileScreen() {
         */}
         <View style={[styles.menuItem, styles.planItem]}>
           <Ionicons
-            name={isProPlan ? 'star' : 'star-outline'}
+            name={isPro ? 'star' : 'star-outline'}
             size={22}
-            color={isProPlan ? colors.primary : colors.foregroundMuted}
+            color={isPro ? colors.primary : colors.foregroundMuted}
           />
           <Text style={styles.menuItemText}>Current plan</Text>
           <Text style={[styles.planValue, !isPlanKnown && styles.planValueMuted]}>{tierLabel}</Text>

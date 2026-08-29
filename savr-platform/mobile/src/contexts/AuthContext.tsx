@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const appStateRef = useRef(AppState.currentState);
   const userIdRef = useRef<string | null>(null);
 
   const fetchUserData = useCallback(async (userId: string, finalizeLoading = true) => {
@@ -98,7 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active' && userIdRef.current) {
+      const wasBackgrounded =
+        appStateRef.current === 'background' || appStateRef.current === 'inactive';
+      appStateRef.current = nextAppState;
+
+      if (nextAppState === 'active' && wasBackgrounded && userIdRef.current) {
         void fetchUserData(userIdRef.current, false);
       }
     });
