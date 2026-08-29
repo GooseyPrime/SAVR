@@ -20,6 +20,7 @@ interface ExtractedIngredient {
   confidence: number;
   category: 'pantry' | 'fridge' | 'freezer';
   price?: number;
+  notes?: string;
   isDuplicate?: boolean;
   notes?: string;
   nutrition?: unknown;
