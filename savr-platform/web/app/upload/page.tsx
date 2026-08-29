@@ -246,7 +246,12 @@ function UploadContent() {
             category: ingredient.category,
             image_url: imageUrl || undefined,
             notes: ingredient.notes,
-            expiry_date: ingredient.expiryDate,
+            expiry_date:
+              ingredient.expiryDate &&
+              /^\d{4}-\d{2}-\d{2}/.test(ingredient.expiryDate) &&
+              !Number.isNaN(Date.parse(ingredient.expiryDate))
+                ? new Date(ingredient.expiryDate).toISOString()
+                : undefined,
           })
         )
       );

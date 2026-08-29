@@ -153,7 +153,12 @@ export default function InventoryScreen() {
             category: ingredient.category === 'fridge' || ingredient.category === 'freezer' ? ingredient.category : 'pantry',
             image_url: imageUrl,
             notes: ingredient.notes,
-            expiry_date: ingredient.expiryDate,
+            expiry_date:
+              ingredient.expiryDate &&
+              /^\d{4}-\d{2}-\d{2}/.test(ingredient.expiryDate) &&
+              !Number.isNaN(Date.parse(ingredient.expiryDate))
+                ? new Date(ingredient.expiryDate).toISOString()
+                : undefined,
           })
         );
         await Promise.all(addPromises);

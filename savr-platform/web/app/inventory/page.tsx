@@ -159,10 +159,25 @@ function InventoryContent() {
         packageSize: hit.packageSize,
       });
 
+      // Parse packageSize (e.g. "500 g", "1.5 kg", "12 oz") into quantity + unit.
+      // Fall back to 1 / 'unit' when the field is absent or unparseable.
+      let parsedQuantity = 1;
+      let parsedUnit = 'unit';
+      if (hit.packageSize) {
+        const match = hit.packageSize.match(/^(\d*\.?\d+)\s*([a-zA-Z]+)/);
+        if (match) {
+          const num = parseFloat(match[1]);
+          if (!Number.isNaN(num)) {
+            parsedQuantity = num;
+            parsedUnit = match[2].toLowerCase();
+          }
+        }
+      }
+
       const addedItem = await addInventoryItem(user.id, {
         name: hit.name!,
-        quantity: 1,
-        unit: 'unit',
+        quantity: parsedQuantity,
+        unit: parsedUnit,
         category: pantryCategory(undefined),
         notes,
       });
