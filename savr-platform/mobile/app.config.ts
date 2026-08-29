@@ -1,8 +1,11 @@
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
-// Pin extra.eas.projectId after `eas init` for @intellme/savr.
-// Project IDs are not secret. Leave empty until the Expo project is linked.
-const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || '';
+// EAS project for @intellme/savr, created by `eas init`.
+// Project IDs and owner slugs are not secret; env var overrides exist for forks and CI.
+// EAS cannot write these itself because the config is dynamic, so they are pinned here.
+const EAS_PROJECT_ID =
+  process.env.EAS_PROJECT_ID || 'acf58b96-e2fd-4d00-b289-e0686d13875c';
+const EAS_PROJECT_OWNER = process.env.EAS_PROJECT_OWNER || 'intellme';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -75,5 +78,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   },
-  owner: 'intellme',
+  owner: EAS_PROJECT_OWNER,
 });
