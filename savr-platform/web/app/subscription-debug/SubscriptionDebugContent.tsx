@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
-import { callApi } from '@/lib/api';
+import { callApi, callApiGet } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function SubscriptionDebugContent() {
@@ -40,10 +40,45 @@ export default function SubscriptionDebugContent() {
   return <SubscriptionDebugInner />;
 }
 
+interface CredentialHealth {
+  variable: string;
+  present: boolean;
+  usable: boolean;
+  hadSurroundingWhitespace: boolean;
+  problem?: string;
+}
+
+interface BillingDiagnostics {
+  billingReady: boolean;
+  keyMode: string;
+  appUrlConfigured: boolean;
+  credentials: CredentialHealth[];
+  prices: Array<{ plan: string; variable: string; configured: boolean; looksLikePriceId: boolean }>;
+}
+
 function SubscriptionDebugInner() {
   const { user, userData } = useAuth();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [diagnostics, setDiagnostics] = useState<BillingDiagnostics | null>(null);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = (await callApiGet('/stripe/diagnostics')) as BillingDiagnostics;
+        if (!cancelled) setDiagnostics(result);
+      } catch (err) {
+        if (!cancelled) {
+          setDiagnosticsError(err instanceof Error ? err.message : 'Could not load billing configuration.');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -118,6 +153,59 @@ function SubscriptionDebugInner() {
               <InfoRow label="Email" value={user?.email || 'N/A'} />
               <InfoRow label="Email Verified" value={user?.email_confirmed_at ? 'Yes' : 'No'} />
             </div>
+          </div>
+
+          {/* Billing configuration health */}
+          <div
+            className="glass-card rounded-lg p-6 mb-6"
+            role="status"
+            aria-live="polite"
+            aria-busy={!diagnostics && !diagnosticsError}
+          >
+            <h2 className="text-xl font-semibold text-white mb-4">Billing Configuration</h2>
+            {diagnosticsError && (
+              <p className="text-sm text-[#f87171]">{diagnosticsError}</p>
+            )}
+            {!diagnostics && !diagnosticsError && (
+              <p className="text-sm text-[#C8D9CF]">Checking billing configuration…</p>
+            )}
+            {diagnostics && (
+              <div className="space-y-3">
+                <InfoRow
+                  label="Billing ready"
+                  value={diagnostics.billingReady ? 'Yes' : 'No'}
+                  highlight={diagnostics.billingReady}
+                />
+                <InfoRow label="Stripe key mode" value={diagnostics.keyMode} />
+                <InfoRow
+                  label="App URL configured"
+                  value={diagnostics.appUrlConfigured ? 'Yes' : 'No'}
+                />
+                {diagnostics.credentials.map((credential) => (
+                  <InfoRow
+                    key={credential.variable}
+                    label={credential.variable}
+                    value={
+                      credential.usable
+                        ? credential.hadSurroundingWhitespace
+                          ? 'Usable (stray whitespace removed)'
+                          : 'Usable'
+                        : (credential.problem ?? (credential.present ? 'Unusable' : 'Not set'))
+                    }
+                    highlight={credential.usable}
+                  />
+                ))}
+                {diagnostics.prices
+                  .filter((price) => !price.configured || !price.looksLikePriceId)
+                  .map((price) => (
+                    <InfoRow
+                      key={price.variable}
+                      label={price.variable}
+                      value={price.configured ? 'Set, but not a price_ ID' : 'Not set'}
+                    />
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Subscription Info */}
