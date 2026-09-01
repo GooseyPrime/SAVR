@@ -38,6 +38,7 @@ const PLAN_LEGACY_ENV_MAP: Record<Plan, string> = {
 };
 
 const CHECKOUT_BLOCKING_STATUSES = ['active', 'trialing'] as const;
+const CHECKOUT_IDEMPOTENCY_VERSION = 'v2';
 const DATABASE_SUBSCRIPTION_STATUSES = [
   'pending',
   'active',
@@ -186,7 +187,6 @@ export function findOpenSubscriptionCheckoutSession(
 }
 
 export function sessionIncludesTrial(session: Stripe.Checkout.Session): boolean {
-  // Legacy open sessions predate includeTrial metadata and always created a trial.
   return session.metadata?.includeTrial !== 'false';
 }
 
@@ -202,21 +202,13 @@ export function findReusableCheckoutSession(
         session.status === 'open' &&
         Boolean(session.url) &&
         session.metadata?.priceId === priceId &&
-        sessionIncludesTrial(session) === includeTrial
+        sessionIncludesTrial(session) === includeTrial &&
+        session.metadata?.paymentMethodCollection === 'if_required'
       ))
       .sort((a, b) => b.created - a.created)[0] ?? null
   );
 }
 
-/**
- * True when a promotion code removes every charge for the whole life of the
- * subscription, so the customer will never owe anything and a card is
- * pointless.
- *
- * Only a permanent 100%-off discount qualifies. A `once` or `repeating`
- * discount still bills later, so a payment method is required up front —
- * otherwise the subscription silently fails at the first real invoice.
- */
 function getPromotionCoupon(
   promotionCode: Stripe.PromotionCode | null | undefined,
 ): Stripe.Coupon | null {
@@ -281,8 +273,6 @@ export function discountRemovesAllCharges(
   price: Stripe.Price | null | undefined,
 ): boolean {
   const coupon = getPromotionCoupon(promotionCode);
-  // An unexpanded coupon is just an id, so the discount cannot be evaluated.
-  // Fail closed: require a payment method rather than assume the plan is free.
   if (!coupon?.valid || !price) return false;
   if (!promotionCodeAppliesToPrice(promotionCode, price)) return false;
   if (coupon.duration !== 'forever') return false;
@@ -293,10 +283,6 @@ export function discountRemovesAllCharges(
   return amountOff != null && unitAmount != null && amountOff >= unitAmount;
 }
 
-/**
- * Look up an active promotion code by the customer-facing code.
- * Returns null when the code does not exist or is no longer redeemable.
- */
 export async function findActivePromotionCode(
   stripe: Pick<Stripe, 'promotionCodes'>,
   code: string,
@@ -309,8 +295,6 @@ export async function findActivePromotionCode(
     code: trimmed,
     active: true,
     limit: 100,
-    // The coupon carries the discount terms that decide whether a payment
-    // method is needed, so it must come back expanded rather than as an id.
     expand: ['data.promotion.coupon'],
   });
 
@@ -345,27 +329,14 @@ export function buildCheckoutSessionParams(args: {
   origin: string;
   includeTrial?: boolean;
   plan?: Plan;
-  /** Pre-applied promotion code. Mutually exclusive with the Checkout coupon field. */
   promotionCodeId?: string | null;
-  /**
-   * Whether Stripe must collect a payment method. Defaults to true: a card is
-   * always required, including during the free trial, so the subscription can
-   * bill when the trial ends. Pass false only when the discount removes every
-   * charge for the life of the subscription.
-   */
   collectPaymentMethod?: boolean;
 }): Stripe.Checkout.SessionCreateParams {
   const includeTrial = args.includeTrial !== false;
-  const collectPaymentMethod = args.collectPaymentMethod !== false;
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
     line_items: [{ price: args.priceId, quantity: 1 }],
-    // 'always' keeps the card requirement during the free trial. 'if_required'
-    // is what Stripe uses to start a trial WITHOUT payment details, which is
-    // only correct when nothing will ever be charged.
-    payment_method_collection: collectPaymentMethod ? 'always' : 'if_required',
-    // Stripe rejects allow_promotion_codes together with discounts, so the
-    // in-Checkout coupon field is offered only when no code was pre-applied.
+    payment_method_collection: 'if_required',
     ...(args.promotionCodeId
       ? { discounts: [{ promotion_code: args.promotionCodeId }] }
       : { allow_promotion_codes: true }),
@@ -374,6 +345,7 @@ export function buildCheckoutSessionParams(args: {
       userId: args.userId,
       priceId: args.priceId,
       includeTrial: includeTrial ? 'true' : 'false',
+      paymentMethodCollection: 'if_required',
       ...(args.plan ? { plan: args.plan } : {}),
     },
     subscription_data: {
@@ -401,10 +373,8 @@ export function buildCheckoutIdempotencyKey(args: {
   promotionCodeId?: string | null;
 }): string {
   const trialPart = args.includeTrial === false ? 'no-trial' : 'trial';
-  // The promotion code changes the session's discounts and its
-  // payment-collection rule, so it must change the identity of the request.
   const promoPart = args.promotionCodeId ? `:${args.promotionCodeId}` : '';
-  return `stripe-checkout:${args.customerId ?? args.userId}:${args.plan}:${trialPart}${promoPart}`;
+  return `stripe-checkout:${CHECKOUT_IDEMPOTENCY_VERSION}:${args.customerId ?? args.userId}:${args.plan}:${trialPart}${promoPart}`;
 }
 
 export async function loadCustomerActivity(
@@ -528,9 +498,6 @@ export function selectCustomerBillingSnapshot(
   const withActivity = snapshots
     .filter(hasBillingActivity)
     .sort(compareCustomerSnapshots);
-  // Multiple current subscriptions already failed closed above. Historical
-  // activity (canceled/expired subs or open sessions) is not a conflict —
-  // pick the newest ranked record so checkout/sync can recover.
   if (withActivity[0]) return withActivity[0];
 
   return snapshots.sort(compareCustomerSnapshots)[0] ?? null;
@@ -540,11 +507,6 @@ export function mapStripeStatusToDatabase(
   status: Stripe.Subscription.Status,
 ): DatabaseSubscriptionStatus {
   if (status === 'paused') {
-    // The canonical users.subscription_status constraint does not allow `paused`.
-    // Map it to a non-entitling recoverable status without changing the schema.
-    // This is a schema-compatibility workaround, not a semantic claim that
-    // Stripe's paused state is identical to a genuinely overdue payment.
-    // TODO: remove this fallback when the canonical users constraint allows paused.
     return 'past_due';
   }
 
