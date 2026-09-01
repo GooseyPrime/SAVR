@@ -42,7 +42,7 @@ test('createCheckoutSessionResponse reuses the existing customer and creates a t
   );
   assert.equal(
     stripe.createCalls[0].options?.idempotencyKey,
-    'stripe-checkout:cus_existing:pro_monthly:trial',
+    'stripe-checkout:v2:cus_existing:pro_monthly:trial',
   );
 });
 
@@ -75,7 +75,11 @@ test('createCheckoutSessionResponse reuses an open checkout session instead of c
     [makeSession({
       id: 'cs_open',
       url: 'https://checkout.stripe.test/open',
-      metadata: { priceId: 'price_basic_yearly', includeTrial: 'true' },
+      metadata: {
+        priceId: 'price_basic_yearly',
+        includeTrial: 'true',
+        paymentMethodCollection: 'if_required',
+      },
     })],
   );
   const supabase = new MockSupabase();
@@ -101,7 +105,11 @@ test('createCheckoutSessionResponse does not reuse an open session for a differe
     [makeSession({
       id: 'cs_open_basic',
       url: 'https://checkout.stripe.test/open-basic',
-      metadata: { priceId: 'price_basic_monthly', includeTrial: 'true' },
+      metadata: {
+        priceId: 'price_basic_monthly',
+        includeTrial: 'true',
+        paymentMethodCollection: 'if_required',
+      },
     })],
   );
   const supabase = new MockSupabase();
@@ -119,6 +127,32 @@ test('createCheckoutSessionResponse does not reuse an open session for a differe
   assert.equal(result.body.url, 'https://checkout.stripe.test/new');
   assert.equal(stripe.createCalls.length, 1);
   assert.equal(stripe.createCalls[0].params.line_items?.[0]?.price, 'price_pro_yearly');
+});
+
+test('createCheckoutSessionResponse does not reuse a legacy open session without if_required marker', async () => {
+  const stripe = new MockStripe();
+  stripe.openSessionsByCustomer.set(
+    'cus_existing',
+    [makeSession({
+      id: 'cs_open_legacy',
+      url: 'https://checkout.stripe.test/open-legacy',
+      metadata: { priceId: 'price_basic_yearly', includeTrial: 'true' },
+    })],
+  );
+  const supabase = new MockSupabase();
+  supabase.userRow = { stripe_customer_id: 'cus_existing' };
+
+  const result = await createCheckoutSessionResponse({
+    user: { id: 'user_123', email: 'chef@example.com' },
+    plan: 'basic_yearly',
+    origin: 'https://savr.app',
+    stripe: stripe as unknown as ReturnType<typeof import('../lib/stripe').getStripeInstance>,
+    supabaseAdmin: supabase as unknown as ReturnType<typeof import('../lib/supabase').getSupabaseAdmin>,
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.url, 'https://checkout.stripe.test/new');
+  assert.equal(stripe.createCalls.length, 1);
 });
 
 test('createCheckoutSessionResponse does not reuse a trial session after the customer consumed a trial', async () => {
@@ -158,7 +192,7 @@ test('createCheckoutSessionResponse does not reuse a trial session after the cus
   assert.equal(stripe.createCalls[0].params.metadata?.includeTrial, 'false');
   assert.equal(
     stripe.createCalls[0].options?.idempotencyKey,
-    'stripe-checkout:cus_existing:pro_monthly:no-trial',
+    'stripe-checkout:v2:cus_existing:pro_monthly:no-trial',
   );
 });
 
@@ -183,7 +217,7 @@ test('createCheckoutSessionResponse retries without a trial when Stripe rejects 
   assert.equal(stripe.createCalls[1].params.subscription_data?.trial_period_days, undefined);
   assert.equal(
     stripe.createCalls[1].options?.idempotencyKey,
-    'stripe-checkout:cus_existing:pro_monthly:no-trial',
+    'stripe-checkout:v2:cus_existing:pro_monthly:no-trial',
   );
 });
 
@@ -336,7 +370,7 @@ test('createCheckoutSessionResponse keeps the trial when a coupon still leaves s
   assert.equal(result.status, 200);
   assert.equal(result.body.url, 'https://checkout.stripe.test/new');
   assert.equal(stripe.createCalls.length, 1);
-  assert.equal(stripe.createCalls[0].params.payment_method_collection, 'always');
+  assert.equal(stripe.createCalls[0].params.payment_method_collection, 'if_required');
   assert.equal(stripe.createCalls[0].params.subscription_data?.trial_period_days, TRIAL_PERIOD_DAYS);
   assert.deepEqual(stripe.createCalls[0].params.discounts, [{ promotion_code: 'promo_save50' }]);
 });
@@ -381,7 +415,7 @@ test('createCheckoutSessionResponse skips the card and trial when a matching for
   assert.deepEqual(stripe.createCalls[0].params.discounts, [{ promotion_code: 'promo_free' }]);
   assert.equal(
     stripe.createCalls[0].options?.idempotencyKey,
-    'stripe-checkout:cus_existing:pro_monthly:no-trial:promo_free',
+    'stripe-checkout:v2:cus_existing:pro_monthly:no-trial:promo_free',
   );
 });
 

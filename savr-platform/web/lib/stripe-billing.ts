@@ -38,6 +38,7 @@ const PLAN_LEGACY_ENV_MAP: Record<Plan, string> = {
 };
 
 const CHECKOUT_BLOCKING_STATUSES = ['active', 'trialing'] as const;
+const CHECKOUT_IDEMPOTENCY_VERSION = 'v2';
 const DATABASE_SUBSCRIPTION_STATUSES = [
   'pending',
   'active',
@@ -202,7 +203,7 @@ export function findReusableCheckoutSession(
         Boolean(session.url) &&
         session.metadata?.priceId === priceId &&
         sessionIncludesTrial(session) === includeTrial &&
-        session.metadata?.paymentMethodCollection !== 'always'
+        session.metadata?.paymentMethodCollection === 'if_required'
       ))
       .sort((a, b) => b.created - a.created)[0] ?? null
   );
@@ -373,7 +374,7 @@ export function buildCheckoutIdempotencyKey(args: {
 }): string {
   const trialPart = args.includeTrial === false ? 'no-trial' : 'trial';
   const promoPart = args.promotionCodeId ? `:${args.promotionCodeId}` : '';
-  return `stripe-checkout:${args.customerId ?? args.userId}:${args.plan}:${trialPart}${promoPart}`;
+  return `stripe-checkout:${CHECKOUT_IDEMPOTENCY_VERSION}:${args.customerId ?? args.userId}:${args.plan}:${trialPart}${promoPart}`;
 }
 
 export async function loadCustomerActivity(

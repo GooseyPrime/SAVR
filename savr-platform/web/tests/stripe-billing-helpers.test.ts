@@ -82,9 +82,7 @@ test('buildCheckoutSessionParams includes coupon support and the 5-day trial pol
   });
 
   assert.equal(params.allow_promotion_codes, true);
-  // A card is required to start the trial. See tests/checkout-payment-method.test.ts
-  // for the single exception: a coupon that makes the plan permanently free.
-  assert.equal(params.payment_method_collection, 'always');
+  assert.equal(params.payment_method_collection, 'if_required');
   assert.equal(params.subscription_data?.trial_period_days, TRIAL_PERIOD_DAYS);
   assert.equal(params.subscription_data?.metadata?.userId, 'user_123');
   assert.equal(params.customer_email, 'chef@example.com');
