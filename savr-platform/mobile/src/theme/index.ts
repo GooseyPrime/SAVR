@@ -11,62 +11,62 @@
 
 // Brand Colors
 export const colors = {
-  // Primary — vibrant lime (logo accent)
-  primary: '#BAFF5C',
-  primaryHover: '#C8FF7A',
-  primaryLight: '#BAFF5C18',
-  primaryForeground: '#0D1208',
+  // Primary — Climate SAGE metal
+  primary: '#7FA37A',
+  primaryHover: '#8FB58B',
+  primaryLight: '#7FA37A2E',
+  primaryForeground: '#0C0B0A',
 
-  // Secondary — fresh mint
-  secondary: '#5CFFBA',
-  secondaryHover: '#7AFFC8',
-  secondaryLight: '#5CFFBA18',
-  secondaryForeground: '#0D1208',
+  // Secondary — tempered sage
+  secondary: '#6F8F6A',
+  secondaryHover: '#7FA37A',
+  secondaryLight: '#7FA37A1F',
+  secondaryForeground: '#F5F7F2',
 
-  // Accent — warm citrus
-  accent: '#FFE55C',
-  accentHover: '#FFEB7A',
-  accentLight: '#FFE55C18',
-  accentForeground: '#0D1208',
+  // Accent — pale alloy
+  accent: '#A6BEA2',
+  accentHover: '#B6CDAF',
+  accentLight: '#7FA37A1A',
+  accentForeground: '#0C0B0A',
 
-  // Pet mode — soft peach
-  pet: '#FFAB5C',
-  petHover: '#FFBC7A',
-  petLight: '#FFAB5C18',
-  petForeground: '#0D1208',
+  // Pet mode — muted bronze
+  pet: '#B99971',
+  petHover: '#C7A883',
+  petLight: '#B999711F',
+  petForeground: '#0C0B0A',
 
-  // Neutrals — deep forest-slate
-  background: '#0D1210',
-  surface: '#141A17',
-  surfaceRaised: '#1A221E',
-  muted: '#232D28',
-  mutedForeground: '#8FA89A',
+  // Neutrals — obsidian / wet-stone / warm surface
+  background: '#0C0B0A',
+  surface: '#141210',
+  surfaceRaised: '#101410',
+  muted: '#1A1816',
+  mutedForeground: '#8F9A8B',
   // React Native supports CSS4 8-digit hex (#RRGGBBAA) — values match tokens.ts
-  border: '#BAFF5C12',
-  borderStrong: '#BAFF5C28',
+  border: '#7FA37A2E',
+  borderStrong: '#7FA37A4A',
 
   // Text
-  foreground: '#FFFFFF',
-  foregroundSecondary: '#C8D9CF',
-  foregroundMuted: '#7A9486',
+  foreground: '#F5F7F2',
+  foregroundSecondary: '#D8E0D4',
+  foregroundMuted: '#9AA696',
 
   // Semantic states
-  success: '#5CFF8A',
-  successLight: '#1A3D25',
-  warning: '#FFE55C',
-  warningLight: '#3D3510',
-  error: '#FF6B6B',
-  errorLight: '#3D1515',
-  info: '#5CBAFF',
-  infoLight: '#152D3D',
+  success: '#84B57C',
+  successLight: '#1B2A1A',
+  warning: '#C9B47A',
+  warningLight: '#2E2819',
+  error: '#C67A7A',
+  errorLight: '#2D1C1C',
+  info: '#7FA37A',
+  infoLight: '#1A2420',
 } as const;
 
 // Typography — font family stacks
 export const typography = {
-  fontDisplay: 'Outfit',
-  fontSans: 'Inter',
-  fontMono: 'JetBrains Mono',
-  fontScript: 'Caveat',
+  fontDisplay: 'Fraunces',
+  fontSans: 'IBM Plex Sans',
+  fontMono: 'IBM Plex Mono',
+  fontScript: 'Fraunces',
 } as const;
 
 // Spacing — layout-level primitives (in dp/px)
@@ -77,10 +77,10 @@ export const spacing = {
 
 // Border radius (in dp/px)
 export const radii = {
-  sm: 6,
-  md: 10,
-  lg: 16,
-  xl: 24,
+  sm: 1,
+  md: 4,
+  lg: 8,
+  xl: 12,
   full: 9999,
 } as const;
 
