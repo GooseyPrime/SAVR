@@ -56,6 +56,10 @@ export default function PreferencesPage() {
 
 function PreferencesContent() {
   const { user } = useAuth();
+  const panelStyle = { background: 'rgba(20, 18, 16, 0.75)', border: '1px solid rgba(255, 255, 255, 0.06)' };
+  const chipStyle = { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' };
+  const textAreaBorderColor = 'rgba(255, 255, 255, 0.08)';
+  const textAreaFocusBorderColor = 'rgba(127, 163, 122, 0.4)';
   const [preferences, setPreferences] = useState<UserPreferences>({
     cuisines: [],
     diets: [],
@@ -123,17 +127,17 @@ function PreferencesContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: '#000000' }}>
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-8 flex justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#BAFF5C]" />
+          <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
@@ -142,7 +146,7 @@ function PreferencesContent() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
             Food Preferences
           </h1>
-          <p className="text-[#C8D9CF] text-base max-w-2xl">
+          <p className="max-w-2xl text-base text-foreground-secondary">
             Tell us what you love and what to avoid. These preferences are used by the AI when generating recipes and meal plans so every suggestion fits your taste and dietary needs.
           </p>
         </div>
@@ -154,7 +158,7 @@ function PreferencesContent() {
         )}
 
         {saved && (
-          <div className="mb-6 rounded-xl px-5 py-4 text-sm" style={{ background: 'rgba(0, 191, 166, 0.1)', border: '1px solid rgba(0, 191, 166, 0.25)', color: '#00bfa6' }}>
+          <div className="mb-6 rounded-xl px-5 py-4 text-sm" style={{ background: 'var(--color-success-light)', border: '1px solid var(--color-success)', color: 'var(--color-success)' }}>
             Preferences saved successfully.
           </div>
         )}
@@ -163,11 +167,11 @@ function PreferencesContent() {
         <section className="mb-10">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-white mb-1">Favorite Cuisines</h2>
-            <p className="text-sm text-[#6b7294]">
+            <p className="text-sm text-foreground-muted">
               Select all the cuisines you enjoy. The AI will prioritize these when suggesting recipes.
             </p>
           </div>
-          <div className="rounded-xl p-5" style={{ background: 'rgba(13, 17, 41, 0.5)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="rounded-xl p-5" style={panelStyle}>
             <div className="flex flex-wrap gap-2">
               {CUISINE_OPTIONS.map((cuisine) => {
                 const selected = preferences.cuisines.includes(cuisine);
@@ -177,12 +181,12 @@ function PreferencesContent() {
                     type="button"
                     onClick={() => toggleOption('cuisines', cuisine)}
                     className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      selected ? 'text-black' : 'text-[#C8D9CF] hover:text-white'
+                      selected ? 'text-primary-foreground' : 'text-foreground-secondary hover:text-foreground'
                     }`}
                     style={
                       selected
-                        ? { background: 'linear-gradient(135deg, #BAFF5C, #C8FF7A)' }
-                        : { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }
+                        ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))' }
+                        : chipStyle
                     }
                   >
                     {cuisine}
@@ -197,11 +201,11 @@ function PreferencesContent() {
         <section className="mb-10">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-white mb-1">Diet Preferences</h2>
-            <p className="text-sm text-[#6b7294]">
+            <p className="text-sm text-foreground-muted">
               Choose any diets you follow. Recipes will be tailored to match.
             </p>
           </div>
-          <div className="rounded-xl p-5" style={{ background: 'rgba(13, 17, 41, 0.5)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="rounded-xl p-5" style={panelStyle}>
             <div className="flex flex-wrap gap-2">
               {DIET_OPTIONS.map((diet) => {
                 const selected = preferences.diets.includes(diet);
@@ -211,12 +215,12 @@ function PreferencesContent() {
                     type="button"
                     onClick={() => toggleOption('diets', diet)}
                     className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      selected ? 'text-black' : 'text-[#C8D9CF] hover:text-white'
+                      selected ? 'text-primary-foreground' : 'text-foreground-secondary hover:text-foreground'
                     }`}
                     style={
                       selected
-                        ? { background: 'linear-gradient(135deg, #a855f7, #7c3aed)' }
-                        : { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }
+                        ? { background: 'linear-gradient(135deg, var(--color-secondary), var(--color-primary))' }
+                        : chipStyle
                     }
                   >
                     {diet}
@@ -231,11 +235,11 @@ function PreferencesContent() {
         <section className="mb-10">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-white mb-1">Restrictions &amp; Allergies</h2>
-            <p className="text-sm text-[#6b7294]">
+            <p className="text-sm text-foreground-muted">
               Mark any ingredients or categories you need to avoid. The AI will exclude these from all suggestions.
             </p>
           </div>
-          <div className="rounded-xl p-5" style={{ background: 'rgba(13, 17, 41, 0.5)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="rounded-xl p-5" style={panelStyle}>
             <div className="flex flex-wrap gap-2">
               {RESTRICTION_OPTIONS.map((restriction) => {
                 const selected = preferences.restrictions.includes(restriction);
@@ -245,12 +249,12 @@ function PreferencesContent() {
                     type="button"
                     onClick={() => toggleOption('restrictions', restriction)}
                     className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      selected ? 'text-white' : 'text-[#C8D9CF] hover:text-white'
+                      selected ? 'text-foreground' : 'text-foreground-secondary hover:text-foreground'
                     }`}
                     style={
                       selected
-                        ? { background: 'rgba(239, 68, 68, 0.7)', border: '1px solid rgba(239, 68, 68, 0.5)' }
-                        : { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }
+                        ? { background: 'var(--color-error-light)', border: '1px solid var(--color-error)' }
+                        : chipStyle
                     }
                   >
                     {restriction}
@@ -265,11 +269,11 @@ function PreferencesContent() {
         <section className="mb-10">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-white mb-1">Additional Notes for AI</h2>
-            <p className="text-sm text-[#6b7294]">
+            <p className="text-sm text-foreground-muted">
               Anything else the AI should know when planning your meals? For example: calorie targets, preferred cooking methods, foods you dislike but aren&apos;t allergic to, family size, etc.
             </p>
           </div>
-          <div className="rounded-xl p-5" style={{ background: 'rgba(13, 17, 41, 0.5)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="rounded-xl p-5" style={panelStyle}>
             <textarea
               value={preferences.additionalNotes}
               onChange={(e) =>
@@ -277,10 +281,10 @@ function PreferencesContent() {
               }
               rows={4}
               placeholder="e.g., I prefer quick 30-min meals, cooking for a family of 4, I don't like cilantro, trying to eat under 2000 calories/day, prefer baking over frying..."
-              className="w-full px-4 py-3 rounded-xl text-white placeholder-[#6b7294] outline-none transition-all duration-200 resize-none text-sm"
-              style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-              onFocus={(e) => (e.target.style.borderColor = 'rgba(186, 255, 92, 0.4)')}
-              onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
+              className="w-full resize-none rounded-xl px-4 py-3 text-sm text-white outline-none transition-all duration-200 placeholder:text-foreground-muted"
+              style={{ background: 'rgba(20, 18, 16, 0.85)', border: `1px solid ${textAreaBorderColor}` }}
+              onFocus={(e) => (e.target.style.borderColor = textAreaFocusBorderColor)}
+              onBlur={(e) => (e.target.style.borderColor = textAreaBorderColor)}
             />
           </div>
         </section>
@@ -292,11 +296,11 @@ function PreferencesContent() {
             onClick={handleSave}
             disabled={saving}
             className="px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #BAFF5C, #C8FF7A)', color: '#000000' }}
+            style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))', color: 'var(--color-primary-foreground)' }}
           >
             {saving ? 'Saving...' : 'Save Preferences'}
           </button>
-          <p className="text-xs text-[#6b7294]">
+          <p className="text-xs text-foreground-muted">
             You can also override these on a per-recipe basis when generating a recipe.
           </p>
         </div>

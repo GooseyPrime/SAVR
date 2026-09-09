@@ -21,7 +21,7 @@ export const colors = {
   secondary: '#6F8F6A',
   secondaryHover: '#7FA37A',
   secondaryLight: '#7FA37A1F',
-  secondaryForeground: '#F5F7F2',
+  secondaryForeground: '#0C0B0A',
 
   // Accent — pale alloy
   accent: '#A6BEA2',
@@ -52,13 +52,13 @@ export const colors = {
 
   // Semantic states
   success: '#84B57C',
-  successLight: '#1B2A1A',
+  successLight: '#84B57C20',
   warning: '#C9B47A',
-  warningLight: '#2E2819',
+  warningLight: '#C9B47A20',
   error: '#C67A7A',
-  errorLight: '#2D1C1C',
+  errorLight: '#C67A7A20',
   info: '#7FA37A',
-  infoLight: '#1A2420',
+  infoLight: '#7FA37A20',
 } as const;
 
 // Typography — font family stacks

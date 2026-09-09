@@ -26,10 +26,11 @@ Canonical release-candidate application now lives in `savr-platform/`.
 
 ## Remaining launch blockers
 
-1. Run live Stripe and entitlement workflow gates with production/staging secrets
-2. Complete EAS native build + device validation checklist
-3. Resolve pre-existing E2E smoke assertion failures
-4. Finish ADR-002 Firebase storage URL audit
+1. Provision GitHub `Production` and `Staging` environments with required secrets
+2. Complete live-environment test stubs in `.github/workflows/live-environment-tests.yml`
+3. Configure EAS Build signing credentials and run the native release checklist
+4. Audit the production database for Firebase Storage URLs (ADR-002)
+5. Restore reference-folder integrity on `main` in a dedicated governance PR
 
 ## Source of truth
 

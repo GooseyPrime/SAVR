@@ -72,7 +72,7 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
         <div className="space-y-4">
           <div
             className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition"
-            style={{ borderColor: 'rgba(0, 212, 255, 0.25)', background: 'rgba(0, 212, 255, 0.04)' }}
+            style={{ borderColor: 'var(--color-border-strong)', background: 'var(--color-primary-light)' }}
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="relative w-full h-64 mx-auto">
@@ -85,11 +85,11 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
             </div>
             {loading ? (
               <div className="flex items-center justify-center space-x-2 mt-4">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#00d4ff]"></div>
-                <span className="text-[#9ca3c2]">Analyzing image...</span>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                <span className="text-foreground-muted">Analyzing image...</span>
               </div>
             ) : (
-              <p className="text-sm text-[#9ca3c2] mt-4">
+              <p className="mt-4 text-sm text-foreground-muted">
                 Click to replace or use the buttons below
               </p>
             )}
@@ -100,7 +100,7 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
               onClick={() => cameraInputRef.current?.click()}
               disabled={loading}
               className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
-              style={{ background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.25)', color: '#00d4ff' }}
+              style={{ background: 'var(--color-primary-light)', border: '1px solid var(--color-border-strong)', color: 'var(--color-primary)' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
@@ -113,7 +113,7 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
               className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
-              style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', color: '#9ca3c2' }}
+              style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', color: 'var(--color-foreground-muted)' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
@@ -133,13 +133,13 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
               isDragging ? '' : ''
             }`}
             style={{
-              borderColor: isDragging ? 'rgba(0, 212, 255, 0.5)' : 'rgba(255, 255, 255, 0.1)',
-              background: isDragging ? 'rgba(0, 212, 255, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+              borderColor: isDragging ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.1)',
+              background: isDragging ? 'var(--color-primary-light)' : 'rgba(255, 255, 255, 0.02)',
             }}
           >
             <div className="space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center" style={{ background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.15)' }}>
-                <svg className="w-7 h-7 text-[#00d4ff]" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: 'var(--color-primary-light)', border: '1px solid var(--color-border)' }}>
+                <svg className="h-7 w-7 text-primary" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
                 </svg>
               </div>
@@ -147,10 +147,10 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
                 <p className="text-base font-medium text-white mb-1">
                   Upload a photo of your pantry or fridge
                 </p>
-                <p className="text-sm text-[#9ca3c2]">
+                <p className="text-sm text-foreground-muted">
                   Click to browse or drag and drop an image here
                 </p>
-                <p className="text-xs text-[#6b7294] mt-2">
+                <p className="mt-2 text-xs text-foreground-muted">
                   PNG, JPG, JPEG up to 10MB
                 </p>
               </div>
@@ -162,7 +162,7 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
             type="button"
             onClick={() => cameraInputRef.current?.click()}
             className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', color: '#000000' }}
+            style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))', color: 'var(--color-primary-foreground)' }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
@@ -170,7 +170,7 @@ export default function ImageUpload({ onUpload, loading }: ImageUploadProps) {
             </svg>
             Take Photo with Camera
           </button>
-          <p className="text-center text-xs text-[#6b7294]">
+          <p className="text-center text-xs text-foreground-muted">
             Your browser will request camera access when you tap the button above
           </p>
         </div>

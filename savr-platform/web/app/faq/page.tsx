@@ -205,9 +205,9 @@ export default function FAQPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
             Frequently Asked Questions
           </h1>
-          <p className="text-lg max-w-xl mx-auto" style={{ color: '#9ca3c2' }}>
+          <p className="mx-auto max-w-xl text-lg text-foreground-muted">
             Everything you need to know about using SAVR. Can&apos;t find what you&apos;re looking for?{' '}
-            <Link href={chatHref} className="text-[#BAFF5C] hover:underline">
+            <Link href={chatHref} className="text-primary hover:underline">
               Ask our AI assistant
             </Link>
             .
@@ -220,7 +220,7 @@ export default function FAQPage() {
             <div key={category.title}>
               <h3
                 className="text-xs font-bold uppercase tracking-widest mb-4"
-                style={{ color: '#BAFF5C' }}
+                style={{ color: 'var(--color-primary)' }}
               >
                 {category.title}
               </h3>
@@ -248,8 +248,8 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
     <div
       className="rounded-xl overflow-hidden transition-all duration-200"
       style={{
-        background: isOpen ? 'rgba(13, 17, 41, 0.8)' : 'rgba(13, 17, 41, 0.5)',
-        border: `1px solid ${isOpen ? 'rgba(186, 255, 92, 0.15)' : 'rgba(255, 255, 255, 0.06)'}`,
+        background: isOpen ? 'rgba(20, 18, 16, 0.85)' : 'rgba(20, 18, 16, 0.6)',
+        border: `1px solid ${isOpen ? 'var(--color-border-strong)' : 'rgba(255, 255, 255, 0.06)'}`,
       }}
     >
       <button
@@ -262,7 +262,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
             isOpen ? 'rotate-180' : ''
           }`}
           fill="none"
-          stroke="#6b7294"
+          stroke="var(--color-foreground-muted)"
           strokeWidth={2}
           viewBox="0 0 24 24"
         >
@@ -276,7 +276,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       {isOpen && (
         <div
           className="px-6 pb-5 text-sm leading-relaxed"
-          style={{ color: '#9ca3c2' }}
+          style={{ color: 'var(--color-foreground-muted)' }}
         >
           {answer}
         </div>

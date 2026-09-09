@@ -23,7 +23,7 @@ export const colors = {
   secondary: '#6F8F6A',
   secondaryHover: '#7FA37A',
   secondaryLight: '#7FA37A1F',
-  secondaryForeground: '#F5F7F2',
+  secondaryForeground: '#0C0B0A',
 
   // Accent — pale alloy
   accent: '#A6BEA2',
