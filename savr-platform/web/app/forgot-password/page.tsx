@@ -11,6 +11,8 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const { resetPassword } = useAuth();
+  const inputBorderColor = 'rgba(255, 255, 255, 0.08)';
+  const inputFocusBorderColor = 'rgba(127, 163, 122, 0.4)';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,10 +86,10 @@ export default function ForgotPasswordPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
-                  style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                  className="w-full rounded-xl px-4 py-3 text-foreground outline-none transition-all duration-200 placeholder:text-foreground-muted"
+                  style={{ background: 'rgba(20, 18, 16, 0.85)', border: `1px solid ${inputBorderColor}` }}
+                  onFocus={(e) => e.target.style.borderColor = inputFocusBorderColor}
+                  onBlur={(e) => e.target.style.borderColor = inputBorderColor}
                   placeholder="you@example.com"
                 />
               </div>
@@ -103,7 +105,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <div className="text-center">
-                <Link href="/sign-in" className="text-sm font-medium text-primary hover:text-[#00bfa6] transition-colors">
+                <Link href="/sign-in" className="text-sm font-medium text-primary hover:text-accent transition-colors">
                   Back to sign in
                 </Link>
               </div>

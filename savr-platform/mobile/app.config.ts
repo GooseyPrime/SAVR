@@ -14,7 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'dark',
   scheme: 'savr',
   ios: {
     supportsTablet: true,
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#0D1210',
+      backgroundColor: '#0C0B0A',
     },
     package: 'cam.savr.app',
     versionCode: 1,
