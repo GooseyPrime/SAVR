@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import {
-  evaluateSnapshot,
-  renderReport,
-  summarise,
-  worstSeverity,
-  type CapacitySnapshot,
-} from '../../../../lib/sentinel/thresholds';
+import { isAuthorised, readSentinelEnv } from '../../../../lib/sentinel/env';
+import { runSentinel, type SentinelDeps } from '../../../../lib/sentinel/run';
 import { readMailjetConfig, sendMailjetAlert } from '../../../../lib/sentinel/mailjet';
+import { HEARTBEAT_TABLE } from '../../../../lib/sentinel/constants';
+import type { CapacitySnapshot } from '../../../../lib/sentinel/thresholds';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,129 +16,99 @@ const PING_GAP_MS = 1_500;
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-function unauthorised(): NextResponse {
-  return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
-}
-
-/**
- * Vercel signs scheduled invocations with CRON_SECRET. The same header lets the
- * route be triggered by hand for a smoke test without opening it to the world.
- */
-function isAuthorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get('authorization') === `Bearer ${secret}`;
+function toNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
-  if (!isAuthorised(request)) return unauthorised();
+  const result = readSentinelEnv(process.env);
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !serviceRoleKey) {
+  if (!result.ok) {
+    // Never reveal configuration state to an unauthenticated caller.
+    if (!isAuthorised(request.headers.get('authorization'), process.env.CRON_SECRET ?? null)) {
+      return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
+    }
     return NextResponse.json(
-      { error: 'NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required' },
+      { error: `missing configuration: ${result.missing.join(', ')}` },
       { status: 500 },
     );
   }
 
-  const admin = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
-  const errors: string[] = [];
-  let writes = 0;
-  let reads = 0;
-
-  // Keep-alive. Every iteration is a real query against the project database,
-  // which is the signal Supabase measures when deciding what to pause.
-  for (let index = 0; index < PINGS; index += 1) {
-    const { error: writeError } = await admin.rpc('sentinel_touch');
-    if (writeError) {
-      const { error: fallbackError } = await admin
-        .from('sentinel_heartbeat')
-        .update({ last_ping_at: new Date().toISOString() })
-        .eq('id', 1);
-      if (fallbackError) errors.push(`write ping failed: ${fallbackError.message}`);
-      else writes += 1;
-    } else {
-      writes += 1;
-    }
-
-    if (anonKey) {
-      try {
-        const response = await fetch(
-          `${url}/rest/v1/sentinel_heartbeat?select=last_ping_at&limit=1`,
-          {
-            headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
-            cache: 'no-store',
-            signal: AbortSignal.timeout(15_000),
-          },
-        );
-        if (!response.ok) errors.push(`public read ping returned ${response.status}`);
-        else reads += 1;
-      } catch (error) {
-        errors.push(`public read ping failed: ${(error as Error).message}`);
-      }
-    }
-
-    if (index < PINGS - 1) await sleep(PING_GAP_MS);
+  const config = result.env;
+  if (!isAuthorised(request.headers.get('authorization'), config.cronSecret)) {
+    return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
-  // Capacity check.
-  let snapshot: CapacitySnapshot = {
-    databaseBytes: null,
-    storageBytes: null,
-    monthlyActiveUsers: null,
-    lastPingAt: null,
-  };
+  const admin = createClient(config.supabaseUrl, config.serviceRoleKey, {
+    auth: { persistSession: false },
+  });
 
-  const { data, error: statusError } = await admin.rpc('sentinel_status');
-  if (statusError) {
-    errors.push(`capacity probe failed: ${statusError.message}`);
-  } else {
-    const row = Array.isArray(data) ? data[0] : data;
-    if (row) {
-      snapshot = {
-        databaseBytes: Number(row.database_bytes ?? NaN) || null,
-        storageBytes: Number(row.storage_bytes ?? NaN) || null,
-        monthlyActiveUsers: Number(row.monthly_active_users ?? NaN) || 0,
+  const mailjet = readMailjetConfig(process.env);
+
+  const deps: SentinelDeps = {
+    readStatus: async (): Promise<CapacitySnapshot> => {
+      const { data, error } = await admin.rpc('sentinel_status');
+      if (error) throw new Error(error.message);
+      const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+      if (!row) throw new Error('sentinel_status returned no row');
+      return {
+        databaseBytes: toNumber(row.database_bytes),
+        storageBytes: toNumber(row.storage_bytes),
+        monthlyActiveUsers: toNumber(row.monthly_active_users),
         lastPingAt: typeof row.last_ping_at === 'string' ? row.last_ping_at : null,
       };
-    }
-  }
-
-  const findings = evaluateSnapshot(snapshot);
-  const severity = worstSeverity(findings.map((finding) => finding.severity));
-  const label = process.env.SENTINEL_PROJECT_LABEL ?? 'SAVR';
-  const report = renderReport(label, snapshot, findings);
-
-  if (severity !== 'ok') {
-    const mailjet = readMailjetConfig(process.env);
-    if (mailjet === null) {
-      errors.push('alert not emailed: Mailjet environment variables are not set');
-    } else {
-      try {
-        await sendMailjetAlert(mailjet, summarise(label, findings), report);
-      } catch (error) {
-        errors.push(`alert email failed: ${(error as Error).message}`);
-      }
-    }
-  }
-
-  if (writes === 0) {
-    console.error('[sentinel] keep-alive did not land', { errors });
-  }
-
-  return NextResponse.json(
-    {
-      severity,
-      writes,
-      reads,
-      snapshot,
-      findings,
-      errors,
-      checkedAt: new Date().toISOString(),
     },
-    { status: writes === 0 ? 500 : 200 },
-  );
+    touch: async (): Promise<string | null> => {
+      const { data, error } = await admin.rpc('sentinel_touch');
+      if (!error) return typeof data === 'string' ? data : null;
+      const fallback = await admin
+        .from(HEARTBEAT_TABLE)
+        .update({ last_ping_at: new Date().toISOString() })
+        .eq('id', 1);
+      if (fallback.error) throw new Error(`${error.message}; fallback: ${fallback.error.message}`);
+      return null;
+    },
+    publicRead:
+      config.anonKey === null
+        ? null
+        : async (): Promise<void> => {
+            const response = await fetch(
+              `${config.supabaseUrl}/rest/v1/${HEARTBEAT_TABLE}?select=last_ping_at&limit=1`,
+              {
+                headers: {
+                  apikey: config.anonKey as string,
+                  Authorization: `Bearer ${config.anonKey as string}`,
+                },
+                cache: 'no-store',
+                signal: AbortSignal.timeout(15_000),
+              },
+            );
+            if (!response.ok) throw new Error(`REST read returned ${response.status}`);
+            await response.arrayBuffer();
+          },
+    sendAlert:
+      mailjet === null
+        ? null
+        : async (subject: string, body: string): Promise<void> => {
+            await sendMailjetAlert(mailjet, subject, body);
+          },
+    sleep,
+    now: () => new Date(),
+    pings: PINGS,
+    pingGapMs: PING_GAP_MS,
+    label: config.label,
+  };
+
+  const run = await runSentinel(deps);
+
+  if (run.writes === 0) {
+    console.error('[sentinel] keep-alive did not land', { errors: run.errors });
+  }
+
+  return NextResponse.json(run, { status: run.writes === 0 ? 500 : 200 });
 }
