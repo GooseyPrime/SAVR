@@ -2,8 +2,16 @@
  * Free plan allowances and the rules that turn a measurement into an alert.
  *
  * Pure and dependency-free so it can be unit tested without a database or a
- * network call. Figures are Supabase's published Free plan quotas; Database
- * size is per project, Storage and monthly active users are per organization.
+ * network call.
+ *
+ * Scope, stated plainly: Database size is a per-project allowance, so that
+ * check is exact. Storage size and monthly active users are billed per
+ * ORGANIZATION, while everything this module can see comes from one project's
+ * own database. The two organization-scoped checks therefore measure this
+ * project only and are labelled as such — they are a floor, not a total. When
+ * the organization holds sibling projects, read the organization usage page
+ * for the real figure, or give the run a Supabase personal access token so it
+ * can sum the organization through the Management API.
  */
 
 export const MIB = 1024 * 1024;
@@ -100,24 +108,24 @@ export function evaluateSnapshot(snapshot: CapacitySnapshot, now: Date = new Dat
 
   if (snapshot.storageBytes !== null) {
     const finding = quota({
-      metric: 'Storage size',
+      metric: 'Storage size (this project)',
       used: snapshot.storageBytes,
       limit: FREE_PLAN_LIMITS.storageBytes,
       unit: 'bytes',
       recommendation:
-        'Delete unused objects, or upgrade to Pro, which includes 100 GB of Storage.',
+        'The 1 GB allowance is shared across every project in the organization, so sibling projects push the real total higher than this figure. Delete unused objects, or upgrade to Pro, which includes 100 GB of Storage.',
     });
     if (finding !== null) findings.push(finding);
   }
 
   if (snapshot.monthlyActiveUsers !== null) {
     const finding = quota({
-      metric: 'Monthly active users',
+      metric: 'Monthly active users (this project)',
       used: snapshot.monthlyActiveUsers,
       limit: FREE_PLAN_LIMITS.monthlyActiveUsers,
       unit: 'count',
       recommendation:
-        'Pro includes 100,000 monthly active users. Exceeding the Free allowance puts the organization into a grace period.',
+        'The 50,000 allowance is shared across every project in the organization, so sibling projects push the real total higher than this figure. Pro includes 100,000 monthly active users; exceeding the Free allowance puts the organization into a grace period.',
     });
     if (finding !== null) findings.push(finding);
   }
@@ -168,8 +176,8 @@ export function renderReport(
     summarise(projectLabel, findings),
     '',
     `Database size: ${snapshot.databaseBytes === null ? 'unknown' : formatBytes(snapshot.databaseBytes)} of ${formatBytes(FREE_PLAN_LIMITS.databaseBytes)}`,
-    `Storage size: ${snapshot.storageBytes === null ? 'unknown' : formatBytes(snapshot.storageBytes)} of ${formatBytes(FREE_PLAN_LIMITS.storageBytes)}`,
-    `Monthly active users: ${snapshot.monthlyActiveUsers ?? 'unknown'} of ${FREE_PLAN_LIMITS.monthlyActiveUsers.toLocaleString('en-US')}`,
+    `Storage size (this project): ${snapshot.storageBytes === null ? 'unknown' : formatBytes(snapshot.storageBytes)} of ${formatBytes(FREE_PLAN_LIMITS.storageBytes)} shared across the organization`,
+    `Monthly active users (this project): ${snapshot.monthlyActiveUsers ?? 'unknown'} of ${FREE_PLAN_LIMITS.monthlyActiveUsers.toLocaleString('en-US')} shared across the organization`,
     `Last keep-alive: ${snapshot.lastPingAt ?? 'never'}`,
     '',
   ];
@@ -184,6 +192,7 @@ export function renderReport(
 
   lines.push(
     '',
+    'Storage and monthly active users above are measured for this project only; both allowances are shared across the organization, so treat them as a floor when sibling projects exist.',
     'Egress (5 GB uncached + 5 GB cached per Free organization each month) is not exposed by the Supabase API. Check it at https://supabase.com/dashboard/org/_/usage',
   );
 
