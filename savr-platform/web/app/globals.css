@@ -1,5 +1,5 @@
-/* === Font imports — Outfit, Inter, JetBrains Mono, Caveat === */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&display=swap');
+/* === Font imports — Fraunces, IBM Plex Sans, IBM Plex Mono === */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @import "tailwindcss";
 
@@ -10,74 +10,74 @@
  */
 @theme {
   /* === Brand Colors === */
-  --color-primary: #BAFF5C;
-  --color-primary-hover: #C8FF7A;
-  --color-primary-light: #BAFF5C18;
-  --color-primary-foreground: #0D1208;
+  --color-primary: #7FA37A;
+  --color-primary-hover: #8FB58B;
+  --color-primary-light: #7FA37A2E;
+  --color-primary-foreground: #0C0B0A;
 
-  --color-secondary: #5CFFBA;
-  --color-secondary-hover: #7AFFC8;
-  --color-secondary-light: #5CFFBA18;
-  --color-secondary-foreground: #0D1208;
+  --color-secondary: #6F8F6A;
+  --color-secondary-hover: #7FA37A;
+  --color-secondary-light: #7FA37A1F;
+  --color-secondary-foreground: #0C0B0A;
 
-  --color-accent: #FFE55C;
-  --color-accent-hover: #FFEB7A;
-  --color-accent-light: #FFE55C18;
-  --color-accent-foreground: #0D1208;
+  --color-accent: #A6BEA2;
+  --color-accent-hover: #B6CDAF;
+  --color-accent-light: #7FA37A1A;
+  --color-accent-foreground: #0C0B0A;
 
-  --color-pet: #FFAB5C;
-  --color-pet-hover: #FFBC7A;
-  --color-pet-light: #FFAB5C18;
-  --color-pet-foreground: #0D1208;
+  --color-pet: #B99971;
+  --color-pet-hover: #C7A883;
+  --color-pet-light: #B999711F;
+  --color-pet-foreground: #0C0B0A;
 
   /* === Neutrals === */
-  --color-background: #0D1210;
-  --color-surface: #141A17;
-  --color-surface-raised: #1A221E;
-  --color-muted: #232D28;
-  --color-muted-foreground: #8FA89A;
-  --color-border: #BAFF5C12;
-  --color-border-strong: #BAFF5C28;
+  --color-background: #0C0B0A;
+  --color-surface: #141210;
+  --color-surface-raised: #101410;
+  --color-muted: #1A1816;
+  --color-muted-foreground: #8F9A8B;
+  --color-border: #7FA37A2E;
+  --color-border-strong: #7FA37A4A;
 
   /* === Text === */
-  --color-foreground: #FFFFFF;
-  --color-foreground-secondary: #C8D9CF;
-  --color-foreground-muted: #7A9486;
+  --color-foreground: #F5F7F2;
+  --color-foreground-secondary: #D8E0D4;
+  --color-foreground-muted: #9AA696;
 
   /* === Semantic States === */
-  --color-success: #5CFF8A;
-  --color-success-light: #5CFF8A20;
-  --color-warning: #FFE55C;
-  --color-warning-light: #FFE55C20;
-  --color-error: #FF6B6B;
-  --color-error-light: #FF6B6B20;
-  --color-info: #5CBAFF;
-  --color-info-light: #5CBAFF20;
+  --color-success: #84B57C;
+  --color-success-light: #84B57C20;
+  --color-warning: #C9B47A;
+  --color-warning-light: #C9B47A20;
+  --color-error: #C67A7A;
+  --color-error-light: #C67A7A20;
+  --color-info: #7FA37A;
+  --color-info-light: #7FA37A20;
 
   /* === Typography === */
-  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  --font-script: 'Caveat', cursive;
+  --font-display: 'Fraunces', 'IBM Plex Serif', serif;
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-script: 'Fraunces', serif;
 
   /* === Spacing — layout primitives === */
   --spacing-nav-height: 72px;
   --spacing-header-height: 56px;
 
   /* === Border Radius === */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 1px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --radius-full: 9999px;
 
   /* === Shadows === */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 30px #BAFF5C25;
-  --shadow-glow-strong: 0 0 50px #BAFF5C40;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 3px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 14px 44px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 0 1px #7FA37A2E;
+  --shadow-glow-strong: 0 0 0 1px #7FA37A4A;
 
   /* === Motion === */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -88,9 +88,13 @@
   --duration-slow: 500ms;
 }
 
+:root {
+  color-scheme: dark;
+}
+
 body {
   background: var(--color-background);
-  background-image: radial-gradient(ellipse at 50% 0%, var(--color-surface) 0%, var(--color-background) 70%);
+  background-image: radial-gradient(ellipse at 50% 0%, #101410 0%, var(--color-background) 68%);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -141,11 +145,11 @@ body {
 
 /* Glow effect utilities */
 .glow-primary {
-  box-shadow: 0 0 20px rgba(186, 255, 92, 0.15), 0 0 60px rgba(186, 255, 92, 0.05);
+  box-shadow: 0 0 0 1px rgba(127, 163, 122, 0.18);
 }
 
 .glow-primary-strong {
-  box-shadow: 0 0 30px rgba(186, 255, 92, 0.25), 0 0 80px rgba(186, 255, 92, 0.1);
+  box-shadow: 0 0 0 1px rgba(127, 163, 122, 0.28);
 }
 
 /* Glass morphism card */
@@ -165,7 +169,7 @@ body {
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #BAFF5C 0%, #5CFFBA 50%, #FFE55C 100%);
+  background: linear-gradient(135deg, #7FA37A 0%, #8FB58B 50%, #A6BEA2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -173,7 +177,7 @@ body {
 
 /* Gradient text — two-tone (lime → mint) */
 .gradient-text-lime {
-  background: linear-gradient(135deg, #BAFF5C 0%, #5CFFBA 100%);
+  background: linear-gradient(135deg, #7FA37A 0%, #8FB58B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -191,7 +195,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #BAFF5C, #5CFFBA, #FFE55C);
+  background: linear-gradient(135deg, #7FA37A, #8FB58B, #A6BEA2);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -209,42 +213,55 @@ body {
   color: var(--color-primary-foreground);
   font-weight: 700;
   padding: 0.875rem 2rem;
-  border-radius: 0.75rem;
-  transition: all var(--duration-normal) var(--ease-smooth);
+  border-radius: 1px;
+  border: 1px solid var(--color-primary);
+  transition: background var(--duration-normal) var(--ease-smooth), color var(--duration-normal) var(--ease-smooth), border-color var(--duration-normal) var(--ease-smooth);
   position: relative;
   overflow: hidden;
 }
 
 .btn-primary:hover {
   background: var(--color-primary-hover);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
+  border-color: var(--color-primary-hover);
 }
 
 /* Secondary button */
 .btn-secondary {
-  background: transparent;
-  color: var(--color-primary);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-weight: 600;
   padding: 0.875rem 2rem;
-  border-radius: 0.75rem;
+  border-radius: 1px;
   border: 1px solid var(--color-border-strong);
   transition: all var(--duration-normal) var(--ease-smooth);
+}
+
+/* Tertiary button */
+.btn-tertiary {
+  background: transparent;
+  color: var(--color-foreground-secondary);
+  font-weight: 500;
+  padding: 0.875rem 2rem;
+  border-radius: 1px;
+  border: 1px solid transparent;
+  transition: color var(--duration-normal) var(--ease-smooth), border-color var(--duration-normal) var(--ease-smooth), background var(--duration-normal) var(--ease-smooth);
 }
 
 /* Mobile-optimized button sizing */
 @media (max-width: 640px) {
   .btn-primary,
-  .btn-secondary {
+  .btn-secondary,
+  .btn-tertiary {
     padding: 0.625rem 1.25rem;
     font-size: 0.875rem;
-    border-radius: 0.625rem;
+    border-radius: 1px;
   }
 }
 
 @media (max-width: 480px) {
   .btn-primary,
-  .btn-secondary {
+  .btn-secondary,
+  .btn-tertiary {
     padding: 0.5rem 1rem;
     font-size: 0.8125rem;
     width: 100%;
@@ -257,24 +274,42 @@ body {
 .btn-secondary:hover {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-glow);
+}
+
+.btn-tertiary:hover {
+  color: var(--color-foreground);
+  border-color: var(--color-border-strong);
+  background: rgba(127, 163, 122, 0.12);
+}
+
+button,
+button:hover,
+button:focus-visible,
+.btn-primary,
+.btn-primary:hover,
+.btn-secondary,
+.btn-secondary:hover,
+.btn-tertiary,
+.btn-tertiary:hover {
+  box-shadow: none !important;
+  border-radius: 1px;
 }
 
 /* Ambient background pattern */
 .bg-grid {
   background-image:
-    linear-gradient(rgba(186, 255, 92, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(186, 255, 92, 0.03) 1px, transparent 1px);
-  background-size: 64px 64px;
+    linear-gradient(rgba(127, 163, 122, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 163, 122, 0.018) 1px, transparent 1px);
+  background-size: 128px 128px;
 }
 
 /* Radial glow backgrounds */
 .radial-glow-top {
-  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(186, 255, 92, 0.08), transparent);
+  background: radial-gradient(ellipse 48% 20% at 50% -15%, rgba(127, 163, 122, 0.18), transparent 70%);
 }
 
 .radial-glow-center {
-  background: radial-gradient(ellipse 60% 40% at 50% 50%, rgba(92, 255, 186, 0.06), transparent);
+  background: radial-gradient(ellipse 40% 24% at 50% 50%, rgba(127, 163, 122, 0.12), transparent 72%);
 }
 
 /* Safe area utilities */

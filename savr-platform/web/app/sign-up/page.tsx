@@ -107,7 +107,9 @@ export default function SignUpPage() {
     }
   };
 
-  const inputStyle = { background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' };
+  const inputBorderColor = 'rgba(255, 255, 255, 0.08)';
+  const inputFocusBorderColor = 'rgba(127, 163, 122, 0.4)';
+  const inputStyle = { background: 'rgba(20, 18, 16, 0.85)', border: `1px solid ${inputBorderColor}` };
 
   const EyeIcon = ({ show }: { show: boolean }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -138,7 +140,7 @@ export default function SignUpPage() {
             </h2>
             <p className="mt-2 text-center text-sm text-foreground-muted">
               Start your 5-day free trial. Or{' '}
-              <Link href={signInHref} className="font-medium text-primary hover:text-[#00bfa6] transition-colors">
+              <Link href={signInHref} className="font-medium text-primary transition-colors hover:text-accent">
                 sign in to existing account
               </Link>
             </p>
@@ -164,10 +166,10 @@ export default function SignUpPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
+                  className="w-full rounded-xl px-4 py-3 text-foreground outline-none transition-all duration-200 placeholder:text-foreground-muted"
                   style={inputStyle}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                  onFocus={(e) => e.target.style.borderColor = inputFocusBorderColor}
+                  onBlur={(e) => e.target.style.borderColor = inputBorderColor}
                   placeholder="you@example.com"
                 />
               </div>
@@ -185,10 +187,10 @@ export default function SignUpPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
+                    className="w-full rounded-xl px-4 py-3 pr-12 text-foreground outline-none transition-all duration-200 placeholder:text-foreground-muted"
                     style={inputStyle}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
-                    onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                    onFocus={(e) => e.target.style.borderColor = inputFocusBorderColor}
+                    onBlur={(e) => e.target.style.borderColor = inputBorderColor}
                     placeholder="At least 6 characters"
                   />
                   <button
@@ -215,10 +217,10 @@ export default function SignUpPage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
+                    className="w-full rounded-xl px-4 py-3 pr-12 text-foreground outline-none transition-all duration-200 placeholder:text-foreground-muted"
                     style={inputStyle}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
-                    onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                    onFocus={(e) => e.target.style.borderColor = inputFocusBorderColor}
+                    onBlur={(e) => e.target.style.borderColor = inputBorderColor}
                     placeholder="Confirm your password"
                   />
                   <button
@@ -250,7 +252,7 @@ export default function SignUpPage() {
                 <div className="w-full" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }} />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 text-[#6b7294]" style={{ background: 'rgba(13, 17, 41, 0.7)' }}>Or continue with</span>
+                <span className="px-4 text-foreground-muted" style={{ background: 'rgba(20, 18, 16, 0.85)' }}>Or continue with</span>
               </div>
             </div>
 

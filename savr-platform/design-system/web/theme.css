@@ -12,74 +12,74 @@
 
 @theme {
   /* === Brand Colors === */
-  --color-primary: #BAFF5C;
-  --color-primary-hover: #C8FF7A;
-  --color-primary-light: #BAFF5C18;
-  --color-primary-foreground: #0D1208;
+  --color-primary: #7FA37A;
+  --color-primary-hover: #8FB58B;
+  --color-primary-light: #7FA37A2E;
+  --color-primary-foreground: #0C0B0A;
 
-  --color-secondary: #5CFFBA;
-  --color-secondary-hover: #7AFFC8;
-  --color-secondary-light: #5CFFBA18;
-  --color-secondary-foreground: #0D1208;
+  --color-secondary: #6F8F6A;
+  --color-secondary-hover: #7FA37A;
+  --color-secondary-light: #7FA37A1F;
+  --color-secondary-foreground: #0C0B0A;
 
-  --color-accent: #FFE55C;
-  --color-accent-hover: #FFEB7A;
-  --color-accent-light: #FFE55C18;
-  --color-accent-foreground: #0D1208;
+  --color-accent: #A6BEA2;
+  --color-accent-hover: #B6CDAF;
+  --color-accent-light: #7FA37A1A;
+  --color-accent-foreground: #0C0B0A;
 
-  --color-pet: #FFAB5C;
-  --color-pet-hover: #FFBC7A;
-  --color-pet-light: #FFAB5C18;
-  --color-pet-foreground: #0D1208;
+  --color-pet: #B99971;
+  --color-pet-hover: #C7A883;
+  --color-pet-light: #B999711F;
+  --color-pet-foreground: #0C0B0A;
 
   /* === Neutrals === */
-  --color-background: #0D1210;
-  --color-surface: #141A17;
-  --color-surface-raised: #1A221E;
-  --color-muted: #232D28;
-  --color-muted-foreground: #8FA89A;
-  --color-border: #BAFF5C12;
-  --color-border-strong: #BAFF5C28;
+  --color-background: #0C0B0A;
+  --color-surface: #141210;
+  --color-surface-raised: #101410;
+  --color-muted: #1A1816;
+  --color-muted-foreground: #8F9A8B;
+  --color-border: #7FA37A2E;
+  --color-border-strong: #7FA37A4A;
 
   /* === Text === */
-  --color-foreground: #FFFFFF;
-  --color-foreground-secondary: #C8D9CF;
-  --color-foreground-muted: #7A9486;
+  --color-foreground: #F5F7F2;
+  --color-foreground-secondary: #D8E0D4;
+  --color-foreground-muted: #9AA696;
 
   /* === Semantic States === */
-  --color-success: #5CFF8A;
-  --color-success-light: #5CFF8A20;
-  --color-warning: #FFE55C;
-  --color-warning-light: #FFE55C20;
-  --color-error: #FF6B6B;
-  --color-error-light: #FF6B6B20;
-  --color-info: #5CBAFF;
-  --color-info-light: #5CBAFF20;
+  --color-success: #84B57C;
+  --color-success-light: #84B57C20;
+  --color-warning: #C9B47A;
+  --color-warning-light: #C9B47A20;
+  --color-error: #C67A7A;
+  --color-error-light: #C67A7A20;
+  --color-info: #7FA37A;
+  --color-info-light: #7FA37A20;
 
   /* === Typography === */
-  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  --font-script: 'Caveat', cursive;
+  --font-display: 'Fraunces', 'IBM Plex Serif', serif;
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-script: 'Fraunces', serif;
 
   /* === Spacing — layout primitives === */
   --spacing-nav-height: 72px;
   --spacing-header-height: 56px;
 
   /* === Border Radius === */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 1px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --radius-full: 9999px;
 
   /* === Shadows === */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 30px #BAFF5C25;
-  --shadow-glow-strong: 0 0 50px #BAFF5C40;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 3px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 14px 44px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 0 1px #7FA37A2E;
+  --shadow-glow-strong: 0 0 0 1px #7FA37A4A;
 
   /* === Motion === */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

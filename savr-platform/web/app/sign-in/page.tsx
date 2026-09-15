@@ -49,6 +49,8 @@ export default function SignInPage() {
     searchParams.get('redirect'),
     searchParams.get('next')
   );
+  const inputBorderColor = 'rgba(255, 255, 255, 0.08)';
+  const inputFocusBorderColor = 'rgba(127, 163, 122, 0.4)';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +138,7 @@ export default function SignInPage() {
             </h2>
             <p className="mt-2 text-center text-sm text-foreground-muted">
               Or{' '}
-              <Link href="/sign-up" className="font-medium text-primary hover:text-[#00bfa6] transition-colors">
+              <Link href="/sign-up" className="font-medium text-primary transition-colors hover:text-accent">
                 create a new account
               </Link>
             </p>
@@ -162,10 +164,10 @@ export default function SignInPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
-                  style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                  className="w-full rounded-xl px-4 py-3 text-foreground outline-none transition-all duration-200 placeholder:text-foreground-muted"
+                  style={{ background: 'rgba(20, 18, 16, 0.85)', border: `1px solid ${inputBorderColor}` }}
+                  onFocus={(e) => e.target.style.borderColor = inputFocusBorderColor}
+                  onBlur={(e) => e.target.style.borderColor = inputBorderColor}
                   placeholder="you@example.com"
                 />
               </div>
@@ -175,7 +177,7 @@ export default function SignInPage() {
                   <label htmlFor="password" className="block text-sm font-medium text-foreground-muted">
                     Password
                   </label>
-                  <Link href="/forgot-password" className="text-sm font-medium text-primary hover:text-[#00bfa6] transition-colors">
+                  <Link href="/forgot-password" className="text-sm font-medium text-primary transition-colors hover:text-accent">
                     Forgot password?
                   </Link>
                 </div>
@@ -188,10 +190,10 @@ export default function SignInPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-foreground placeholder-[#6b7294] outline-none transition-all duration-200"
-                    style={{ background: 'rgba(6, 9, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(0, 212, 255, 0.4)'}
-                    onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                    className="w-full rounded-xl px-4 py-3 pr-12 text-foreground outline-none transition-all duration-200 placeholder:text-foreground-muted"
+                    style={{ background: 'rgba(20, 18, 16, 0.85)', border: `1px solid ${inputBorderColor}` }}
+                    onFocus={(e) => e.target.style.borderColor = inputFocusBorderColor}
+                    onBlur={(e) => e.target.style.borderColor = inputBorderColor}
                     placeholder="Enter your password"
                   />
                   <button
@@ -223,7 +225,7 @@ export default function SignInPage() {
                 <div className="w-full" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }} />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 text-[#6b7294]" style={{ background: 'rgba(13, 17, 41, 0.7)' }}>Or continue with</span>
+                <span className="px-4 text-foreground-muted" style={{ background: 'rgba(20, 18, 16, 0.85)' }}>Or continue with</span>
               </div>
             </div>
 
