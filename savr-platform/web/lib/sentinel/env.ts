@@ -11,28 +11,34 @@ export interface SentinelEnv {
   readonly label: string;
 }
 
+/**
+ * A plain environment bag. Typed structurally rather than as NodeJS.ProcessEnv
+ * so tests can pass a literal without casting through a framework-augmented type.
+ */
+export type EnvSource = Readonly<Record<string, string | undefined>>;
+
 export type EnvResult =
   | { readonly ok: true; readonly env: SentinelEnv }
   | { readonly ok: false; readonly missing: readonly string[] };
 
 const REQUIRED = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'CRON_SECRET'] as const;
 
-export function readSentinelEnv(env: NodeJS.ProcessEnv): EnvResult {
+export function readSentinelEnv(env: EnvSource): EnvResult {
   const missing = REQUIRED.filter((name) => {
     const value = env[name];
     return typeof value !== 'string' || value.trim().length === 0;
   });
   if (missing.length > 0) return { ok: false, missing };
 
-  const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anon = env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
   return {
     ok: true,
     env: {
-      supabaseUrl: (env.NEXT_PUBLIC_SUPABASE_URL as string).trim(),
-      serviceRoleKey: (env.SUPABASE_SERVICE_ROLE_KEY as string).trim(),
+      supabaseUrl: (env['NEXT_PUBLIC_SUPABASE_URL'] as string).trim(),
+      serviceRoleKey: (env['SUPABASE_SERVICE_ROLE_KEY'] as string).trim(),
       anonKey: typeof anon === 'string' && anon.trim().length > 0 ? anon.trim() : null,
-      cronSecret: (env.CRON_SECRET as string).trim(),
-      label: env.SENTINEL_PROJECT_LABEL ?? 'SAVR',
+      cronSecret: (env['CRON_SECRET'] as string).trim(),
+      label: env['SENTINEL_PROJECT_LABEL'] ?? 'SAVR',
     },
   };
 }

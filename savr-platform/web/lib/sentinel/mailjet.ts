@@ -15,11 +15,11 @@ export interface MailjetConfig {
   readonly toEmail: string;
 }
 
-export function readMailjetConfig(env: NodeJS.ProcessEnv): MailjetConfig | null {
-  const apiKey = env.MAILJET_API_KEY;
-  const secretKey = env.MAILJET_SECRET_KEY;
-  const fromEmail = env.MAILJET_FROM_EMAIL;
-  const toEmail = env.SENTINEL_ALERT_EMAIL;
+export function readMailjetConfig(env: Readonly<Record<string, string | undefined>>): MailjetConfig | null {
+  const apiKey = env['MAILJET_API_KEY'];
+  const secretKey = env['MAILJET_SECRET_KEY'];
+  const fromEmail = env['MAILJET_FROM_EMAIL'];
+  const toEmail = env['SENTINEL_ALERT_EMAIL'];
 
   if (!apiKey || !secretKey || !fromEmail || !toEmail) return null;
 
@@ -27,7 +27,7 @@ export function readMailjetConfig(env: NodeJS.ProcessEnv): MailjetConfig | null 
     apiKey,
     secretKey,
     fromEmail,
-    fromName: env.MAILJET_FROM_NAME ?? 'Supabase sentinel',
+    fromName: env['MAILJET_FROM_NAME'] ?? 'Supabase sentinel',
     toEmail,
   };
 }
