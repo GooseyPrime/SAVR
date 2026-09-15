@@ -17,10 +17,22 @@ Two problems, one scheduled job:
 | Piece | Path |
 | --- | --- |
 | Migration (heartbeat table, `sentinel_touch`, `sentinel_status`) | `supabase/migrations/20260915120000_sentinel_keepalive.sql` |
-| Scheduled route | `web/app/api/cron/supabase-sentinel/route.ts` |
+| Scheduled route (thin adapter) | `web/app/api/cron/supabase-sentinel/route.ts` |
+| Run orchestration (dependency injected, unit tested) | `web/lib/sentinel/run.ts` |
 | Threshold rules (pure, unit tested) | `web/lib/sentinel/thresholds.ts` |
+| Environment and authorisation checks | `web/lib/sentinel/env.ts` |
 | Mailjet delivery | `web/lib/sentinel/mailjet.ts` |
-| Schedule | `web/vercel.json` — `0 12 * * *` (08:00 America/New_York) |
+| Schedule | `web/vercel.json` — `0 12 * * *` (12:00 UTC; 08:00 EDT / 07:00 EST) |
+
+Vercel evaluates cron expressions in UTC, so the local run time shifts by an
+hour across daylight saving. Nothing here depends on the exact hour.
+
+## Order of operations
+
+The capacity snapshot is read **before** the keep-alive touches. The snapshot
+carries the heartbeat written by the previous run, so a cron outage is still
+visible on the run that repairs it. Touching first would refresh the timestamp
+and hide exactly the outage the staleness rule exists to catch.
 
 ## Environment
 
@@ -34,7 +46,7 @@ New, to be added in Vercel → Settings → Environment Variables (Production):
 
 | Variable | Purpose |
 | --- | --- |
-| `CRON_SECRET` | Vercel sends it as `Authorization: Bearer …` on scheduled runs; the route refuses anything else. Any long random string. |
+| `CRON_SECRET` | Vercel sends it as `Authorization: Bearer …` on scheduled runs; the route refuses anything else, and refuses everything when the secret is unset. Any long random string. |
 | `MAILJET_API_KEY` | Mailjet API key |
 | `MAILJET_SECRET_KEY` | Mailjet secret key |
 | `MAILJET_FROM_EMAIL` | Verified Mailjet sender |
@@ -44,13 +56,19 @@ New, to be added in Vercel → Settings → Environment Variables (Production):
 
 ## Free plan allowances being watched
 
-| Allowance | Free limit | Scope |
-| --- | --- | --- |
-| Database size | 500 MB | per project |
-| Storage size | 1 GB | per organization |
-| Monthly active users | 50,000 | per organization |
-| Egress | 5 GB uncached + 5 GB cached | per organization — not exposed by the API, so the report links to the dashboard |
-| Active projects | 2 | per Supabase account, counted across every organization you own |
+| Allowance | Free limit | Scope | What this job measures |
+| --- | --- | --- | --- |
+| Database size | 500 MB | per project | Exact |
+| Storage size | 1 GB | per organization | **This project only** — a floor, not the organization total |
+| Monthly active users | 50,000 | per organization | **This project only** — a floor, not the organization total |
+| Egress | 5 GB uncached + 5 GB cached | per organization | Not measured — not exposed by the Supabase API |
+| Active projects | 2 | per Supabase account, across every organization you own | Not measured — needs a personal access token |
+
+The two organization-scoped rows are read from this project's own database,
+which is all a project-local job can see. When the organization holds sibling
+projects, the real total is higher than what the alert reports, so treat those
+two figures as a floor and confirm on the organization usage page. Both alert
+texts say so explicitly.
 
 ## Running it by hand
 

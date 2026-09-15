@@ -50,14 +50,26 @@ test('database size past 85 percent of the free allowance is critical', () => {
   assert.match(finding.recommendation, /Pro organization/);
 });
 
-test('storage between 70 and 85 percent is a warning', () => {
+test('storage between 70 and 85 percent is a warning, labelled project scoped', () => {
   const findings = evaluateSnapshot(
     snapshot({ storageBytes: Math.round(FREE_PLAN_LIMITS.storageBytes * 0.75) }),
     NOW,
   );
-  const finding = findings.find((item) => item.metric === 'Storage size');
+  const finding = findings.find((item) => item.metric === 'Storage size (this project)');
   assert.ok(finding);
   assert.equal(finding.severity, 'warn');
+  assert.match(finding.recommendation, /shared across every project in the organization/);
+});
+
+test('monthly active users are labelled project scoped', () => {
+  const findings = evaluateSnapshot(
+    snapshot({ monthlyActiveUsers: Math.round(FREE_PLAN_LIMITS.monthlyActiveUsers * 0.9) }),
+    NOW,
+  );
+  const finding = findings.find((item) => item.metric === 'Monthly active users (this project)');
+  assert.ok(finding);
+  assert.equal(finding.severity, 'critical');
+  assert.match(finding.recommendation, /shared across every project in the organization/);
 });
 
 test('a heartbeat older than three days is critical', () => {
@@ -85,7 +97,7 @@ test('unknown measurements are skipped rather than treated as zero', () => {
   assert.deepEqual(findings, []);
 });
 
-test('the report names the project and every finding', () => {
+test('the report names the project, every finding and the scope caveat', () => {
   const findings = evaluateSnapshot(
     snapshot({ databaseBytes: Math.round(FREE_PLAN_LIMITS.databaseBytes * 0.95) }),
     NOW,
@@ -93,5 +105,6 @@ test('the report names the project and every finding', () => {
   const report = renderReport('SAVR', snapshot(), findings);
   assert.match(report, /SAVR/);
   assert.match(report, /Database size/);
+  assert.match(report, /shared across the organization/);
   assert.match(summarise('SAVR', findings), /ACTION REQUIRED/);
 });
