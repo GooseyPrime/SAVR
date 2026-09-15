@@ -30,7 +30,7 @@
     "postcss": "^8.5.26"
   },
   "dependencies": {
-    "@google-cloud/vision": "^5.3.7",
+    "@google-cloud/vision": "^6.1.0",
     "@stripe/stripe-js": "^9.15.0",
     "@supabase/supabase-js": "^2.112.4",
     "@types/qrcode": "^1.5.6",
