@@ -144,7 +144,7 @@ test('authorisation requires an exact bearer match and fails closed', () => {
 });
 
 test('environment reading names every missing variable', () => {
-  const result = readSentinelEnv({} as NodeJS.ProcessEnv);
+  const result = readSentinelEnv({});
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.deepEqual(
@@ -159,7 +159,7 @@ test('environment reading treats a blank anon key as absent', () => {
     SUPABASE_SERVICE_ROLE_KEY: 'service',
     CRON_SECRET: 'secret',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: '   ',
-  } as NodeJS.ProcessEnv);
+  });
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.env.anonKey, null);
