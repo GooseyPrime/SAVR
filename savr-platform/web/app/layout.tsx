@@ -9,6 +9,14 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const enableVercelAnalytics = process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === 'true';
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.savr.cam"),
+  openGraph: {
+    type: "website",
+    siteName: "SAVR",
+    url: "https://www.savr.cam",
+    title: "SAVR - AI-Powered Smart Cooking Assistant",
+    description: "Turn what's in your pantry into meals, with smart inventory, recipes and meal plans.",
+  },
   title: "SAVR - AI-Powered Smart Cooking Assistant",
   description: "Transform your pantry into restaurant-quality meals with AI-powered recipe generation. Smart inventory, personalized recipes, meal planning, and pet-safe treats.",
   keywords: "AI cooking, recipe generator, meal planning, smart kitchen, pet recipes, pantry management",

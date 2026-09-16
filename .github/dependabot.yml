@@ -11,6 +11,9 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: react-dom
         update-types: [version-update:semver-major]
+      # eslint-config-next does not load under ESLint 10 yet.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /savr-platform/mobile
