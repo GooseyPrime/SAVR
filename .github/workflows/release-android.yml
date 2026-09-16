@@ -1,0 +1,68 @@
+name: Release Android to Google Play
+
+# Builds a signed Android App Bundle on EAS and sends it to the Play Console
+# internal testing track as a draft. Runs only when a release is asked for,
+# so dependency merges do not spend build credits.
+#
+# Trigger: push a tag like mobile-v1.0.1, or run it from the Actions tab.
+# Needs: repository secret EXPO_TOKEN, and a Google Play service account key
+# stored on the EAS project (expo.dev > project > Credentials > Android).
+
+on:
+  push:
+    tags:
+      - 'mobile-v*'
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: 'Send the build to Google Play after it finishes'
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: savr-platform/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: savr-platform/mobile/package-lock.json
+
+      - name: Check the Expo token is configured
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN secret is not set; cannot build on EAS."
+            exit 1
+          fi
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: Build and submit
+        if: github.event_name == 'push' || inputs.submit
+        run: eas build --platform android --profile production --non-interactive --wait --auto-submit
+
+      - name: Build only
+        if: github.event_name == 'workflow_dispatch' && !inputs.submit
+        run: eas build --platform android --profile production --non-interactive --wait
