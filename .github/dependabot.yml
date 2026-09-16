@@ -23,6 +23,17 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: react
         update-types: [version-update:semver-major]
+      # Native modules are pinned by the Expo SDK. Versions outside the SDK's
+      # expected range build fine but can crash the app on launch, so these
+      # move only through `npx expo install --fix` when the SDK is upgraded.
+      - dependency-name: "expo-*"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native-async-storage/*"
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # eslint-config-expo does not load under ESLint 10 yet.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /savr-platform/e2e-tests
