@@ -9,7 +9,7 @@
     "scheme": "savr",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.savr.app",
+      "bundleIdentifier": "cam.savr.app",
       "infoPlist": {
         "NSCameraUsageDescription": "SAVR uses your camera to scan and photograph pantry items for inventory management.",
         "NSPhotoLibraryUsageDescription": "SAVR needs access to your photo library to select images of pantry items.",
@@ -21,15 +21,17 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0C0B0A"
       },
-      "package": "com.savr.app",
+      "package": "cam.savr.app",
       "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "blockedPermissions": [
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -37,11 +39,13 @@
     },
     "plugins": [
       "expo-camera",
-      "expo-image-picker"
+      "expo-font",
+      "expo-image-picker",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "acf58b96-e2fd-4d00-b289-e0686d13875c"
       }
     },
     "owner": "intellme"
