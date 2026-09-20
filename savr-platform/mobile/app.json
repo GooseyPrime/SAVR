@@ -24,6 +24,24 @@
       "package": "cam.savr.app",
       "versionCode": 1,
       "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "savr",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "CAMERA",
         "INTERNET",
@@ -38,9 +56,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-camera",
+      [
+        "expo-camera",
+        {
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-font",
-      "expo-image-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SAVR needs access to your photo library to select images of pantry items."
+        }
+      ],
       "expo-status-bar"
     ],
     "extra": {
