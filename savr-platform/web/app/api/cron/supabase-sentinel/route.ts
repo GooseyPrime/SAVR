@@ -3,8 +3,43 @@ import { createClient } from '@supabase/supabase-js';
 import { isAuthorised, readSentinelEnv } from '../../../../lib/sentinel/env';
 import { runSentinel, type SentinelDeps } from '../../../../lib/sentinel/run';
 import { readMailjetConfig, sendMailjetAlert } from '../../../../lib/sentinel/mailjet';
+
 import { HEARTBEAT_TABLE } from '../../../../lib/sentinel/constants';
 import type { CapacitySnapshot } from '../../../../lib/sentinel/thresholds';
+
+/**
+ * Best-effort alert for a deployment that can never succeed at keep-alive,
+ * regardless of who is calling. A missing required env var (CRON_SECRET,
+ * SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_URL) means the daily
+ * heartbeat can NEVER land, silently, until the Supabase free-plan project
+ * is auto-paused for inactivity — which then breaks every route that touches
+ * Supabase (including the Stripe webhook handler) with no warning beforehand.
+ *
+ * Previously this failure mode produced zero logs and zero alerts: the route
+ * returned 401/500 to Vercel's own cron invocation and nothing else happened.
+ * That silence is what let a misconfigured deployment run undetected for
+ * days. This always logs, and alerts when Mailjet is configured.
+ */
+async function reportMisconfiguration(missing: readonly string[]): Promise<void> {
+  const message = `[sentinel] misconfigured — missing required env var(s): ${missing.join(', ')}. ` +
+    'The Supabase keep-alive cannot run until these are set in the hosting project, which risks ' +
+    'the Supabase free-plan project being auto-paused for inactivity.';
+  console.error(message);
+
+  const mailjet = readMailjetConfig(process.env);
+  if (mailjet === null) return;
+
+  try {
+    await sendMailjetAlert(
+      mailjet,
+      '[SAVR] Supabase sentinel misconfigured — keep-alive is not running',
+      message,
+    );
+  } catch (error) {
+    console.error('[sentinel] failed to send misconfiguration alert:', (error as Error).message);
+  }
+}
+
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -29,6 +64,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   const result = readSentinelEnv(process.env);
 
   if (!result.ok) {
+    // Missing config means the sentinel can never succeed for ANY caller —
+    // that is worth logging and alerting on immediately, before the
+    // unauthenticated-caller check below (which exists to avoid revealing
+    // configuration state to a random, unauthenticated request).
+    await reportMisconfiguration(result.missing);
+
     // Never reveal configuration state to an unauthenticated caller.
     if (!isAuthorised(request.headers.get('authorization'), process.env.CRON_SECRET ?? null)) {
       return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
@@ -41,6 +82,10 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const config = result.env;
   if (!isAuthorised(request.headers.get('authorization'), config.cronSecret)) {
+    // Env is present but the caller's secret didn't match. Log (without the
+    // secret) so a rotated/wrong CRON_SECRET is visible in Vercel logs
+    // instead of failing completely silently.
+    console.error('[sentinel] unauthorised cron invocation — Authorization header did not match CRON_SECRET');
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
