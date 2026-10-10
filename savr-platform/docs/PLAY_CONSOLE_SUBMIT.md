@@ -9,7 +9,7 @@ work in PR #113 and #116. This file absorbs the earlier operator checklist and
 supplies the listing copy that the old `PLAY_STORE_LISTING.md` reference pointed
 at — that file was never written.
 
-- Package: `com.savr.app`
+- Package: `cam.savr.app`
 - Version: `1.0.0`
 - Expo project: `@intellme/savr` (`acf58b96-e2fd-4d00-b289-e0686d13875c`)
 - Build profile: `production` → Android App Bundle, remote version codes
