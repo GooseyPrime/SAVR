@@ -12,7 +12,9 @@
 import type Stripe from 'stripe';
 import { resolveTierFromPriceId } from '@/lib/billing';
 import {
+  getConfiguredSavrPriceIds,
   getSubscriptionPeriodEndUnix,
+  hasSavrProductMarker,
   mapStripeStatusToDatabase,
 } from '@/lib/stripe-billing';
 
@@ -107,19 +109,155 @@ export async function markEventFailed(
 }
 
 // ──────────────────────────────────────────────────────────────
-// Top-level handler (signature verification → claim → process)
+// Event ownership (shared Stripe account)
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * The Stripe account that delivers to this endpoint also serves other
+ * products, so this endpoint receives their events too. An event is SAVR's
+ * only when it references one of SAVR's own prices or carries the SAVR
+ * product metadata marker. Everything else is acknowledged with 200 and
+ * never touches the database.
+ */
+const HANDLED_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'checkout.session.completed',
+  'checkout.session.async_payment_succeeded',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.resumed',
+  'customer.subscription.pending_update_applied',
+  'customer.subscription.deleted',
+  'customer.subscription.paused',
+  'invoice.payment_succeeded',
+  'invoice.paid',
+  'invoice.payment_failed',
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/** Safe nested read for payload fields whose shape varies by API version. */
+function readPath(value: unknown, ...keys: string[]): unknown {
+  let current: unknown = value;
+  for (const key of keys) {
+    if (!isRecord(current)) return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
+function readId(value: unknown): string | null {
+  if (typeof value === 'string') return value || null;
+  const id = readPath(value, 'id');
+  return typeof id === 'string' && id ? id : null;
+}
+
+function subscriptionPriceIds(subscription: unknown): string[] {
+  const items = readPath(subscription, 'items', 'data');
+  if (!Array.isArray(items)) return [];
+  const ids: string[] = [];
+  for (const item of items) {
+    const id = readId(readPath(item, 'price'));
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
+function isSavrSubscription(subscription: unknown, savrPrices: ReadonlySet<string>): boolean {
+  return (
+    hasSavrProductMarker(readPath(subscription, 'metadata')) ||
+    subscriptionPriceIds(subscription).some((id) => savrPrices.has(id))
+  );
+}
+
+function invoicePriceIds(invoice: unknown): string[] {
+  const lines = readPath(invoice, 'lines', 'data');
+  if (!Array.isArray(lines)) return [];
+  const ids: string[] = [];
+  for (const line of lines) {
+    // Current API versions: line.pricing.price_details.price.
+    // Older API versions: line.price / line.plan.
+    for (const candidate of [
+      readPath(line, 'pricing', 'price_details', 'price'),
+      readPath(line, 'price'),
+      readPath(line, 'plan'),
+    ]) {
+      const id = readId(candidate);
+      if (id) ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function isSavrInvoice(invoice: unknown, savrPrices: ReadonlySet<string>): boolean {
+  return (
+    hasSavrProductMarker(readPath(invoice, 'metadata')) ||
+    hasSavrProductMarker(readPath(invoice, 'parent', 'subscription_details', 'metadata')) ||
+    hasSavrProductMarker(readPath(invoice, 'subscription_details', 'metadata')) ||
+    invoicePriceIds(invoice).some((id) => savrPrices.has(id))
+  );
+}
+
+/**
+ * Decides whether a verified event belongs to SAVR.
+ *
+ * Subscription and invoice events are classified from the payload alone.
+ * A checkout session payload carries no line items, so a subscription-mode
+ * session without SAVR metadata is classified by retrieving its
+ * subscription; a retrieval failure propagates (the event cannot be
+ * classified, so Stripe must retry).
+ */
+async function isSavrEvent(
+  event: Stripe.Event,
+  stripe: StripeClient,
+  savrPrices: ReadonlySet<string>,
+): Promise<boolean> {
+  const object: unknown = event.data.object;
+
+  if (event.type.startsWith('customer.subscription.')) {
+    return isSavrSubscription(object, savrPrices);
+  }
+
+  if (event.type.startsWith('invoice.')) {
+    return isSavrInvoice(object, savrPrices);
+  }
+
+  if (event.type.startsWith('checkout.session.')) {
+    const metadata = readPath(object, 'metadata');
+    if (hasSavrProductMarker(metadata)) return true;
+
+    const metadataPriceId = readPath(metadata, 'priceId');
+    if (typeof metadataPriceId === 'string' && savrPrices.has(metadataPriceId)) return true;
+
+    // SAVR only sells subscriptions.
+    const subscriptionId = readId(readPath(object, 'subscription'));
+    if (!subscriptionId) return false;
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    return isSavrSubscription(subscription, savrPrices);
+  }
+
+  return false;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Top-level handler (signature verification → ownership → claim → process)
 // ──────────────────────────────────────────────────────────────
 
 /**
  * Full webhook processing pipeline.
  *
  * 1. Verify Stripe signature.
- * 2. Atomically claim the event.
- * 3. Return 200 immediately for already-processed duplicates.
- * 4. Return 200 immediately for already-pending concurrent deliveries.
- * 5. Dispatch to the appropriate event handler.
- * 6. Mark the event as processed on success.
- * 7. On failure: mark failed, return 500 so Stripe retries.
+ * 2. Return 200 for event types SAVR does not handle and for events that
+ *    belong to another product on the shared Stripe account (no database
+ *    access, no error log).
+ * 3. Atomically claim the event.
+ * 4. Return 200 immediately for already-processed duplicates.
+ * 5. Return 200 immediately for already-pending concurrent deliveries.
+ * 6. Dispatch to the appropriate event handler.
+ * 7. Mark the event as processed on success.
+ * 8. On failure: mark failed, return 500 so Stripe retries.
  */
 export async function handleWebhook(
   body: string,
@@ -145,6 +283,31 @@ export async function handleWebhook(
     return { status: 400, body: { error: 'Invalid signature' } };
   }
 
+  if (!HANDLED_EVENT_TYPES.has(event.type)) {
+    console.debug(`Ignoring Stripe event ${event.id}: unhandled type ${event.type}`);
+    return { status: 200, body: { received: true } };
+  }
+
+  const savrPrices = getConfiguredSavrPriceIds();
+  if (savrPrices.size === 0) {
+    // Without SAVR's price IDs no event can be attributed safely.
+    console.error('No STRIPE_PRICE_* environment variables are configured');
+    return { status: 500, body: { error: 'Webhook configuration error' } };
+  }
+
+  let ownEvent: boolean;
+  try {
+    ownEvent = await isSavrEvent(event, stripe, savrPrices);
+  } catch (err) {
+    console.error(`Could not classify Stripe event ${event.id}:`, err);
+    return { status: 500, body: { error: 'Failed to classify webhook event' } };
+  }
+
+  if (!ownEvent) {
+    console.debug(`Ignoring Stripe event ${event.id} (${event.type}): not a SAVR event`);
+    return { status: 200, body: { received: true } };
+  }
+
   console.log(`🔔 Received Stripe webhook: ${event.type} (event ID: ${event.id})`);
 
   // Atomic claim — ensures exactly-once processing even under concurrent delivery.
@@ -168,7 +331,7 @@ export async function handleWebhook(
 
   // 'claimed' — process the event.
   try {
-    await dispatchWebhookEvent(event, stripe, supabaseAdmin);
+    await dispatchWebhookEvent(event, stripe, supabaseAdmin, savrPrices);
     await markEventProcessed(supabaseAdmin, event.id);
     return { status: 200, body: { received: true } };
   } catch (err) {
@@ -182,16 +345,18 @@ export async function handleWebhook(
 // Event dispatcher
 // ──────────────────────────────────────────────────────────────
 
+/** Only ever called for events already attributed to SAVR by isSavrEvent(). */
 async function dispatchWebhookEvent(
   event: Stripe.Event,
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
+  savrPrices: ReadonlySet<string>,
 ): Promise<void> {
   switch (event.type) {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded': {
       const session = event.data.object as Stripe.Checkout.Session;
-      await handleCheckoutCompleted(session, stripe, supabaseAdmin);
+      await handleCheckoutCompleted(session, stripe, supabaseAdmin, savrPrices);
       break;
     }
 
@@ -200,7 +365,7 @@ async function dispatchWebhookEvent(
     case 'customer.subscription.resumed':
     case 'customer.subscription.pending_update_applied': {
       const subscription = event.data.object as Stripe.Subscription;
-      await handleSubscriptionUpdated(subscription, stripe, supabaseAdmin);
+      await handleSubscriptionUpdated(subscription, stripe, supabaseAdmin, savrPrices);
       break;
     }
 
@@ -230,62 +395,100 @@ async function dispatchWebhookEvent(
     }
 
     default:
-      console.log(`ℹ️  Unhandled event type: ${event.type}`);
+      console.debug(`Unhandled event type: ${event.type}`);
   }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Database helpers — Supabase returns { error } instead of throwing
+// ──────────────────────────────────────────────────────────────
+
+function describeDbError(error: unknown): string {
+  const message = readPath(error, 'message');
+  return typeof message === 'string' && message ? message : String(error);
+}
+
+async function selectUserRows(
+  supabaseAdmin: SupabaseAdmin,
+  columns: string,
+  column: string,
+  value: string,
+): Promise<Array<Record<string, unknown>>> {
+  const { data, error } = await supabaseAdmin.from('users').select(columns).eq(column, value);
+  if (error) {
+    throw new Error(`Failed to look up user by ${column}: ${describeDbError(error)}`);
+  }
+  return Array.isArray(data) ? data.filter(isRecord) : [];
+}
+
+async function updateUser(
+  supabaseAdmin: SupabaseAdmin,
+  userId: string,
+  updates: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabaseAdmin.from('users').update(updates).eq('id', userId);
+  if (error) {
+    throw new Error(`Failed to update user ${userId}: ${describeDbError(error)}`);
+  }
+}
+
+/** The SAVR price on a subscription, falling back to its first item. */
+function pickSavrPriceId(
+  subscription: Stripe.Subscription,
+  savrPrices: ReadonlySet<string>,
+): string | null {
+  const ids = subscriptionPriceIds(subscription);
+  return ids.find((id) => savrPrices.has(id)) ?? ids[0] ?? null;
 }
 
 // ──────────────────────────────────────────────────────────────
 // Event-specific handlers
 // ──────────────────────────────────────────────────────────────
 
+/**
+ * Resolves the SAVR user for a Stripe customer.
+ *
+ * Callers must only pass customers taken from an event that isSavrEvent()
+ * attributed to SAVR. That is what makes the email fallback safe: it can
+ * only link a customer that demonstrably holds a SAVR subscription, never a
+ * customer belonging to another product that happens to share an email.
+ */
 async function findUserByCustomerId(
-  customerId: string,
+  customerId: string | null,
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
 ): Promise<string | null> {
-  const { data, error } = await supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('stripe_customer_id', customerId)
-    .single();
+  if (!customerId) return null;
 
-  if (error || !data) {
-    // Fallback: look up by customer email
-    try {
-      const customer = await stripe.customers.retrieve(customerId);
-      if (customer && !customer.deleted && customer.email) {
-        const { data: userData } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .eq('email', customer.email)
-          .single();
-
-        if (userData) {
-          const ud = userData as { id: string };
-          await supabaseAdmin
-            .from('users')
-            .update({ stripe_customer_id: customerId })
-            .eq('id', ud.id);
-          return ud.id;
-        }
-      }
-    } catch (err) {
-      console.error('Error in customer email fallback:', err);
-    }
+  const linked = await selectUserRows(supabaseAdmin, 'id', 'stripe_customer_id', customerId);
+  if (linked.length === 1 && typeof linked[0].id === 'string') return linked[0].id;
+  if (linked.length > 1) {
+    console.error(`Stripe customer ${customerId} is linked to more than one user`);
     return null;
   }
 
-  return (data as { id: string }).id;
+  // Fallback: SAVR subscription created outside the app checkout (no
+  // customer link yet). Match the customer's email to exactly one user.
+  const customer = await stripe.customers.retrieve(customerId);
+  if (customer.deleted || !customer.email) return null;
+
+  const byEmail = await selectUserRows(supabaseAdmin, 'id', 'email', customer.email);
+  if (byEmail.length !== 1 || typeof byEmail[0].id !== 'string') return null;
+
+  const userId = byEmail[0].id;
+  await updateUser(supabaseAdmin, userId, { stripe_customer_id: customerId });
+  return userId;
 }
 
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
+  savrPrices: ReadonlySet<string>,
 ): Promise<void> {
-  console.log(`Processing checkout.session.completed for ${session.id}`, {
-    customer: session.customer,
-    subscription: session.subscription,
+  console.log(`Processing ${session.id}`, {
+    customer: readId(session.customer),
+    subscription: readId(session.subscription),
   });
 
   const userId = session.client_reference_id ?? session.metadata?.userId;
@@ -294,23 +497,14 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  const { data: user } = await supabaseAdmin
-    .from('users')
-    .select('email')
-    .eq('id', userId)
-    .single();
-
-  if (!user) {
+  const users = await selectUserRows(supabaseAdmin, 'id', 'id', userId);
+  if (users.length === 0) {
     console.error(`User ${userId} not found`);
     return;
   }
 
-  const customerId =
-    typeof session.customer === 'string' ? session.customer : session.customer?.id;
-  const subscriptionId =
-    typeof session.subscription === 'string'
-      ? session.subscription
-      : session.subscription?.id;
+  const customerId = readId(session.customer);
+  const subscriptionId = readId(session.subscription);
 
   const updates: Record<string, unknown> = {
     stripe_customer_id: customerId,
@@ -320,7 +514,7 @@ async function handleCheckoutCompleted(
 
   if (subscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const priceId = subscription.items.data[0]?.price.id;
+    const priceId = pickSavrPriceId(subscription, savrPrices);
     if (priceId) {
       // Throws on unknown price — propagates to outer catch and returns 500 so Stripe retries.
       updates.subscription_tier = resolveTierFromPriceId(priceId);
@@ -328,7 +522,7 @@ async function handleCheckoutCompleted(
     updates.subscription_status = subscription.status;
   }
 
-  await supabaseAdmin.from('users').update(updates).eq('id', userId);
+  await updateUser(supabaseAdmin, userId, updates);
 
   console.log(`✅ Linked checkout to user ${userId}`, {
     customerId,
@@ -341,19 +535,17 @@ async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription,
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
+  savrPrices: ReadonlySet<string>,
 ): Promise<void> {
-  const customerId =
-    typeof subscription.customer === 'string'
-      ? subscription.customer
-      : (subscription.customer as { id: string })?.id;
-  const userId = await findUserByCustomerId(customerId!, stripe, supabaseAdmin);
+  const customerId = readId(subscription.customer);
+  const userId = await findUserByCustomerId(customerId, stripe, supabaseAdmin);
 
   if (!userId) {
     console.error(`No user found for customer ${customerId}`);
     return;
   }
 
-  const priceId = subscription.items.data[0]?.price.id;
+  const priceId = pickSavrPriceId(subscription, savrPrices);
   if (!priceId) {
     console.error(
       `No price ID found on subscription ${subscription.id} — skipping tier update`,
@@ -366,18 +558,15 @@ async function handleSubscriptionUpdated(
   const periodEnd = getSubscriptionPeriodEndUnix(subscription);
   const trialEnd = subscription.trial_end;
 
-  await supabaseAdmin
-    .from('users')
-    .update({
-      subscription_tier: tier,
-      subscription_status: mapStripeStatusToDatabase(subscription.status),
-      stripe_subscription_id: subscription.id,
-      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-      trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
-      cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+  await updateUser(supabaseAdmin, userId, {
+    subscription_tier: tier,
+    subscription_status: mapStripeStatusToDatabase(subscription.status),
+    stripe_subscription_id: subscription.id,
+    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+    trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
+    cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+    updated_at: new Date().toISOString(),
+  });
 
   console.log(
     `✅ Updated subscription for user ${userId}: ${subscription.status}, tier ${tier}`,
@@ -389,23 +578,20 @@ async function handleSubscriptionDeleted(
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
 ): Promise<void> {
-  const customerId =
-    typeof subscription.customer === 'string'
-      ? subscription.customer
-      : (subscription.customer as { id: string })?.id;
-  const userId = await findUserByCustomerId(customerId!, stripe, supabaseAdmin);
+  const userId = await findUserByCustomerId(
+    readId(subscription.customer),
+    stripe,
+    supabaseAdmin,
+  );
 
   if (!userId) return;
 
-  await supabaseAdmin
-    .from('users')
-    .update({
-      subscription_tier: 'basic',
-      subscription_status: 'canceled',
-      stripe_subscription_id: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+  await updateUser(supabaseAdmin, userId, {
+    subscription_tier: 'basic',
+    subscription_status: 'canceled',
+    stripe_subscription_id: null,
+    updated_at: new Date().toISOString(),
+  });
 
   console.log(`✅ Subscription deleted for user ${userId}`);
 }
@@ -415,21 +601,18 @@ async function handleSubscriptionPaused(
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
 ): Promise<void> {
-  const customerId =
-    typeof subscription.customer === 'string'
-      ? subscription.customer
-      : (subscription.customer as { id: string })?.id;
-  const userId = await findUserByCustomerId(customerId!, stripe, supabaseAdmin);
+  const userId = await findUserByCustomerId(
+    readId(subscription.customer),
+    stripe,
+    supabaseAdmin,
+  );
 
   if (!userId) return;
 
-  await supabaseAdmin
-    .from('users')
-    .update({
-      subscription_status: mapStripeStatusToDatabase(subscription.status),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+  await updateUser(supabaseAdmin, userId, {
+    subscription_status: mapStripeStatusToDatabase(subscription.status),
+    updated_at: new Date().toISOString(),
+  });
 
   console.log(`✅ Subscription paused for user ${userId}`);
 }
@@ -439,23 +622,16 @@ async function handlePaymentSucceeded(
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
 ): Promise<void> {
-  const customerId =
-    typeof invoice.customer === 'string'
-      ? invoice.customer
-      : (invoice.customer as { id: string })?.id;
-  const userId = await findUserByCustomerId(customerId!, stripe, supabaseAdmin);
+  const userId = await findUserByCustomerId(readId(invoice.customer), stripe, supabaseAdmin);
 
   if (!userId) return;
 
-  await supabaseAdmin
-    .from('users')
-    .update({
-      last_payment_status: 'succeeded',
-      last_payment_date: new Date(invoice.created * 1000).toISOString(),
-      payment_action_required: false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+  await updateUser(supabaseAdmin, userId, {
+    last_payment_status: 'succeeded',
+    last_payment_date: new Date(invoice.created * 1000).toISOString(),
+    payment_action_required: false,
+    updated_at: new Date().toISOString(),
+  });
 
   console.log(`✅ Payment succeeded for user ${userId}`);
 }
@@ -465,24 +641,17 @@ async function handlePaymentFailed(
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
 ): Promise<void> {
-  const customerId =
-    typeof invoice.customer === 'string'
-      ? invoice.customer
-      : (invoice.customer as { id: string })?.id;
-  const userId = await findUserByCustomerId(customerId!, stripe, supabaseAdmin);
+  const userId = await findUserByCustomerId(readId(invoice.customer), stripe, supabaseAdmin);
 
   if (!userId) return;
 
-  await supabaseAdmin
-    .from('users')
-    .update({
-      subscription_status: 'past_due',
-      last_payment_status: 'failed',
-      last_payment_date: new Date(invoice.created * 1000).toISOString(),
-      payment_action_required: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+  await updateUser(supabaseAdmin, userId, {
+    subscription_status: 'past_due',
+    last_payment_status: 'failed',
+    last_payment_date: new Date(invoice.created * 1000).toISOString(),
+    payment_action_required: true,
+    updated_at: new Date().toISOString(),
+  });
 
   console.log(`❌ Payment failed for user ${userId}`);
 }
@@ -528,6 +697,5 @@ export interface SupabaseAdmin {
 interface SupabaseQueryBuilder {
   select(cols: string): SupabaseQueryBuilder;
   update(data: Record<string, unknown>): SupabaseQueryBuilder;
-  eq(col: string, val: unknown): SupabaseQueryBuilder & Promise<{ data: unknown; error: unknown }>;
-  single(): Promise<{ data: unknown; error: unknown }>;
+  eq(col: string, val: unknown): SupabaseQueryBuilder & PromiseLike<{ data: unknown; error: unknown }>;
 }
