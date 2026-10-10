@@ -37,6 +37,14 @@ const PLAN_LEGACY_ENV_MAP: Record<Plan, string> = {
   pro_yearly: 'STRIPE_PRICE_ID_PRO_YEARLY',
 };
 
+/**
+ * Metadata marker stamped on every SAVR checkout session and subscription.
+ * The Stripe account is shared with other products, so the webhook uses this
+ * (together with SAVR's own price IDs) to tell SAVR events from theirs.
+ */
+export const SAVR_PRODUCT_METADATA_KEY = 'product';
+export const SAVR_PRODUCT_METADATA_VALUE = 'savr';
+
 const CHECKOUT_BLOCKING_STATUSES = ['active', 'trialing'] as const;
 const CHECKOUT_IDEMPOTENCY_VERSION = 'v2';
 const DATABASE_SUBSCRIPTION_STATUSES = [
@@ -131,6 +139,22 @@ function firstConfiguredEnvValue(...keys: string[]): string | undefined {
   }
 
   return undefined;
+}
+
+export function hasSavrProductMarker(metadata: unknown): boolean {
+  if (typeof metadata !== 'object' || metadata === null) return false;
+  const value = (metadata as Record<string, unknown>)[SAVR_PRODUCT_METADATA_KEY];
+  return value === SAVR_PRODUCT_METADATA_VALUE;
+}
+
+/** Every SAVR price ID currently configured (canonical and legacy env names). */
+export function getConfiguredSavrPriceIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const key of [...Object.values(PLAN_ENV_MAP), ...Object.values(PLAN_LEGACY_ENV_MAP)]) {
+    const value = process.env[key]?.trim();
+    if (value) ids.add(value);
+  }
+  return ids;
 }
 
 export function resolvePriceId(plan: Plan): string {
@@ -342,6 +366,7 @@ export function buildCheckoutSessionParams(args: {
       : { allow_promotion_codes: true }),
     client_reference_id: args.userId,
     metadata: {
+      [SAVR_PRODUCT_METADATA_KEY]: SAVR_PRODUCT_METADATA_VALUE,
       userId: args.userId,
       priceId: args.priceId,
       includeTrial: includeTrial ? 'true' : 'false',
@@ -350,7 +375,10 @@ export function buildCheckoutSessionParams(args: {
     },
     subscription_data: {
       ...(includeTrial ? { trial_period_days: TRIAL_PERIOD_DAYS } : {}),
-      metadata: { userId: args.userId },
+      metadata: {
+        [SAVR_PRODUCT_METADATA_KEY]: SAVR_PRODUCT_METADATA_VALUE,
+        userId: args.userId,
+      },
     },
     success_url: `${args.origin}/dashboard?stripeSuccess=true`,
     cancel_url: `${args.origin}/pricing`,
