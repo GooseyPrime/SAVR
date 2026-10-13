@@ -39,7 +39,7 @@ npm start
 ## Google OAuth Notes
 
 - Create Web, iOS, and Android OAuth client IDs in Google Cloud Console.
-- Ensure package/bundle IDs match `com.savr.app`.
+- Ensure package/bundle IDs match `cam.savr.app`.
 - Configure Supabase Auth Google provider with matching credentials.
 
 ## Production Build (EAS)
