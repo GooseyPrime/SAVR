@@ -1,0 +1,7 @@
+{
+  "expo": {
+    "name": "fixture",
+    "slug": "fixture",
+    "updates": { "codeSigningCertificate": "./certs/certificate.pem" }
+  }
+}
