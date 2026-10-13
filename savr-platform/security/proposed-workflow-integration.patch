@@ -1,0 +1,83 @@
+diff --git a/.github/workflows/corrective-04-mobile-compatibility.yml b/.github/workflows/corrective-04-mobile-compatibility.yml
+index 98fb526..5f707be 100644
+--- a/.github/workflows/corrective-04-mobile-compatibility.yml
++++ b/.github/workflows/corrective-04-mobile-compatibility.yml
+@@ -4,11 +4,13 @@ on:
+   push:
+     paths:
+       - 'savr-platform/mobile/**'
++      - 'savr-platform/security/**'
+       - '.github/workflows/corrective-04-mobile-compatibility.yml'
+       - 'docs/decisions/ADR-003-canonical-expo-version.md'
+   pull_request:
+     paths:
+       - 'savr-platform/mobile/**'
++      - 'savr-platform/security/**'
+       - '.github/workflows/corrective-04-mobile-compatibility.yml'
+       - 'docs/decisions/ADR-003-canonical-expo-version.md'
+ 
+@@ -50,10 +52,14 @@ jobs:
+         run: npx expo-doctor
+ 
+       - name: Export — Android bundle
+-        run: npx expo export --platform android
++        run: npx expo export --platform android --source-maps --output-dir dist/android
+ 
+       - name: Export — iOS bundle
+-        run: npx expo export --platform ios
++        run: npx expo export --platform ios --source-maps --output-dir dist/ios
++
++      # ADR-005: the excepted build-tool packages must never ship in an app bundle.
++      - name: Exception control — excepted packages absent from app bundles
++        run: node ../security/exception-controls.mjs bundle-sources dist/android dist/ios
+ 
+       - name: Clean export artifacts
+         if: always()
+diff --git a/.github/workflows/phase-06-hardening.yml b/.github/workflows/phase-06-hardening.yml
+index 0b14cb0..cbe6f19 100644
+--- a/.github/workflows/phase-06-hardening.yml
++++ b/.github/workflows/phase-06-hardening.yml
+@@ -8,6 +8,7 @@ on:
+       - 'savr-platform/e2e-tests/**'
+       - 'savr-platform/supabase/**'
+       - 'savr-platform/scripts/**'
++      - 'savr-platform/security/**'
+       - '.github/workflows/phase-06-hardening.yml'
+       - 'docs/validation/required-gates.md'
+       - 'MIGRATION_STATUS.md'
+@@ -19,6 +20,7 @@ on:
+       - 'savr-platform/e2e-tests/**'
+       - 'savr-platform/supabase/**'
+       - 'savr-platform/scripts/**'
++      - 'savr-platform/security/**'
+       - '.github/workflows/phase-06-hardening.yml'
+       - 'docs/validation/required-gates.md'
+       - 'MIGRATION_STATUS.md'
+@@ -105,8 +107,25 @@ jobs:
+       - name: Install dependencies
+         run: npm ci
+ 
+-      - name: Run dependency audit
+-        run: npm audit --audit-level=high
++      # Full, unfiltered report (devDependencies included) so every advisory
++      # stays visible. Enforcement happens in the next step.
++      - name: Dependency audit report (informational)
++        run: npm audit || true
++
++      # ADR-005: same --audit-level=high semantics, except the exact approved
++      # records in savr-platform/security/audit-exceptions.json. Fails on any
++      # other high/critical advisory, a new path or version, an expired or
++      # unused record, or a published upstream fix.
++      - name: Enforce audit gate (ADR-005)
++        run: node ../security/audit-gate.mjs --workspace ${{ matrix.package }}
++
++      - name: Exception control — web lint rootDir unset (ADR-005)
++        if: matrix.package == 'web'
++        run: node ../security/exception-controls.mjs web-lint-root-dir eslint.config.mjs
++
++      - name: Exception control — mobile update code signing unset (ADR-005)
++        if: matrix.package == 'mobile'
++        run: node ../security/exception-controls.mjs mobile-update-signing app.config.ts app.json
+ 
+   e2e-smoke:
+     name: E2E — Smoke

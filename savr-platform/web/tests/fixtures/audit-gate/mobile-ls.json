@@ -1,0 +1,61 @@
+{
+  "version": "1.0.0",
+  "name": "mobile",
+  "dependencies": {
+    "expo": {
+      "version": "57.0.28",
+      "resolved": "https://registry.npmjs.org/expo/-/expo-57.0.28.tgz",
+      "overridden": false,
+      "dependencies": {
+        "@expo/cli": {
+          "version": "57.0.29",
+          "resolved": "https://registry.npmjs.org/@expo/cli/-/cli-57.0.29.tgz",
+          "overridden": false,
+          "dependencies": {
+            "@expo/code-signing-certificates": {
+              "version": "0.0.6",
+              "resolved": "https://registry.npmjs.org/@expo/code-signing-certificates/-/code-signing-certificates-0.0.6.tgz",
+              "overridden": false,
+              "dependencies": {
+                "node-forge": {
+                  "version": "1.4.0"
+                }
+              }
+            },
+            "node-forge": {
+              "version": "1.4.0",
+              "resolved": "https://registry.npmjs.org/node-forge/-/node-forge-1.4.0.tgz",
+              "overridden": false
+            }
+          }
+        },
+        "@expo/metro": {
+          "version": "56.0.2",
+          "resolved": "https://registry.npmjs.org/@expo/metro/-/metro-56.0.2.tgz",
+          "overridden": false,
+          "dependencies": {
+            "metro-file-map": {
+              "version": "0.84.5",
+              "resolved": "https://registry.npmjs.org/metro-file-map/-/metro-file-map-0.84.5.tgz",
+              "overridden": false,
+              "dependencies": {
+                "micromatch": {
+                  "version": "4.0.8",
+                  "resolved": "https://registry.npmjs.org/micromatch/-/micromatch-4.0.8.tgz",
+                  "overridden": false,
+                  "dependencies": {
+                    "braces": {
+                      "version": "3.0.3",
+                      "resolved": "https://registry.npmjs.org/braces/-/braces-3.0.3.tgz",
+                      "overridden": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
