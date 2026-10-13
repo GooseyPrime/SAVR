@@ -12,20 +12,20 @@
   },
   "overrides": {
     "@tootallnate/once": "^3.0.1",
-    "minimatch@3.1.5": {
-      "brace-expansion": "1.1.18"
+    "minimatch@^3": {
+      "brace-expansion": "^1.1.21"
     },
-    "minimatch@9.0.9": {
-      "brace-expansion": "2.1.4"
+    "minimatch@^9": {
+      "brace-expansion": "^2.1.7"
     },
-    "minimatch@10.2.4": {
-      "brace-expansion": "5.0.9"
+    "minimatch@^10": {
+      "brace-expansion": "^5.0.12"
     },
-    "micromatch@4.0.8": {
-      "picomatch": "2.3.2"
+    "micromatch@^4": {
+      "picomatch": "^2.3.2"
     },
-    "tinyglobby@0.2.15": {
-      "picomatch": "4.0.4"
+    "tinyglobby@^0.2": {
+      "picomatch": "^4.0.4"
     },
     "postcss": "^8.5.26"
   },
@@ -37,21 +37,21 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "html5-qrcode": "^2.3.8",
-    "next": "16.3.5",
+    "next": "16.3.8",
     "openai": "^7.12.1",
     "qrcode": "^1.5.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "stripe": "^20.3.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4",
+    "eslint-config-next": "^16.3.8",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "6.0.3"
