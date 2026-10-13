@@ -21,8 +21,10 @@ import {
 } from '../../security/audit-gate.mjs';
 import {
   checkBundleSources,
-  checkLintRootDir,
-  checkUpdateSigning,
+  checkWebLintRootDir,
+  findLintRootDir,
+  findUpdateSigning,
+  flattenFlatConfig,
 } from '../../security/exception-controls.mjs';
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -263,8 +265,10 @@ test('CI enforces the gate in place of plain npm audit, keeps the full report, a
   assert.match(hardening, /- package: web\n/);
   assert.match(hardening, /- package: mobile\n/);
   // Compensating controls.
-  assert.match(hardening, /exception-controls\.mjs web-lint-root-dir eslint\.config\.mjs/);
-  assert.match(hardening, /exception-controls\.mjs mobile-update-signing app\.config\.ts app\.json/);
+  // Lint and app-config controls take a project directory and inspect the
+  // resolved configuration, never named source files.
+  assert.match(hardening, /run: node \.\.\/security\/exception-controls\.mjs web-lint-root-dir \.\n/);
+  assert.match(hardening, /run: node \.\.\/security\/exception-controls\.mjs mobile-update-signing \.\n/);
   assert.match(mobile, /expo export --platform android --source-maps --output-dir dist\/android/);
   assert.match(mobile, /expo export --platform ios --source-maps --output-dir dist\/ios/);
   assert.match(mobile, /exception-controls\.mjs bundle-sources dist\/android dist\/ios/);
@@ -275,18 +279,54 @@ test('CI enforces the gate in place of plain npm audit, keeps the full report, a
 
 // ── Compensating controls ───────────────────────────────────────
 
-test('control: the repository lint config does not set a Next.js rootDir', () => {
-  const file = path.join(ROOT, 'web', 'eslint.config.mjs');
-  assert.deepEqual(checkLintRootDir(readFileSync(file, 'utf8'), file), []);
-  assert.equal(checkLintRootDir('settings: { next: { rootDir: "apps/*" } }').length, 1);
+const CONTROL_FIXTURES = path.join(__dirname, 'fixtures', 'exception-controls');
+
+test('control: the resolved repository lint config does not set a Next.js rootDir', async () => {
+  const { file, problems } = await checkWebLintRootDir(path.join(ROOT, 'web'));
+  assert.equal(file, path.join(ROOT, 'web', 'eslint.config.mjs'));
+  assert.deepEqual(problems, []);
 });
 
-test('control: the mobile app config does not enable expo-updates code signing', () => {
-  for (const name of ['app.config.ts', 'app.json']) {
-    const file = path.join(ROOT, 'mobile', name);
-    assert.deepEqual(checkUpdateSigning(readFileSync(file, 'utf8'), file), []);
-  }
-  assert.equal(checkUpdateSigning('updates: { codeSigningCertificate: "./cert.pem" }').length, 1);
+// Regression: a raw-source search misses rootDir introduced through an import,
+// a spread, a computed key, a nested or files-scoped entry, or `extends`.
+for (const fixture of ['imported-computed-key', 'files-scoped', 'extends']) {
+  test(`control: rootDir set through ${fixture} config is detected`, async () => {
+    const dir = path.join(CONTROL_FIXTURES, fixture);
+    const { file, problems } = await checkWebLintRootDir(dir);
+    assert.equal(file, path.join(dir, 'eslint.config.mjs'));
+    assert.equal(problems.length, 1, problems.join('\n'));
+  });
+}
+
+test('control: the imported computed rootDir is what ESLint itself resolves', async () => {
+  const dir = path.join(CONTROL_FIXTURES, 'imported-computed-key');
+  assert.doesNotMatch(readFileSync(path.join(dir, 'eslint.config.mjs'), 'utf8'), /rootDir/);
+  const { loadESLint } = await import('eslint');
+  const ESLint = await loadESLint();
+  const resolved = await new ESLint({ cwd: dir }).calculateConfigForFile('index.js');
+  assert.deepEqual(resolved.settings?.next, { rootDir: 'apps/*' });
+});
+
+test('control: a config without rootDir passes, including an async export', async () => {
+  const { problems } = await checkWebLintRootDir(path.join(CONTROL_FIXTURES, 'no-root-dir'));
+  assert.deepEqual(problems, []);
+});
+
+test('control: lint rootDir check covers string, array and empty values and fails closed', () => {
+  assert.equal(findLintRootDir([{ settings: { next: { rootDir: 'apps/*' } } }]).length, 1);
+  assert.equal(findLintRootDir([{ settings: { next: { rootDir: ['a/*', 'b/*'] } } }]).length, 1);
+  assert.equal(findLintRootDir([{ settings: { next: { rootDir: '' } } }]).length, 1);
+  assert.deepEqual(findLintRootDir([{ settings: { next: {} } }, { rules: {} }]), []);
+  assert.throws(() => flattenFlatConfig([() => ({})]), /unsupported flat config entry/);
+  assert.throws(() => flattenFlatConfig('eslint.config.mjs'), /unsupported flat config entry/);
+});
+
+test('control: update signing is detected anywhere in a resolved Expo config', () => {
+  assert.deepEqual(findUpdateSigning({ name: 'SAVR', updates: { enabled: false } }), []);
+  assert.equal(findUpdateSigning({ updates: { codeSigningCertificate: './cert.pem' } }).length, 1);
+  assert.equal(findUpdateSigning({ updates: { codeSigningMetadata: { keyid: 'main' } } }).length, 1);
+  assert.equal(findUpdateSigning({ plugins: [['expo-updates', { codeSigningCertificate: './c.pem' }]] }).length, 1);
+  assert.throws(() => findUpdateSigning(null), /not an object/);
 });
 
 test('control: bundle source scan flags only the excepted packages', () => {

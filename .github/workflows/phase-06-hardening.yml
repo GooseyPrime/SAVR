@@ -121,11 +121,11 @@ jobs:
 
       - name: Exception control — web lint rootDir unset (ADR-005)
         if: matrix.package == 'web'
-        run: node ../security/exception-controls.mjs web-lint-root-dir eslint.config.mjs
+        run: node ../security/exception-controls.mjs web-lint-root-dir .
 
       - name: Exception control — mobile update code signing unset (ADR-005)
         if: matrix.package == 'mobile'
-        run: node ../security/exception-controls.mjs mobile-update-signing app.config.ts app.json
+        run: node ../security/exception-controls.mjs mobile-update-signing .
 
   e2e-smoke:
     name: E2E — Smoke

@@ -58,15 +58,16 @@ Applying an unmerged community patch was rejected for three reasons. The code ha
   - `npm view <pkg> versions` lists a stable release above `lastAffected` (an upstream fix exists: upgrade and delete the record);
   - `approval` is not `approved` with `approvedBy` and `approvedAt` set.
 - **`savr-platform/security/exception-controls.mjs`** keeps each reachability argument true:
-  - `web-lint-root-dir`: fails if the lint config sets `rootDir`;
-  - `mobile-update-signing`: fails if the app config sets `codeSigningCertificate`;
+  - `web-lint-root-dir`: evaluates the flat config file ESLint itself selects (imports, spreads, computed keys, nested arrays and `extends` resolved) and fails if any entry, whatever its `files` scope, sets `settings.next.rootDir`;
+  - `mobile-update-signing`: reads Expo's resolved config (`expo config --json`, config plugins applied) and fails if any `codeSigning*` setting (`updates.codeSigningCertificate`, `updates.codeSigningMetadata`, or the same keys passed to a plugin) is present;
+  - both fail closed when the configuration cannot be resolved; neither searches source text;
   - `bundle-sources`: fails if an excepted package appears in an exported bundle's source maps.
 - **CI integration** (applied on activation; previously proposed as `proposed-workflow-integration.patch`):
   - keeps a full informational `npm audit` step;
   - replaces the enforcing step with the gate;
   - adds the controls;
   - exports bundles with source maps to scan them.
-- **Regression tests:** `savr-platform/web/tests/audit-gate.test.ts` runs under the existing web unit-test job. It is deterministic: fixtures are real `npm audit`/`npm ls` output from the #181 lockfiles, and the clock and registry version lists are injected.
+- **Regression tests:** `savr-platform/web/tests/audit-gate.test.ts` runs under the existing web unit-test job, and `savr-platform/mobile/tests/exception-controls.test.ts` under the mobile unit-test job; fixtures under each `tests/fixtures/exception-controls/` enable `rootDir` or update signing through imported, computed-key, nested, `extends` and config-plugin configuration that a source search would miss. It is deterministic: fixtures are real `npm audit`/`npm ls` output from the #181 lockfiles, and the clock and registry version lists are injected.
 
 ## Security tradeoff
 
