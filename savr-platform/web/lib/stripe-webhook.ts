@@ -405,34 +405,24 @@ async function dispatchWebhookEvent(
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.resumed':
-    case 'customer.subscription.pending_update_applied': {
-      const subscription = event.data.object as Stripe.Subscription;
-      await handleSubscriptionUpdated(subscription, stripe, supabaseAdmin, savrPrices);
-      break;
-    }
-
+    case 'customer.subscription.pending_update_applied':
+    case 'customer.subscription.paused':
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
-      await handleSubscriptionDeleted(subscription, stripe, supabaseAdmin);
-      break;
-    }
-
-    case 'customer.subscription.paused': {
-      const subscription = event.data.object as Stripe.Subscription;
-      await handleSubscriptionPaused(subscription, stripe, supabaseAdmin);
+      await handleSubscriptionEvent(subscription, stripe, supabaseAdmin, savrPrices);
       break;
     }
 
     case 'invoice.payment_succeeded':
     case 'invoice.paid': {
       const invoice = event.data.object as Stripe.Invoice;
-      await handlePaymentSucceeded(invoice, stripe, supabaseAdmin);
+      await handleInvoiceEvent(invoice, 'succeeded', stripe, supabaseAdmin, savrPrices);
       break;
     }
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
-      await handlePaymentFailed(invoice, stripe, supabaseAdmin);
+      await handleInvoiceEvent(invoice, 'failed', stripe, supabaseAdmin, savrPrices);
       break;
     }
 
@@ -535,6 +525,243 @@ async function findUserByCustomerId(
   return userId;
 }
 
+// ──────────────────────────────────────────────────────────────
+// Subscription-scoped reconciliation
+// ──────────────────────────────────────────────────────────────
+
+/** Stripe statuses after which a subscription can never become live again. */
+const TERMINAL_STATUSES: ReadonlySet<string> = new Set(['canceled', 'incomplete_expired']);
+/** Statuses that grant access; preferred over other live statuses. */
+const ENTITLED_STATUSES: ReadonlySet<string> = new Set(['active', 'trialing']);
+/** Live statuses in which the customer still owes action on a payment. */
+const PAYMENT_ACTION_STATUSES: ReadonlySet<string> = new Set(['past_due', 'unpaid', 'incomplete']);
+
+interface BillingRow {
+  id: string;
+  stripe_subscription_id: string | null;
+  last_payment_date: string | null;
+}
+
+async function loadBillingRow(
+  supabaseAdmin: SupabaseAdmin,
+  userId: string,
+): Promise<BillingRow | null> {
+  const rows = await selectUserRows(
+    supabaseAdmin,
+    'id, stripe_subscription_id, last_payment_date',
+    'id',
+    userId,
+  );
+  const row = rows[0];
+  if (!row || typeof row.id !== 'string') return null;
+  return {
+    id: row.id,
+    stripe_subscription_id:
+      typeof row.stripe_subscription_id === 'string' && row.stripe_subscription_id
+        ? row.stripe_subscription_id
+        : null,
+    last_payment_date: typeof row.last_payment_date === 'string' ? row.last_payment_date : null,
+  };
+}
+
+function isStripeResourceMissing(error: unknown): boolean {
+  return readPath(error, 'code') === 'resource_missing' || readPath(error, 'statusCode') === 404;
+}
+
+/**
+ * Current Stripe state of a subscription, never the event's snapshot (events
+ * can arrive late or out of order). Null only when Stripe reports the
+ * subscription does not exist; any other failure throws so Stripe retries.
+ */
+async function retrieveCurrentSubscription(
+  stripe: StripeClient,
+  subscriptionId: string,
+): Promise<Stripe.Subscription | null> {
+  try {
+    return await stripe.subscriptions.retrieve(subscriptionId);
+  } catch (error) {
+    if (isStripeResourceMissing(error)) return null;
+    throw error;
+  }
+}
+
+const isTerminal = (subscription: Stripe.Subscription) => TERMINAL_STATUSES.has(subscription.status);
+
+/** Higher wins: entitled live > other live; ties broken by newer `created`. */
+function outranks(candidate: Stripe.Subscription, incumbent: Stripe.Subscription): boolean {
+  const rank = (s: Stripe.Subscription) => (ENTITLED_STATUSES.has(s.status) ? 2 : 1);
+  if (rank(candidate) !== rank(incumbent)) return rank(candidate) > rank(incumbent);
+  return (candidate.created ?? 0) > (incumbent.created ?? 0);
+}
+
+type Ownership = 'current' | 'adopt' | 'ignore';
+
+/**
+ * Whether `subscription` (current Stripe state) is, or should become, the
+ * user's subscription of record. The answer depends only on Stripe's current
+ * state, so delayed or reordered events converge on the same result:
+ *   - the stored subscription itself: 'current';
+ *   - an ended subscription never displaces anything: 'ignore';
+ *   - nothing stored: 'adopt';
+ *   - another subscription stored: 'adopt' only if the stored one has ended,
+ *     no longer exists, or is outranked; otherwise 'ignore'.
+ */
+async function decideOwnership(
+  stored: string | null,
+  subscription: Stripe.Subscription,
+  stripe: StripeClient,
+): Promise<Ownership> {
+  if (stored === subscription.id) return 'current';
+  if (isTerminal(subscription)) return 'ignore';
+  if (!stored) return 'adopt';
+  const incumbent = await retrieveCurrentSubscription(stripe, stored);
+  if (!incumbent || isTerminal(incumbent)) return 'adopt';
+  return outranks(subscription, incumbent) ? 'adopt' : 'ignore';
+}
+
+/** User columns that mirror one subscription's current Stripe state. */
+function subscriptionStateUpdates(
+  subscription: Stripe.Subscription,
+  userId: string,
+  savrPrices: ReadonlySet<string>,
+): Record<string, unknown> {
+  const now = new Date().toISOString();
+  if (isTerminal(subscription)) {
+    // The subscription of record ended: revoke paid access and unlink it.
+    return {
+      subscription_tier: 'basic',
+      subscription_status: mapStripeStatusToDatabase(subscription.status),
+      stripe_subscription_id: null,
+      cancel_at_period_end: false,
+      payment_action_required: false,
+      updated_at: now,
+    };
+  }
+
+  const periodEnd = getSubscriptionPeriodEndUnix(subscription);
+  const trialEnd = subscription.trial_end;
+  const updates: Record<string, unknown> = {
+    subscription_status: mapStripeStatusToDatabase(subscription.status),
+    stripe_subscription_id: subscription.id,
+    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+    trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
+    cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+    payment_action_required: PAYMENT_ACTION_STATUSES.has(subscription.status),
+    updated_at: now,
+  };
+
+  const priceId = findConfiguredSavrPriceId(subscription, savrPrices);
+  if (priceId) {
+    // Throws if configuration cannot resolve the price — returns 500 so Stripe retries.
+    updates.subscription_tier = resolveTierFromPriceId(priceId);
+  } else {
+    warnRetainedTier(subscription, userId);
+  }
+  return updates;
+}
+
+/**
+ * Compare-and-set write: applies only while the stored subscription (and,
+ * when given, last_payment_date) still match what this event read. A
+ * concurrent change makes it throw, so the event is retried against fresh
+ * state instead of overwriting a newer entitlement.
+ */
+async function updateUserGuarded(
+  supabaseAdmin: SupabaseAdmin,
+  userId: string,
+  expected: { stripe_subscription_id: string | null; last_payment_date?: string | null },
+  updates: Record<string, unknown>,
+): Promise<void> {
+  let query = supabaseAdmin.from('users').update(updates).eq('id', userId);
+  for (const [column, value] of Object.entries(expected)) {
+    if (value === undefined) continue;
+    query = value === null ? query.is(column, null) : query.eq(column, value);
+  }
+  const { data, error } = await query.select('id');
+  if (error) {
+    throw new Error(`Failed to update user ${userId}: ${describeDbError(error)}`);
+  }
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(
+      `Billing state for user ${userId} changed concurrently; retrying against current state`,
+    );
+  }
+}
+
+/**
+ * Applies one subscription's current Stripe state to the user if it is (or
+ * becomes) their subscription of record. Returns the decision, or null when
+ * Stripe no longer has the subscription and it is not the stored one.
+ */
+async function reconcileSubscription(
+  userId: string,
+  subscriptionId: string,
+  stripe: StripeClient,
+  supabaseAdmin: SupabaseAdmin,
+  savrPrices: ReadonlySet<string>,
+  extra: { updates?: Record<string, unknown>; lastPaymentDate?: string | null } = {},
+): Promise<Ownership | null> {
+  const row = await loadBillingRow(supabaseAdmin, userId);
+  if (!row) {
+    console.error(`User ${userId} not found`);
+    return null;
+  }
+
+  const subscription = await retrieveCurrentSubscription(stripe, subscriptionId);
+  if (!subscription) {
+    if (row.stripe_subscription_id !== subscriptionId) {
+      console.warn(`Subscription ${subscriptionId} no longer exists in Stripe; not current for ${userId}`);
+      return null;
+    }
+    // The subscription of record is gone from Stripe: treat it as ended.
+    await updateUserGuarded(
+      supabaseAdmin,
+      userId,
+      { stripe_subscription_id: row.stripe_subscription_id },
+      {
+        subscription_tier: 'basic',
+        subscription_status: 'canceled',
+        stripe_subscription_id: null,
+        cancel_at_period_end: false,
+        payment_action_required: false,
+        updated_at: new Date().toISOString(),
+      },
+    );
+    return 'current';
+  }
+
+  const ownership = await decideOwnership(row.stripe_subscription_id, subscription, stripe);
+  if (ownership === 'ignore') {
+    console.log(
+      `ℹ️  Subscription ${subscription.id} (${subscription.status}) is not current for user ${userId} ` +
+        `(stored ${row.stripe_subscription_id ?? 'none'}); no change`,
+    );
+    return ownership;
+  }
+
+  const updates = {
+    ...subscriptionStateUpdates(subscription, userId, savrPrices),
+    ...extra.updates,
+  };
+  // When payment fields are written, guard on the last_payment_date the
+  // caller's "is this invoice newest" decision was based on.
+  const expected =
+    extra.lastPaymentDate === undefined
+      ? { stripe_subscription_id: row.stripe_subscription_id }
+      : { stripe_subscription_id: row.stripe_subscription_id, last_payment_date: extra.lastPaymentDate };
+  await updateUserGuarded(supabaseAdmin, userId, expected, updates);
+
+  console.log(
+    `✅ ${ownership === 'adopt' ? 'Adopted' : 'Reconciled'} subscription ${subscription.id} for user ${userId}: ` +
+      `${subscription.status}, tier ${String(updates.subscription_tier ?? 'unchanged')}`,
+  );
+  return ownership;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Event-specific handlers
+// ──────────────────────────────────────────────────────────────
+
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
   stripe: StripeClient,
@@ -552,43 +779,37 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  const users = await selectUserRows(supabaseAdmin, 'id', 'id', userId);
-  if (users.length === 0) {
-    console.error(`User ${userId} not found`);
-    return;
-  }
-
   const customerId = readId(session.customer);
   const subscriptionId = readId(session.subscription);
 
-  const updates: Record<string, unknown> = {
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscriptionId,
-    updated_at: new Date().toISOString(),
-  };
-
-  if (subscriptionId) {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const priceId = findConfiguredSavrPriceId(subscription, savrPrices);
-    if (priceId) {
-      // Throws if configuration cannot resolve the price — returns 500 so Stripe retries.
-      updates.subscription_tier = resolveTierFromPriceId(priceId);
-    } else {
-      warnRetainedTier(subscription, userId);
+  if (!subscriptionId) {
+    // Nothing to reconcile; only record the customer link.
+    const users = await selectUserRows(supabaseAdmin, 'id', 'id', userId);
+    if (users.length === 0) {
+      console.error(`User ${userId} not found`);
+      return;
     }
-    updates.subscription_status = subscription.status;
+    if (customerId) {
+      await updateUser(supabaseAdmin, userId, {
+        stripe_customer_id: customerId,
+        updated_at: new Date().toISOString(),
+      });
+    }
+    return;
   }
 
-  await updateUser(supabaseAdmin, userId, updates);
-
-  console.log(`✅ Linked checkout to user ${userId}`, {
-    customerId,
-    subscriptionId,
-    subscriptionStatus: updates.subscription_status,
+  // A delayed checkout for an older subscription must not replace a newer one,
+  // so the customer link is written only together with an accepted subscription.
+  await reconcileSubscription(userId, subscriptionId, stripe, supabaseAdmin, savrPrices, {
+    updates: customerId ? { stripe_customer_id: customerId } : {},
   });
 }
 
-async function handleSubscriptionUpdated(
+/**
+ * created / updated / resumed / pending_update_applied / paused / deleted.
+ * The event only names the subscription; its current Stripe state decides.
+ */
+async function handleSubscriptionEvent(
   subscription: Stripe.Subscription,
   stripe: StripeClient,
   supabaseAdmin: SupabaseAdmin,
@@ -596,120 +817,59 @@ async function handleSubscriptionUpdated(
 ): Promise<void> {
   const customerId = readId(subscription.customer);
   const userId = await findUserByCustomerId(customerId, stripe, supabaseAdmin);
-
   if (!userId) {
     console.error(`No user found for customer ${customerId}`);
     return;
   }
+  await reconcileSubscription(userId, subscription.id, stripe, supabaseAdmin, savrPrices);
+}
 
-  const periodEnd = getSubscriptionPeriodEndUnix(subscription);
-  const trialEnd = subscription.trial_end;
+/**
+ * invoice.paid / invoice.payment_succeeded / invoice.payment_failed.
+ * Subscription state comes from Stripe; payment fields only move forward in
+ * invoice time, so a delayed invoice never overwrites a newer outcome.
+ */
+async function handleInvoiceEvent(
+  invoice: Stripe.Invoice,
+  outcome: 'succeeded' | 'failed',
+  stripe: StripeClient,
+  supabaseAdmin: SupabaseAdmin,
+  savrPrices: ReadonlySet<string>,
+): Promise<void> {
+  const userId = await findUserByCustomerId(readId(invoice.customer), stripe, supabaseAdmin);
+  if (!userId) return;
 
-  const updates: Record<string, unknown> = {
-    subscription_status: mapStripeStatusToDatabase(subscription.status),
-    stripe_subscription_id: subscription.id,
-    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-    trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
-    cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-    updated_at: new Date().toISOString(),
-  };
-
-  const priceId = findConfiguredSavrPriceId(subscription, savrPrices);
-  if (priceId) {
-    // Throws if configuration cannot resolve the price — returns 500 so Stripe retries.
-    updates.subscription_tier = resolveTierFromPriceId(priceId);
-  } else {
-    warnRetainedTier(subscription, userId);
+  const subscriptionId = invoiceSubscriptionId(invoice);
+  if (!subscriptionId) {
+    console.warn(`Invoice ${invoice.id} has no subscription; entitlement unchanged for ${userId}`);
+    return;
   }
 
-  await updateUser(supabaseAdmin, userId, updates);
+  const row = await loadBillingRow(supabaseAdmin, userId);
+  const invoiceDate = new Date(invoice.created * 1000).toISOString();
+  const isNewest =
+    !row?.last_payment_date || Date.parse(invoiceDate) >= Date.parse(row.last_payment_date);
 
-  console.log(
-    `✅ Updated subscription for user ${userId}: ${subscription.status}, tier ${String(updates.subscription_tier ?? 'unchanged')}`,
-  );
-}
-
-async function handleSubscriptionDeleted(
-  subscription: Stripe.Subscription,
-  stripe: StripeClient,
-  supabaseAdmin: SupabaseAdmin,
-): Promise<void> {
-  const userId = await findUserByCustomerId(
-    readId(subscription.customer),
+  const ownership = await reconcileSubscription(
+    userId,
+    subscriptionId,
     stripe,
     supabaseAdmin,
+    savrPrices,
+    isNewest
+      ? {
+          updates: { last_payment_status: outcome, last_payment_date: invoiceDate },
+          lastPaymentDate: row?.last_payment_date ?? null,
+        }
+      : {},
   );
 
-  if (!userId) return;
-
-  await updateUser(supabaseAdmin, userId, {
-    subscription_tier: 'basic',
-    subscription_status: 'canceled',
-    stripe_subscription_id: null,
-    updated_at: new Date().toISOString(),
-  });
-
-  console.log(`✅ Subscription deleted for user ${userId}`);
-}
-
-async function handleSubscriptionPaused(
-  subscription: Stripe.Subscription,
-  stripe: StripeClient,
-  supabaseAdmin: SupabaseAdmin,
-): Promise<void> {
-  const userId = await findUserByCustomerId(
-    readId(subscription.customer),
-    stripe,
-    supabaseAdmin,
-  );
-
-  if (!userId) return;
-
-  await updateUser(supabaseAdmin, userId, {
-    subscription_status: mapStripeStatusToDatabase(subscription.status),
-    updated_at: new Date().toISOString(),
-  });
-
-  console.log(`✅ Subscription paused for user ${userId}`);
-}
-
-async function handlePaymentSucceeded(
-  invoice: Stripe.Invoice,
-  stripe: StripeClient,
-  supabaseAdmin: SupabaseAdmin,
-): Promise<void> {
-  const userId = await findUserByCustomerId(readId(invoice.customer), stripe, supabaseAdmin);
-
-  if (!userId) return;
-
-  await updateUser(supabaseAdmin, userId, {
-    last_payment_status: 'succeeded',
-    last_payment_date: new Date(invoice.created * 1000).toISOString(),
-    payment_action_required: false,
-    updated_at: new Date().toISOString(),
-  });
-
-  console.log(`✅ Payment succeeded for user ${userId}`);
-}
-
-async function handlePaymentFailed(
-  invoice: Stripe.Invoice,
-  stripe: StripeClient,
-  supabaseAdmin: SupabaseAdmin,
-): Promise<void> {
-  const userId = await findUserByCustomerId(readId(invoice.customer), stripe, supabaseAdmin);
-
-  if (!userId) return;
-
-  await updateUser(supabaseAdmin, userId, {
-    subscription_status: 'past_due',
-    last_payment_status: 'failed',
-    last_payment_date: new Date(invoice.created * 1000).toISOString(),
-    payment_action_required: true,
-    updated_at: new Date().toISOString(),
-  });
-
-  console.log(`❌ Payment failed for user ${userId}`);
+  if (ownership && ownership !== 'ignore') {
+    console.log(
+      `${outcome === 'succeeded' ? '✅' : '❌'} Payment ${outcome} for user ${userId}` +
+        (isNewest ? '' : ' (older invoice; payment fields kept)'),
+    );
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -750,8 +910,11 @@ export interface SupabaseAdmin {
   from(table: string): SupabaseQueryBuilder;
 }
 
+type SupabaseResult = PromiseLike<{ data: unknown; error: unknown }>;
+
 interface SupabaseQueryBuilder {
-  select(cols: string): SupabaseQueryBuilder;
+  select(cols: string): SupabaseQueryBuilder & SupabaseResult;
   update(data: Record<string, unknown>): SupabaseQueryBuilder;
-  eq(col: string, val: unknown): SupabaseQueryBuilder & PromiseLike<{ data: unknown; error: unknown }>;
+  eq(col: string, val: unknown): SupabaseQueryBuilder & SupabaseResult;
+  is(col: string, val: null): SupabaseQueryBuilder & SupabaseResult;
 }

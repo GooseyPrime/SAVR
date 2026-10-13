@@ -101,12 +101,16 @@ function makeInvoice(
   customerId: string,
   created: number = 1700000000,
   priceId: string = 'price_pro_monthly',
+  subscriptionId: string | null = 'sub_inv',
 ): Stripe.Invoice {
   return {
     id,
     object: 'invoice',
     customer: customerId,
     created,
+    ...(subscriptionId
+      ? { parent: { subscription_details: { subscription: subscriptionId, metadata: {} } } }
+      : {}),
     lines: {
       object: 'list',
       data: [{ id: 'il_test', pricing: { price_details: { price: priceId } } }],
@@ -146,14 +150,23 @@ interface MockRpcOptions {
 interface MockUserRow {
   id: string;
   email?: string;
-  stripe_customer_id?: string;
-  stripe_subscription_id?: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_tier?: string;
+  subscription_status?: string;
+  last_payment_status?: string | null;
+  last_payment_date?: string | null;
+  payment_action_required?: boolean;
+  [column: string]: unknown;
 }
 
 interface MockFromOptions {
   /**
-   * Rows of the users table. When omitted, every lookup matches a single
-   * default user (user_123) regardless of the filter.
+   * Rows of the users table. When given, the mock behaves like a table:
+   * eq/is filters apply, updates change matching rows and return them.
+   * When omitted, every lookup matches a single default user (user_123,
+   * no stored subscription) regardless of the filter, and every update
+   * succeeds.
    */
   users?: MockUserRow[];
   /** Make every users SELECT fail. */
@@ -197,30 +210,40 @@ function makeMockSupabase(
 
     from(table: string) {
       let updateData: Record<string, unknown> | null = null;
-      let filter: { column: string; value: unknown } | null = null;
+      const filters: Array<{ column: string; value: unknown }> = [];
+
+      const matches = (row: Record<string, unknown>) =>
+        filters.every(({ column, value }) => (row[column] ?? null) === value);
 
       const resolveQuery = (): { data: unknown; error: unknown } => {
         if (updateData) {
           updates.push({ table, data: updateData });
-          if (table === 'users' && fromOpts.updateError) {
+          if (table !== 'users') return { data: [], error: null };
+          if (fromOpts.updateError) {
             return { data: null, error: { message: 'update failed' } };
           }
-          return { data: null, error: null };
+          if (!fromOpts.users) return { data: [{ id: 'user_123' }], error: null };
+          const hit = fromOpts.users.filter((row) => matches(row as Record<string, unknown>));
+          for (const row of hit) Object.assign(row, updateData);
+          return { data: hit.map((row) => ({ id: row.id })), error: null };
         }
 
-        if (table !== 'users' || !filter) return { data: [], error: null };
-        selects.push({ table, column: filter.column, value: filter.value });
+        if (table !== 'users' || filters.length === 0) return { data: [], error: null };
+        const { column, value } = filters[0];
+        selects.push({ table, column, value });
         if (fromOpts.selectError) {
           return { data: null, error: { message: 'select failed' } };
         }
         if (!fromOpts.users) {
-          return { data: [{ id: 'user_123', email: 'test@example.com' }], error: null };
+          return {
+            data: [{ id: 'user_123', email: 'test@example.com', stripe_subscription_id: null, last_payment_date: null }],
+            error: null,
+          };
         }
-        const { column, value } = filter;
-        const rows = fromOpts.users.filter(
-          (row) => (row as unknown as Record<string, unknown>)[column] === value,
-        );
-        return { data: rows, error: null };
+        return {
+          data: fromOpts.users.filter((row) => matches(row as Record<string, unknown>)).map((row) => ({ ...row })),
+          error: null,
+        };
       };
 
       const builder = {
@@ -232,7 +255,11 @@ function makeMockSupabase(
           return builder;
         },
         eq(column: string, value: unknown) {
-          filter = { column, value };
+          filters.push({ column, value });
+          return builder;
+        },
+        is(column: string, value: null) {
+          filters.push({ column, value });
           return builder;
         },
         then<T>(resolve: (v: { data: unknown; error: unknown }) => T) {
@@ -254,8 +281,12 @@ function makeMockSupabase(
 interface MockStripeOptions {
   /** Throw on constructEvent. Default: false. */
   badSignature?: boolean;
-  /** Subscription to return from subscriptions.retrieve. */
+  /** A subscription Stripe knows about (shorthand for subscriptions: [x]). */
   subscription?: Stripe.Subscription;
+  /** Current Stripe state of each subscription, by id. */
+  subscriptions?: Stripe.Subscription[];
+  /** subscriptions.retrieve(id) throws this error for the given id. */
+  subscriptionErrors?: Record<string, Error>;
   /** Customer to return from customers.retrieve. */
   customer?: Stripe.Customer | Stripe.DeletedCustomer;
 }
@@ -282,8 +313,12 @@ function makeMockStripe(opts: MockStripeOptions = {}): MockStripe {
     subscriptions: {
       async retrieve(id: string): Promise<Stripe.Subscription> {
         subscriptionRetrievals.push(id);
-        if (!opts.subscription) throw new Error('No subscription mock configured');
-        return opts.subscription;
+        const error = opts.subscriptionErrors?.[id];
+        if (error) throw error;
+        const known = [...(opts.subscriptions ?? []), ...(opts.subscription ? [opts.subscription] : [])];
+        const found = known.find((s) => s.id === id);
+        if (!found) throw new Error(`No subscription mock configured for ${id}`);
+        return found;
       },
     },
     customers: {
@@ -548,15 +583,17 @@ test('checkout.session.completed links customer ID and tier to user', async () =
 // Subscription deletion
 // ──────────────────────────────────────────────────────────────
 
-test('subscription deletion resets user to basic/canceled', async () => {
+test('deletion of the subscription of record resets user to basic/canceled', async () => {
   const subscription = makeSubscription('sub_del', 'cus_del', 'price_pro_monthly', 'canceled');
   const event = makeEvent(
     'evt_sub_deleted',
     'customer.subscription.deleted',
     subscription as unknown as Record<string, unknown>,
   );
-  const stripe = makeMockStripe();
-  const supabase = makeMockSupabase({ claimResult: 'claimed' });
+  const stripe = makeMockStripe({ subscriptions: [subscription] });
+  const supabase = makeMockSupabase({ claimResult: 'claimed' }, {
+    users: [{ id: 'user_del', stripe_customer_id: 'cus_del', stripe_subscription_id: 'sub_del' }],
+  });
 
   const res = await handleWebhook(
     JSON.stringify(event), 't=1,v1=abc', 'whsec_test', stripe, supabase,
@@ -580,7 +617,8 @@ test('payment failed sets past_due and payment_action_required', async () => {
     'invoice.payment_failed',
     invoice as unknown as Record<string, unknown>,
   );
-  const stripe = makeMockStripe();
+  // Stripe has already moved the subscription to past_due.
+  const stripe = makeMockStripe({ subscriptions: [makeSubscription('sub_inv', 'cus_pf', 'price_pro_monthly', 'past_due')] });
   const supabase = makeMockSupabase({ claimResult: 'claimed' });
 
   const res = await handleWebhook(
@@ -601,7 +639,7 @@ test('payment recovered (invoice.payment_succeeded) clears payment_action_requir
     'invoice.payment_succeeded',
     invoice as unknown as Record<string, unknown>,
   );
-  const stripe = makeMockStripe();
+  const stripe = makeMockStripe({ subscriptions: [makeSubscription('sub_inv', 'cus_pr', 'price_pro_monthly', 'active')] });
   const supabase = makeMockSupabase({ claimResult: 'claimed' });
 
   const res = await handleWebhook(
@@ -781,11 +819,12 @@ test('checkout session that cannot be classified (Stripe lookup fails) returns 5
 test('invoice identified as SAVR by subscription metadata snapshot is processed', async () => {
   const invoice = {
     id: 'in_meta', object: 'invoice', customer: 'cus_meta', created: 1700000000,
-    parent: { subscription_details: { metadata: { product: 'savr' } } },
+    parent: { subscription_details: { subscription: 'sub_meta', metadata: { product: 'savr' } } },
     lines: { data: [] },
   };
   const supabase = makeMockSupabase();
-  const res = await deliver(makeEvent('evt_meta', 'invoice.paid', invoice), makeMockStripe(), supabase);
+  const stripe = makeMockStripe({ subscriptions: [makeSubscription('sub_meta', 'cus_meta', 'price_pro_monthly')] });
+  const res = await deliver(makeEvent('evt_meta', 'invoice.paid', invoice), stripe, supabase);
 
   assert.equal(res.status, 200);
   assert.ok(supabase._updates.some((u) => u.table === 'users' && u.data.last_payment_status === 'succeeded'));
@@ -803,7 +842,7 @@ test('SAVR subscription with several items resolves the tier from the SAVR price
 
   const res = await deliver(
     makeEvent('evt_multi', 'customer.subscription.updated', asObject(subscription)),
-    makeMockStripe(),
+    makeMockStripe({ subscriptions: [subscription] }),
     supabase,
   );
 
@@ -870,10 +909,10 @@ test('failed users lookup on an own event returns 500 rather than dropping the e
 
 test('successful own event is marked processed', async () => {
   const supabase = makeMockSupabase();
-  const event = makeEvent('evt_ok', 'customer.subscription.updated',
-    asObject(makeSubscription('sub_ok', 'cus_ok', 'price_pro_monthly')));
+  const subscription = makeSubscription('sub_ok', 'cus_ok', 'price_pro_monthly');
+  const event = makeEvent('evt_ok', 'customer.subscription.updated', asObject(subscription));
 
-  const res = await deliver(event, makeMockStripe(), supabase);
+  const res = await deliver(event, makeMockStripe({ subscriptions: [subscription] }), supabase);
 
   assert.equal(res.status, 200);
   assert.ok(
@@ -892,7 +931,10 @@ const sharedEmailCustomer = {
 } as Stripe.Customer;
 
 test('email fallback links a customer only via a SAVR subscription event', async () => {
-  const stripe = makeMockStripe({ customer: sharedEmailCustomer });
+  const stripe = makeMockStripe({
+    customer: sharedEmailCustomer,
+    subscriptions: [makeSubscription('sub_new', 'cus_new', 'price_basic_monthly', 'trialing')],
+  });
   const supabase = makeMockSupabase({}, { users: [{ id: 'user_savr', email: 'shared@example.com' }] });
   const event = makeEvent('evt_link', 'customer.subscription.created',
     asObject(makeSubscription('sub_new', 'cus_new', 'price_basic_monthly', 'trialing')));
@@ -950,9 +992,12 @@ test('email fallback does not attach when the email matches more than one user',
 test("another product's cancellation or downgrade never changes a linked SAVR user", async () => {
   // The SAVR user's stored Stripe customer also holds another product's
   // subscription on the shared account.
-  const stripe = makeMockStripe({ customer: sharedEmailCustomer });
+  const stripe = makeMockStripe({
+    customer: sharedEmailCustomer,
+    subscriptions: [makeSubscription('sub_savr', 'cus_shared', 'price_pro_monthly', 'canceled')],
+  });
   const supabase = makeMockSupabase({}, {
-    users: [{ id: 'user_savr', email: 'shared@example.com', stripe_customer_id: 'cus_shared' }],
+    users: [{ id: 'user_savr', email: 'shared@example.com', stripe_customer_id: 'cus_shared', stripe_subscription_id: 'sub_savr' }],
   });
 
   for (const event of [
@@ -1050,27 +1095,28 @@ function userWrites(supabase: MockSupabase) {
 test('orphaned claim: early retries get 409, a retry after the stale window takes over and processes', async () => {
   const clock = { now: Date.UTC(2026, 9, 13, 12, 0, 0) };
   const supabase = withLedger(makeMockSupabase(), clock);
-  const event = makeEvent('evt_orphan', 'customer.subscription.updated',
-    asObject(makeSubscription('sub_o', 'cus_o', 'price_pro_monthly', 'past_due')));
+  const orphanSubscription = makeSubscription('sub_o', 'cus_o', 'price_pro_monthly', 'past_due');
+  const event = makeEvent('evt_orphan', 'customer.subscription.updated', asObject(orphanSubscription));
+  const orphanStripe = () => makeMockStripe({ subscriptions: [orphanSubscription] });
 
   // A previous invocation claimed the event and was killed before finishing.
   supabase.ledger.set('evt_orphan', { status: 'pending', updatedAt: clock.now });
 
   for (const minutes of [0, 1, 9]) {
     clock.now += minutes * 60 * 1000;
-    const res = await deliver(event, makeMockStripe(), supabase);
+    const res = await deliver(event, orphanStripe(), supabase);
     assert.equal(res.status, 409, `retry at +${minutes}m must stay retryable`);
   }
   assert.equal(userWrites(supabase).length, 0, 'no work is done while another claim is live');
 
   clock.now += 2 * 60 * 1000; // now 12 minutes after the orphaned claim
-  const takeover = await deliver(event, makeMockStripe(), supabase);
+  const takeover = await deliver(event, orphanStripe(), supabase);
   assert.equal(takeover.status, 200);
   assert.equal(supabase.ledger.get('evt_orphan')?.status, 'processed');
   assert.equal(userWrites(supabase).length, 1);
   assert.equal(userWrites(supabase)[0].data.subscription_status, 'past_due');
 
-  const duplicate = await deliver(event, makeMockStripe(), supabase);
+  const duplicate = await deliver(event, orphanStripe(), supabase);
   assert.equal(duplicate.status, 200, 'only a completed duplicate is acknowledged');
   assert.equal(userWrites(supabase).length, 1, 'completed duplicates are not reprocessed');
 });
@@ -1079,16 +1125,17 @@ test('concurrent duplicate deliveries: one processes, the other gets 409, a late
   const clock = { now: Date.UTC(2026, 9, 13, 12, 0, 0) };
   const supabase = withLedger(makeMockSupabase(), clock);
   const event = makeEvent('evt_dup', 'invoice.payment_failed', asObject(makeInvoice('in_dup', 'cus_dup')));
+  const dupStripe = () => makeMockStripe({ subscriptions: [makeSubscription('sub_inv', 'cus_dup', 'price_pro_monthly', 'past_due')] });
 
   const [first, second] = await Promise.all([
-    deliver(event, makeMockStripe(), supabase),
-    deliver(event, makeMockStripe(), supabase),
+    deliver(event, dupStripe(), supabase),
+    deliver(event, dupStripe(), supabase),
   ]);
 
   assert.deepEqual([first.status, second.status].sort(), [200, 409]);
   assert.equal(userWrites(supabase).length, 1, 'exactly one delivery writes');
 
-  const redelivery = await deliver(event, makeMockStripe(), supabase);
+  const redelivery = await deliver(event, dupStripe(), supabase);
   assert.equal(redelivery.status, 200);
   assert.equal(userWrites(supabase).length, 1);
 });
@@ -1097,10 +1144,10 @@ test('a failed attempt is reclaimed immediately by the next delivery', async () 
   const clock = { now: Date.UTC(2026, 9, 13, 12, 0, 0) };
   const supabase = withLedger(makeMockSupabase(), clock);
   supabase.ledger.set('evt_failed', { status: 'failed', updatedAt: clock.now });
-  const event = makeEvent('evt_failed', 'customer.subscription.updated',
-    asObject(makeSubscription('sub_fl', 'cus_fl', 'price_basic_yearly')));
+  const failedSubscription = makeSubscription('sub_fl', 'cus_fl', 'price_basic_yearly');
+  const event = makeEvent('evt_failed', 'customer.subscription.updated', asObject(failedSubscription));
 
-  const res = await deliver(event, makeMockStripe(), supabase);
+  const res = await deliver(event, makeMockStripe({ subscriptions: [failedSubscription] }), supabase);
 
   assert.equal(res.status, 200);
   assert.equal(supabase.ledger.get('evt_failed')?.status, 'processed');
@@ -1124,12 +1171,12 @@ function legacySubscription(status: string) {
 }
 
 test('legacy subscription on a retired price still reconciles updates (tier kept)', async () => {
-  const supabase = makeMockSupabase({}, { users: [legacyUser] });
+  const supabase = makeMockSupabase({}, { users: [{ ...legacyUser }] });
   let res: Awaited<ReturnType<typeof handleWebhook>> | undefined;
   await captureWarnLogs(async () => {
     res = await deliver(
       makeEvent('evt_lg1', 'customer.subscription.updated', asObject(legacySubscription('past_due'))),
-      makeMockStripe(),
+      makeMockStripe({ subscriptions: [legacySubscription('past_due')] }),
       supabase,
     );
   });
@@ -1146,10 +1193,10 @@ test('legacy subscription on a retired price still reconciles updates (tier kept
 });
 
 test('legacy subscription on a retired price: cancellation downgrades the user', async () => {
-  const supabase = makeMockSupabase({}, { users: [legacyUser] });
+  const supabase = makeMockSupabase({}, { users: [{ ...legacyUser }] });
   const res = await deliver(
     makeEvent('evt_lg2', 'customer.subscription.deleted', asObject(legacySubscription('canceled'))),
-    makeMockStripe(),
+    makeMockStripe({ subscriptions: [legacySubscription('canceled')] }),
     supabase,
   );
 
@@ -1161,7 +1208,9 @@ test('legacy subscription on a retired price: cancellation downgrades the user',
 });
 
 test('legacy subscription on a retired price: invoice failures and recoveries reconcile', async () => {
-  const supabase = makeMockSupabase({}, { users: [legacyUser] });
+  const supabase = makeMockSupabase({}, { users: [{ ...legacyUser }] });
+  const live = legacySubscription('past_due');
+  const stripe = makeMockStripe({ subscriptions: [live] });
 
   const failed = await deliver(
     makeEvent('evt_lg3', 'invoice.payment_failed', {
@@ -1169,9 +1218,10 @@ test('legacy subscription on a retired price: invoice failures and recoveries re
       parent: { subscription_details: { subscription: 'sub_legacy', metadata: {} } },
       lines: { data: [{ pricing: { price_details: { price: RETIRED_PRICE } } }] },
     }),
-    makeMockStripe(),
+    stripe,
     supabase,
   );
+  (live as unknown as { status: string }).status = 'active'; // the customer then pays
   // Older API versions put the subscription ID on the invoice itself.
   const paid = await deliver(
     makeEvent('evt_lg4', 'invoice.paid', {
@@ -1179,7 +1229,7 @@ test('legacy subscription on a retired price: invoice failures and recoveries re
       subscription: 'sub_legacy',
       lines: { data: [{ price: { id: RETIRED_PRICE } }] },
     }),
-    makeMockStripe(),
+    stripe,
     supabase,
   );
 
@@ -1192,7 +1242,7 @@ test('legacy subscription on a retired price: invoice failures and recoveries re
 });
 
 test('retired-price subscription that SAVR never stored stays foreign', async () => {
-  const supabase = makeMockSupabase({}, { users: [legacyUser] });
+  const supabase = makeMockSupabase({}, { users: [{ ...legacyUser }] });
   const res = await deliver(
     makeEvent('evt_lg5', 'customer.subscription.deleted',
       asObject(makeSubscription('sub_unrelated', 'cus_legacy', RETIRED_PRICE, 'canceled'))),
@@ -1236,7 +1286,7 @@ test('partial price configuration returns 500 before any event is classified', a
   await withPriceEnv({ STRIPE_PRICE_PRO_YEARLY: undefined, STRIPE_PRICE_ID_PRO_YEARLY: undefined }, async () => {
     // A legacy pro_yearly event carries no marker; with pro_yearly unconfigured
     // it would otherwise look foreign and be acknowledged forever.
-    const supabase = makeMockSupabase({}, { users: [legacyUser] });
+    const supabase = makeMockSupabase({}, { users: [{ ...legacyUser }] });
     let res: Awaited<ReturnType<typeof handleWebhook>> | undefined;
     const errors = await captureErrorLogs(async () => {
       res = await deliver(
@@ -1278,7 +1328,7 @@ test('a plan configured only through its legacy STRIPE_PRICE_ID_* variable is co
       const res = await deliver(
         makeEvent('evt_cfg3', 'customer.subscription.updated',
           asObject(makeSubscription('sub_lg', 'cus_lg', 'price_pro_yearly_legacy'))),
-        makeMockStripe(),
+        makeMockStripe({ subscriptions: [makeSubscription('sub_lg', 'cus_lg', 'price_pro_yearly_legacy')] }),
         supabase,
       );
       assert.equal(res.status, 200);
@@ -1333,4 +1383,304 @@ test('Stripe failure while handling an owned checkout returns 500 and records th
     supabase._updates.some((u) => u.table === 'stripe_webhook_events' && u.data.processing_status === 'failed'),
   );
   assert.equal(userWrites(supabase).length, 0);
+});
+
+// ──────────────────────────────────────────────────────────────
+// Subscription-scoped ordering: delayed and reordered events
+// ──────────────────────────────────────────────────────────────
+
+const T_OLD = 1_760_000_000; // old subscription created
+const T_NEW = 1_760_500_000; // newer subscription created
+
+function sub(id: string, status: string, created: number, priceId = 'price_pro_monthly') {
+  const s = makeSubscription(id, 'cus_up', priceId, status);
+  (s as unknown as { created: number }).created = created;
+  return s;
+}
+
+/** One SAVR user on customer cus_up, a Stripe registry, and a ledger-less claim. */
+function billingWorld(stored: string | null, subscriptions: Stripe.Subscription[], extra: Partial<MockUserRow> = {}) {
+  const user: MockUserRow = {
+    id: 'user_up',
+    email: 'up@example.com',
+    stripe_customer_id: 'cus_up',
+    stripe_subscription_id: stored,
+    subscription_tier: stored ? 'basic' : 'basic',
+    subscription_status: stored ? 'active' : 'pending',
+    last_payment_status: null,
+    last_payment_date: null,
+    ...extra,
+  };
+  const supabase = makeMockSupabase({}, { users: [user] });
+  return { user, supabase, stripe: (opts: MockStripeOptions = {}) => makeMockStripe({ subscriptions, ...opts }) };
+}
+
+const subEvent = (id: string, type: string, snapshot: Stripe.Subscription) =>
+  makeEvent(id, type, asObject(snapshot));
+
+const invoiceFor = (eventId: string, type: string, subscriptionId: string, created: number) =>
+  makeEvent(eventId, type, asObject(makeInvoice(`in_${eventId}`, 'cus_up', created, 'price_pro_monthly', subscriptionId)));
+
+for (const order of ['new-then-old', 'old-then-new'] as const) {
+  test(`upgrade: old deletion and new creation converge regardless of arrival order (${order})`, async () => {
+    // Stripe's current truth: the old basic subscription ended, the new pro one is active.
+    const oldSub = sub('sub_old', 'canceled', T_OLD, 'price_basic_monthly');
+    const newSub = sub('sub_new', 'active', T_NEW, 'price_pro_monthly');
+    const { user, supabase, stripe } = billingWorld('sub_old', [oldSub, newSub]);
+
+    const deleted = subEvent('evt_old_del', 'customer.subscription.deleted', oldSub);
+    // The creation event's snapshot may be stale (incomplete); Stripe's state wins.
+    const created = subEvent('evt_new_created', 'customer.subscription.created', sub('sub_new', 'incomplete', T_NEW));
+    const events = order === 'new-then-old' ? [created, deleted] : [deleted, created];
+
+    for (const event of events) {
+      const res = await deliver(event, stripe(), supabase);
+      assert.equal(res.status, 200, `${event.id} must succeed`);
+    }
+
+    assert.equal(user.stripe_subscription_id, 'sub_new');
+    assert.equal(user.subscription_status, 'active');
+    assert.equal(user.subscription_tier, 'pro');
+  });
+}
+
+test('a delayed update for an old subscription cannot overwrite the newer subscription id or tier', async () => {
+  const oldSub = sub('sub_old', 'canceled', T_OLD, 'price_basic_monthly');
+  const newSub = sub('sub_new', 'active', T_NEW, 'price_pro_monthly');
+  const { user, supabase, stripe } = billingWorld('sub_new', [oldSub, newSub], { subscription_tier: 'pro' });
+
+  // Snapshot from before the old subscription was canceled says "active".
+  const stale = subEvent('evt_stale', 'customer.subscription.updated', sub('sub_old', 'active', T_OLD, 'price_basic_monthly'));
+  const res = await deliver(stale, stripe(), supabase);
+
+  assert.equal(res.status, 200);
+  assert.equal(user.stripe_subscription_id, 'sub_new');
+  assert.equal(user.subscription_tier, 'pro');
+  assert.equal(user.subscription_status, 'active');
+});
+
+for (const type of ['customer.subscription.deleted', 'customer.subscription.paused'] as const) {
+  test(`a delayed ${type} for an old subscription never revokes the newer entitlement`, async () => {
+    const oldSub = sub('sub_old', type.endsWith('paused') ? 'paused' : 'canceled', T_OLD);
+    const newSub = sub('sub_new', 'active', T_NEW);
+    const { user, supabase, stripe } = billingWorld('sub_new', [oldSub, newSub], { subscription_tier: 'pro' });
+
+    const res = await deliver(subEvent('evt_old', type, oldSub), stripe(), supabase);
+
+    assert.equal(res.status, 200);
+    assert.equal(user.stripe_subscription_id, 'sub_new');
+    assert.equal(user.subscription_status, 'active');
+    assert.equal(user.subscription_tier, 'pro');
+    assert.ok(!supabase._updates.some((u) => u.table === 'users'), 'no user write at all');
+  });
+}
+
+for (const type of ['invoice.payment_failed', 'invoice.paid'] as const) {
+  test(`a delayed ${type} for an old subscription leaves the current subscription untouched`, async () => {
+    const oldSub = sub('sub_old', 'canceled', T_OLD);
+    const newSub = sub('sub_new', 'active', T_NEW);
+    const { user, supabase, stripe } = billingWorld('sub_new', [oldSub, newSub], {
+      subscription_tier: 'pro', last_payment_status: 'succeeded', last_payment_date: new Date(T_NEW * 1000).toISOString(),
+    });
+
+    const res = await deliver(invoiceFor('evt_old_inv', type, 'sub_old', T_OLD + 100), stripe(), supabase);
+
+    assert.equal(res.status, 200);
+    assert.equal(user.stripe_subscription_id, 'sub_new');
+    assert.equal(user.subscription_status, 'active');
+    assert.equal(user.last_payment_status, 'succeeded');
+    assert.ok(!supabase._updates.some((u) => u.table === 'users'));
+  });
+}
+
+for (const order of ['failed-then-paid', 'paid-then-failed'] as const) {
+  test(`invoices on the current subscription: payment fields only move forward in time (${order})`, async () => {
+    const current = sub('sub_cur', 'active', T_OLD); // Stripe: the retry succeeded
+    const { user, supabase, stripe } = billingWorld('sub_cur', [current], { subscription_tier: 'pro' });
+    const failed = invoiceFor('evt_fail', 'invoice.payment_failed', 'sub_cur', T_NEW);
+    const paid = invoiceFor('evt_paid', 'invoice.paid', 'sub_cur', T_NEW + 3600);
+    const events = order === 'failed-then-paid' ? [failed, paid] : [paid, failed];
+
+    for (const event of events) assert.equal((await deliver(event, stripe(), supabase)).status, 200);
+
+    assert.equal(user.last_payment_status, 'succeeded');
+    assert.equal(user.last_payment_date, new Date((T_NEW + 3600) * 1000).toISOString());
+    assert.equal(user.subscription_status, 'active', 'status comes from Stripe, not the stale failure');
+    assert.equal(user.payment_action_required, false);
+  });
+}
+
+for (const order of ['older-then-newer', 'newer-then-older'] as const) {
+  test(`two live subscriptions: the newer one wins in either arrival order (${order})`, async () => {
+    const older = sub('sub_a', 'active', T_OLD, 'price_basic_monthly');
+    const newer = sub('sub_b', 'active', T_NEW, 'price_pro_monthly');
+    const { user, supabase, stripe } = billingWorld(null, [older, newer]);
+    const a = subEvent('evt_a', 'customer.subscription.created', older);
+    const b = subEvent('evt_b', 'customer.subscription.created', newer);
+
+    for (const event of order === 'older-then-newer' ? [a, b] : [b, a]) {
+      assert.equal((await deliver(event, stripe(), supabase)).status, 200);
+    }
+
+    assert.equal(user.stripe_subscription_id, 'sub_b');
+    assert.equal(user.subscription_tier, 'pro');
+  });
+}
+
+test('an entitled subscription is not displaced by a newer one still awaiting first payment', async () => {
+  const active = sub('sub_a', 'active', T_OLD);
+  const pending = sub('sub_b', 'incomplete', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_a', [active, pending], { subscription_tier: 'pro' });
+
+  const res = await deliver(subEvent('evt_b', 'customer.subscription.created', pending), stripe(), supabase);
+
+  assert.equal(res.status, 200);
+  assert.equal(user.stripe_subscription_id, 'sub_a');
+  assert.equal(user.subscription_status, 'active');
+});
+
+test('a delayed checkout for an older subscription does not replace the newer subscription or customer link', async () => {
+  const oldSub = sub('sub_old', 'canceled', T_OLD);
+  const newSub = sub('sub_new', 'active', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_new', [oldSub, newSub], { subscription_tier: 'pro' });
+  const session = makeCheckoutSession('cs_old', 'user_up', 'cus_other', 'sub_old', { product: 'savr', userId: 'user_up' });
+
+  const res = await deliver(makeEvent('evt_cs_old', 'checkout.session.completed', asObject(session)), stripe(), supabase);
+
+  assert.equal(res.status, 200);
+  assert.equal(user.stripe_subscription_id, 'sub_new');
+  assert.equal(user.stripe_customer_id, 'cus_up');
+  assert.equal(user.subscription_tier, 'pro');
+});
+
+test('a subscription Stripe no longer has: revokes only if it is the subscription of record', async () => {
+  const missing = Object.assign(new Error('No such subscription'), { code: 'resource_missing', statusCode: 404 });
+  const snapshot = sub('sub_gone', 'active', T_OLD);
+
+  const stored = billingWorld('sub_gone', [], { subscription_tier: 'pro' });
+  const res1 = await deliver(subEvent('evt_g1', 'customer.subscription.updated', snapshot),
+    stored.stripe({ subscriptionErrors: { sub_gone: missing } }), stored.supabase);
+  assert.equal(res1.status, 200);
+  assert.equal(stored.user.subscription_status, 'canceled');
+  assert.equal(stored.user.subscription_tier, 'basic');
+  assert.equal(stored.user.stripe_subscription_id, null);
+
+  const other = billingWorld('sub_new', [sub('sub_new', 'active', T_NEW)], { subscription_tier: 'pro' });
+  const res2 = await deliver(subEvent('evt_g2', 'customer.subscription.updated', snapshot),
+    other.stripe({ subscriptionErrors: { sub_gone: missing } }), other.supabase);
+  assert.equal(res2.status, 200);
+  assert.equal(other.user.stripe_subscription_id, 'sub_new');
+  assert.equal(other.user.subscription_tier, 'pro');
+});
+
+test('an incumbent Stripe no longer has is replaced by a live subscription', async () => {
+  const missing = Object.assign(new Error('No such subscription'), { code: 'resource_missing' });
+  const newSub = sub('sub_new', 'active', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_gone', [newSub]);
+
+  const res = await deliver(subEvent('evt_n', 'customer.subscription.created', newSub),
+    stripe({ subscriptionErrors: { sub_gone: missing } }), supabase);
+
+  assert.equal(res.status, 200);
+  assert.equal(user.stripe_subscription_id, 'sub_new');
+});
+
+// ── Provider and database failures ──────────────────────────────
+
+test('Stripe outage while reading the event subscription returns 500 and writes nothing', async () => {
+  const newSub = sub('sub_new', 'active', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_old', [newSub]);
+  let res: Awaited<ReturnType<typeof handleWebhook>> | undefined;
+  await captureErrorLogs(async () => {
+    res = await deliver(subEvent('evt_x', 'customer.subscription.updated', newSub),
+      stripe({ subscriptionErrors: { sub_new: Object.assign(new Error('api_connection_error'), { statusCode: 503 }) } }), supabase);
+  });
+
+  assert.equal(res?.status, 500);
+  assert.equal(user.stripe_subscription_id, 'sub_old');
+  assert.ok(supabase._updates.some((u) => u.table === 'stripe_webhook_events' && u.data.processing_status === 'failed'));
+  assert.ok(!supabase._updates.some((u) => u.table === 'users'));
+});
+
+test('Stripe outage while checking the stored subscription returns 500 instead of guessing', async () => {
+  const newSub = sub('sub_new', 'active', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_old', [newSub]);
+  let res: Awaited<ReturnType<typeof handleWebhook>> | undefined;
+  await captureErrorLogs(async () => {
+    res = await deliver(subEvent('evt_y', 'customer.subscription.created', newSub),
+      stripe({ subscriptionErrors: { sub_old: Object.assign(new Error('rate_limit'), { statusCode: 429 }) } }), supabase);
+  });
+
+  assert.equal(res?.status, 500);
+  assert.equal(user.stripe_subscription_id, 'sub_old');
+});
+
+test('database read failure while loading billing state returns 500', async () => {
+  const current = sub('sub_cur', 'active', T_OLD);
+  const supabase = makeMockSupabase({}, { selectError: true, users: [{ id: 'user_up', stripe_customer_id: 'cus_up', stripe_subscription_id: 'sub_cur' }] });
+  let res: Awaited<ReturnType<typeof handleWebhook>> | undefined;
+  await captureErrorLogs(async () => {
+    res = await deliver(subEvent('evt_r', 'customer.subscription.updated', current), makeMockStripe({ subscriptions: [current] }), supabase);
+  });
+  assert.equal(res?.status, 500);
+});
+
+test('a concurrent change between read and write is detected (compare-and-set) and retried', async () => {
+  const oldSub = sub('sub_old', 'canceled', T_OLD);
+  const newSub = sub('sub_new', 'active', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_old', [oldSub, newSub]);
+
+  // Another invocation adopts sub_new after this one has read the row.
+  const realFrom = supabase.from.bind(supabase);
+  let raced = false;
+  supabase.from = (table: string) => {
+    const builder = realFrom(table) as unknown as { update: (d: Record<string, unknown>) => unknown };
+    if (table === 'users' && !raced) {
+      const update = builder.update.bind(builder);
+      builder.update = (data: Record<string, unknown>) => {
+        raced = true;
+        user.stripe_subscription_id = 'sub_new';
+        return update(data);
+      };
+    }
+    return builder as unknown as ReturnType<SupabaseAdmin['from']>;
+  };
+
+  let res: Awaited<ReturnType<typeof handleWebhook>> | undefined;
+  await captureErrorLogs(async () => {
+    res = await deliver(subEvent('evt_late', 'customer.subscription.deleted', oldSub), stripe(), supabase);
+  });
+
+  assert.equal(res?.status, 500, 'the stale write is rejected and Stripe will retry');
+  assert.equal(user.stripe_subscription_id, 'sub_new', 'the newer subscription survives');
+  assert.equal(user.subscription_status, 'active');
+
+  // On retry the event reads current state and correctly leaves sub_new alone.
+  supabase.from = realFrom;
+  const retry = await deliver(subEvent('evt_late_retry', 'customer.subscription.deleted', oldSub), stripe(), supabase);
+  assert.equal(retry.status, 200);
+  assert.equal(user.stripe_subscription_id, 'sub_new');
+});
+
+test('concurrent events for old and new subscriptions converge to the newer one after retries', async () => {
+  const oldSub = sub('sub_old', 'canceled', T_OLD);
+  const newSub = sub('sub_new', 'active', T_NEW);
+  const { user, supabase, stripe } = billingWorld('sub_old', [oldSub, newSub]);
+  const events = [
+    subEvent('evt_c1', 'customer.subscription.deleted', oldSub),
+    subEvent('evt_c2', 'customer.subscription.created', newSub),
+  ];
+
+  let results: Array<{ status: number }> = [];
+  await captureErrorLogs(async () => {
+    results = await Promise.all(events.map((e) => deliver(e, stripe(), supabase)));
+  });
+  // Stripe redelivers anything that did not get a 2xx.
+  for (const [i, r] of results.entries()) {
+    if (r.status !== 200) assert.equal((await deliver(events[i], stripe(), supabase)).status, 200);
+  }
+
+  assert.equal(user.stripe_subscription_id, 'sub_new');
+  assert.equal(user.subscription_status, 'active');
+  assert.equal(user.subscription_tier, 'pro');
 });
