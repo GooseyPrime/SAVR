@@ -147,6 +147,20 @@ export function hasSavrProductMarker(metadata: unknown): boolean {
   return value === SAVR_PRODUCT_METADATA_VALUE;
 }
 
+/**
+ * Plans with neither a canonical nor a legacy price configured.
+ *
+ * resolveTierFromPriceId() needs all four plans, so a partial configuration
+ * cannot attribute or tier events for the missing plan; callers must treat a
+ * non-empty result as a configuration error rather than classify events.
+ */
+export function getMissingSavrPricePlans(): Plan[] {
+  return (Object.keys(PLAN_ENV_MAP) as Plan[]).filter(
+    (plan) =>
+      !process.env[PLAN_ENV_MAP[plan]]?.trim() && !process.env[PLAN_LEGACY_ENV_MAP[plan]]?.trim(),
+  );
+}
+
 /** Every SAVR price ID currently configured (canonical and legacy env names). */
 export function getConfiguredSavrPriceIds(): Set<string> {
   const ids = new Set<string>();

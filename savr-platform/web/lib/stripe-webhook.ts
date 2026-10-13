@@ -13,6 +13,7 @@ import type Stripe from 'stripe';
 import { resolveTierFromPriceId } from '@/lib/billing';
 import {
   getConfiguredSavrPriceIds,
+  getMissingSavrPricePlans,
   getSubscriptionPeriodEndUnix,
   hasSavrProductMarker,
   mapStripeStatusToDatabase,
@@ -27,7 +28,8 @@ import {
  *
  * - 'claimed'           – this caller owns processing
  * - 'already_processed' – event was already completed; return 200 and skip
- * - 'already_pending'   – another invocation is processing; defer to it
+ * - 'already_pending'   – another invocation holds an unfinished claim; return
+ *                         a retryable non-2xx so Stripe redelivers later
  */
 export type ClaimResult = 'claimed' | 'already_processed' | 'already_pending';
 
@@ -115,9 +117,13 @@ export async function markEventFailed(
 /**
  * The Stripe account that delivers to this endpoint also serves other
  * products, so this endpoint receives their events too. An event is SAVR's
- * only when it references one of SAVR's own prices or carries the SAVR
- * product metadata marker. Everything else is acknowledged with 200 and
- * never touches the database.
+ * when it references one of SAVR's configured prices, carries the SAVR
+ * product metadata marker, or concerns a subscription SAVR already stores on
+ * a user row (users.stripe_subscription_id, written only by this webhook for
+ * SAVR events). The stored link keeps legacy subscriptions that predate the
+ * marker reconciling after their price is retired from configuration.
+ * Everything else is acknowledged with 200; the only database access for it
+ * is that read-only ownership lookup.
  */
 const HANDLED_EVENT_TYPES: ReadonlySet<string> = new Set([
   'checkout.session.completed',
@@ -171,6 +177,28 @@ function isSavrSubscription(subscription: unknown, savrPrices: ReadonlySet<strin
   );
 }
 
+/**
+ * Durable ownership: the subscription is already linked to a SAVR user.
+ * A lookup failure throws, so the event is retried rather than misclassified.
+ */
+async function isStoredSavrSubscription(
+  subscriptionId: string | null,
+  supabaseAdmin: SupabaseAdmin,
+): Promise<boolean> {
+  if (!subscriptionId) return false;
+  const rows = await selectUserRows(supabaseAdmin, 'id', 'stripe_subscription_id', subscriptionId);
+  return rows.length > 0;
+}
+
+function invoiceSubscriptionId(invoice: unknown): string | null {
+  // Current API versions: invoice.parent.subscription_details.subscription.
+  // Older API versions: invoice.subscription.
+  return (
+    readId(readPath(invoice, 'parent', 'subscription_details', 'subscription')) ??
+    readId(readPath(invoice, 'subscription'))
+  );
+}
+
 function invoicePriceIds(invoice: unknown): string[] {
   const lines = readPath(invoice, 'lines', 'data');
   if (!Array.isArray(lines)) return [];
@@ -202,25 +230,29 @@ function isSavrInvoice(invoice: unknown, savrPrices: ReadonlySet<string>): boole
 /**
  * Decides whether a verified event belongs to SAVR.
  *
- * Subscription and invoice events are classified from the payload alone.
- * A checkout session payload carries no line items, so a subscription-mode
- * session without SAVR metadata is classified by retrieving its
- * subscription; a retrieval failure propagates (the event cannot be
- * classified, so Stripe must retry).
+ * Subscription and invoice events are classified from the payload first and
+ * then, if the payload does not identify SAVR, from the stored subscription
+ * link. A checkout session payload carries no line items, so a
+ * subscription-mode session without SAVR metadata is classified by
+ * retrieving its subscription. Any Stripe or database failure propagates
+ * (the event cannot be classified, so Stripe must retry).
  */
 async function isSavrEvent(
   event: Stripe.Event,
   stripe: StripeClient,
+  supabaseAdmin: SupabaseAdmin,
   savrPrices: ReadonlySet<string>,
 ): Promise<boolean> {
   const object: unknown = event.data.object;
 
   if (event.type.startsWith('customer.subscription.')) {
-    return isSavrSubscription(object, savrPrices);
+    if (isSavrSubscription(object, savrPrices)) return true;
+    return isStoredSavrSubscription(readId(object), supabaseAdmin);
   }
 
   if (event.type.startsWith('invoice.')) {
-    return isSavrInvoice(object, savrPrices);
+    if (isSavrInvoice(object, savrPrices)) return true;
+    return isStoredSavrSubscription(invoiceSubscriptionId(object), supabaseAdmin);
   }
 
   if (event.type.startsWith('checkout.session.')) {
@@ -235,7 +267,8 @@ async function isSavrEvent(
     if (!subscriptionId) return false;
 
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    return isSavrSubscription(subscription, savrPrices);
+    if (isSavrSubscription(subscription, savrPrices)) return true;
+    return isStoredSavrSubscription(subscription.id, supabaseAdmin);
   }
 
   return false;
@@ -249,15 +282,16 @@ async function isSavrEvent(
  * Full webhook processing pipeline.
  *
  * 1. Verify Stripe signature.
- * 2. Return 200 for event types SAVR does not handle and for events that
- *    belong to another product on the shared Stripe account (no database
- *    access, no error log).
- * 3. Atomically claim the event.
- * 4. Return 200 immediately for already-processed duplicates.
- * 5. Return 200 immediately for already-pending concurrent deliveries.
- * 6. Dispatch to the appropriate event handler.
- * 7. Mark the event as processed on success.
- * 8. On failure: mark failed, return 500 so Stripe retries.
+ * 2. Return 200 for event types SAVR does not handle.
+ * 3. Return 500 if any plan has no configured price (cannot classify).
+ * 4. Return 200 for events that belong to another product on the shared
+ *    Stripe account (no writes, no event-ledger row, no error log).
+ * 5. Atomically claim the event.
+ * 6. Return 200 immediately for already-processed duplicates.
+ * 7. Return 409 for unfinished ('already_pending') claims so Stripe retries.
+ * 8. Dispatch to the appropriate event handler.
+ * 9. Mark the event as processed on success.
+ * 10. On failure: mark failed, return 500 so Stripe retries.
  */
 export async function handleWebhook(
   body: string,
@@ -288,16 +322,20 @@ export async function handleWebhook(
     return { status: 200, body: { received: true } };
   }
 
-  const savrPrices = getConfiguredSavrPriceIds();
-  if (savrPrices.size === 0) {
-    // Without SAVR's price IDs no event can be attributed safely.
-    console.error('No STRIPE_PRICE_* environment variables are configured');
+  // Every plan needs a price before any event is classified: an event for a
+  // plan whose price is missing would otherwise look foreign and be dropped.
+  const missingPlans = getMissingSavrPricePlans();
+  if (missingPlans.length > 0) {
+    console.error(
+      `Stripe price configuration incomplete; no STRIPE_PRICE_* or STRIPE_PRICE_ID_* value for: ${missingPlans.join(', ')}`,
+    );
     return { status: 500, body: { error: 'Webhook configuration error' } };
   }
+  const savrPrices = getConfiguredSavrPriceIds();
 
   let ownEvent: boolean;
   try {
-    ownEvent = await isSavrEvent(event, stripe, savrPrices);
+    ownEvent = await isSavrEvent(event, stripe, supabaseAdmin, savrPrices);
   } catch (err) {
     console.error(`Could not classify Stripe event ${event.id}:`, err);
     return { status: 500, body: { error: 'Failed to classify webhook event' } };
@@ -325,8 +363,12 @@ export async function handleWebhook(
   }
 
   if (claimResult === 'already_pending') {
-    console.log(`ℹ️  Concurrent event ${event.id} — another invocation is processing, deferring`);
-    return { status: 200, body: { received: true } };
+    // Never acknowledge an unfinished claim: a 2xx ends Stripe's retries, and
+    // if the owning invocation died the event would never be processed. A
+    // non-2xx keeps Stripe redelivering until the owner marks it processed
+    // (then 'already_processed') or the claim goes stale and is taken over.
+    console.log(`ℹ️  Event ${event.id} is still being processed elsewhere — asking Stripe to retry`);
+    return { status: 409, body: { error: 'Event is still being processed; retry later' } };
   }
 
   // 'claimed' — process the event.
@@ -432,13 +474,26 @@ async function updateUser(
   }
 }
 
-/** The SAVR price on a subscription, falling back to its first item. */
-function pickSavrPriceId(
+/**
+ * The currently configured SAVR price on a subscription, or null.
+ *
+ * Null means the subscription is SAVR's (ownership was already established)
+ * but its price has been retired from configuration. Callers then keep the
+ * stored tier and still reconcile status, period and cancellation fields,
+ * instead of failing the event until Stripe stops retrying.
+ */
+function findConfiguredSavrPriceId(
   subscription: Stripe.Subscription,
   savrPrices: ReadonlySet<string>,
 ): string | null {
-  const ids = subscriptionPriceIds(subscription);
-  return ids.find((id) => savrPrices.has(id)) ?? ids[0] ?? null;
+  return subscriptionPriceIds(subscription).find((id) => savrPrices.has(id)) ?? null;
+}
+
+function warnRetainedTier(subscription: Stripe.Subscription, userId: string): void {
+  console.warn(
+    `Subscription ${subscription.id} for user ${userId} has no configured SAVR price ` +
+      `(retired price?) — keeping the stored tier and reconciling status only`,
+  );
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -514,10 +569,12 @@ async function handleCheckoutCompleted(
 
   if (subscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const priceId = pickSavrPriceId(subscription, savrPrices);
+    const priceId = findConfiguredSavrPriceId(subscription, savrPrices);
     if (priceId) {
-      // Throws on unknown price — propagates to outer catch and returns 500 so Stripe retries.
+      // Throws if configuration cannot resolve the price — returns 500 so Stripe retries.
       updates.subscription_tier = resolveTierFromPriceId(priceId);
+    } else {
+      warnRetainedTier(subscription, userId);
     }
     updates.subscription_status = subscription.status;
   }
@@ -545,31 +602,30 @@ async function handleSubscriptionUpdated(
     return;
   }
 
-  const priceId = pickSavrPriceId(subscription, savrPrices);
-  if (!priceId) {
-    console.error(
-      `No price ID found on subscription ${subscription.id} — skipping tier update`,
-    );
-    return;
-  }
-  // Throws on unknown price — propagates to outer catch and returns 500 so Stripe retries.
-  const tier = resolveTierFromPriceId(priceId);
-
   const periodEnd = getSubscriptionPeriodEndUnix(subscription);
   const trialEnd = subscription.trial_end;
 
-  await updateUser(supabaseAdmin, userId, {
-    subscription_tier: tier,
+  const updates: Record<string, unknown> = {
     subscription_status: mapStripeStatusToDatabase(subscription.status),
     stripe_subscription_id: subscription.id,
     current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
     trial_ends_at: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
     cancel_at_period_end: subscription.cancel_at_period_end ?? false,
     updated_at: new Date().toISOString(),
-  });
+  };
+
+  const priceId = findConfiguredSavrPriceId(subscription, savrPrices);
+  if (priceId) {
+    // Throws if configuration cannot resolve the price — returns 500 so Stripe retries.
+    updates.subscription_tier = resolveTierFromPriceId(priceId);
+  } else {
+    warnRetainedTier(subscription, userId);
+  }
+
+  await updateUser(supabaseAdmin, userId, updates);
 
   console.log(
-    `✅ Updated subscription for user ${userId}: ${subscription.status}, tier ${tier}`,
+    `✅ Updated subscription for user ${userId}: ${subscription.status}, tier ${String(updates.subscription_tier ?? 'unchanged')}`,
   );
 }
 

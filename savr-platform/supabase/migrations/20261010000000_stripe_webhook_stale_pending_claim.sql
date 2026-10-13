@@ -2,11 +2,43 @@
 --
 -- Lets a Stripe retry take over an event whose previous attempt never
 -- finished.  If an invocation is killed mid-processing (timeout, crash) or
--- cannot record its failure, the row stays 'pending' and every later
--- delivery of that event was answered 'already_pending' and skipped, so the
--- event was never processed.  A 'pending' claim older than ten minutes
--- (well beyond the maximum function duration) is now treated as abandoned
--- and handed to the caller.  All other behaviour is unchanged.
+-- cannot record its failure, the row stays 'pending'.  A 'pending' claim
+-- older than ten minutes (well beyond the maximum function duration) is now
+-- treated as abandoned and handed to the caller.
+--
+-- Caller contract (savr-platform/web/lib/stripe-webhook.ts):
+--   'claimed'           -> process the event.
+--   'already_processed' -> HTTP 200 (completed duplicate).
+--   'already_pending'   -> HTTP 409, never 2xx.  Stripe keeps redelivering,
+--                          so a delivery after the ten-minute window always
+--                          reaches the takeover branch below.  (Before this
+--                          change the caller answered 200 and Stripe stopped
+--                          retrying, so an orphaned claim was never retried.)
+--
+-- Data ownership and access:
+--   public.stripe_webhook_events is a server-owned ledger.  It holds Stripe
+--   event IDs and types only (no user data), has RLS enabled with no
+--   policies, and is written only by the web webhook through the
+--   service-role client.  This migration changes no table, column, index or
+--   RLS policy.  The function is SECURITY DEFINER (runs as its owner, the
+--   migration role) with a fixed search_path.  Execute is now limited to
+--   service_role, matching consume_ai_usage_limit, sentinel_touch and
+--   sentinel_status; previously the default PUBLIC grant let anon and
+--   authenticated callers reach it through PostgREST and insert or reset
+--   ledger rows.
+--
+-- Rollback (restores the 20260714020000 behaviour; no data migration needed):
+--   1. Re-run the `create or replace function public.claim_stripe_webhook_event`
+--      block from 20260714020000_stripe_webhook_events.sql (status-only check,
+--      no updated_at read).  Existing rows remain valid under both versions.
+--   2. Only if the previous grants must be restored exactly:
+--        grant execute on function public.claim_stripe_webhook_event(text, text)
+--          to public;
+--   3. Roll back the web handler together with the function: the old function
+--      never reclaims a stale 'pending' row, so a handler that answers 409 for
+--      'already_pending' would leave an orphaned claim failing until Stripe
+--      stops retrying.  Deploy the previous handler (200 for 'already_pending')
+--      before or with step 1.
 
 begin;
 
@@ -64,5 +96,10 @@ begin
   return 'already_pending';
 end;
 $$;
+
+revoke all on function public.claim_stripe_webhook_event(text, text)
+  from public, anon, authenticated;
+grant execute on function public.claim_stripe_webhook_event(text, text)
+  to service_role;
 
 commit;
