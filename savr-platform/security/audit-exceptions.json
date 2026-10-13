@@ -1,9 +1,10 @@
 {
-  "$comment": "PROPOSED temporary build-tool advisory exceptions (ADR-005). Inactive: approval.status must be 'approved' with approvedBy and approvedAt set in a reviewed commit, AND the gate must be wired into CI, before any record exempts anything. Every record expires 2026-11-12T00:00:00Z.",
+  "$comment": "ACTIVE temporary build-tool advisory exceptions (ADR-005), approved by Brandon on 2026-10-13. Every record expires 2026-11-12T00:00:00Z. The gate still blocks every other high/critical advisory, any changed version or path, unused or expired records, and any published upstream fix.",
   "approval": {
-    "status": "pending",
-    "approvedBy": null,
-    "approvedAt": null
+    "status": "approved",
+    "approvedBy": "Brandon",
+    "approvedAt": "2026-10-13",
+    "condition": "No degradation of customer onboarding, the app or the site."
   },
   "records": [
     {
@@ -13,7 +14,13 @@
       "lastAffected": "3.0.3",
       "workspace": "web",
       "paths": [
-        ["eslint-config-next@16.3.8", "@next/eslint-plugin-next@16.3.8", "fast-glob@3.3.1", "micromatch@4.0.8", "braces@3.0.3"]
+        [
+          "eslint-config-next@16.3.8",
+          "@next/eslint-plugin-next@16.3.8",
+          "fast-glob@3.3.1",
+          "micromatch@4.0.8",
+          "braces@3.0.3"
+        ]
       ],
       "expiresAt": "2026-11-12T00:00:00Z",
       "reason": "Dev-only lint dependency. fast-glob runs only when settings.next.rootDir is set (it is not; enforced by web-lint-root-dir). Not in the production build."
@@ -25,7 +32,13 @@
       "lastAffected": "3.0.3",
       "workspace": "mobile",
       "paths": [
-        ["expo@57.0.28", "@expo/metro@56.0.2", "metro-file-map@0.84.5", "micromatch@4.0.8", "braces@3.0.3"]
+        [
+          "expo@57.0.28",
+          "@expo/metro@56.0.2",
+          "metro-file-map@0.84.5",
+          "micromatch@4.0.8",
+          "braces@3.0.3"
+        ]
       ],
       "expiresAt": "2026-11-12T00:00:00Z",
       "reason": "Metro build tooling. Glob patterns come only from Metro's own config; worst case is a crash of a local or CI build. Not in app bundles (enforced by bundle-sources)."
@@ -37,8 +50,17 @@
       "lastAffected": "1.4.0",
       "workspace": "mobile",
       "paths": [
-        ["expo@57.0.28", "@expo/cli@57.0.29", "@expo/code-signing-certificates@0.0.6", "node-forge@1.4.0"],
-        ["expo@57.0.28", "@expo/cli@57.0.29", "node-forge@1.4.0"]
+        [
+          "expo@57.0.28",
+          "@expo/cli@57.0.29",
+          "@expo/code-signing-certificates@0.0.6",
+          "node-forge@1.4.0"
+        ],
+        [
+          "expo@57.0.28",
+          "@expo/cli@57.0.29",
+          "node-forge@1.4.0"
+        ]
       ],
       "expiresAt": "2026-11-12T00:00:00Z",
       "reason": "Expo CLI tooling. PKCS#1 v1.5 verify only checks signatures the CLI just produced, or developer-owned certs when expo-updates code signing is configured (it is not; enforced by mobile-update-signing). Not in app bundles."

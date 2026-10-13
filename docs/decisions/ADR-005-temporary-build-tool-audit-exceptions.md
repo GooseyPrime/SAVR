@@ -1,6 +1,6 @@
 # ADR-005 — Temporary Build-Tool Advisory Exceptions
 
-**Status:** Proposed — awaiting Brandon's approval. **Not active.**  
+**Status:** Accepted — approved by Brandon on 2026-10-13, conditional on no degradation of customer onboarding, the app or the site. **Active** in CI.  
 **Date:** 2026-10-13  
 **Deciders:** Brandon (approval), Echo (review and merge)  
 **Expires:** 2026-11-12T00:00:00Z (every record)
@@ -17,7 +17,7 @@ Approve three temporary, advisory-specific exceptions to the `npm audit --audit-
 | 2 | GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) | braces@3.0.3 | mobile | `expo@57.0.28 > @expo/metro@56.0.2 > metro-file-map@0.84.5 > micromatch@4.0.8 > braces@3.0.3` |
 | 3 | GHSA-86w9-cpqp-85rv (CVE-2026-85393) | node-forge@1.4.0 | mobile | `expo@57.0.28 > @expo/cli@57.0.29 > @expo/code-signing-certificates@0.0.6 > node-forge@1.4.0` and `expo@57.0.28 > @expo/cli@57.0.29 > node-forge@1.4.0` |
 
-The records live in `savr-platform/security/audit-exceptions.json` with `approval.status: "pending"`. While the status is pending the gate exempts nothing.
+The records live in `savr-platform/security/audit-exceptions.json` with `approval: { status: "approved", approvedBy: "Brandon", approvedAt: "2026-10-13" }`. Echo reviewed the build-only reachability and bundle-exclusion evidence before approval.
 
 ## Context
 
@@ -61,7 +61,7 @@ Applying an unmerged community patch was rejected for three reasons. The code ha
   - `web-lint-root-dir`: fails if the lint config sets `rootDir`;
   - `mobile-update-signing`: fails if the app config sets `codeSigningCertificate`;
   - `bundle-sources`: fails if an excepted package appears in an exported bundle's source maps.
-- **`savr-platform/security/proposed-workflow-integration.patch`** is the CI change, kept as a patch so this PR changes no workflow. It:
+- **CI integration** (applied on activation; previously proposed as `proposed-workflow-integration.patch`):
   - keeps a full informational `npm audit` step;
   - replaces the enforcing step with the gate;
   - adds the controls;
@@ -76,11 +76,13 @@ Applying an unmerged community patch was rejected for three reasons. The code ha
 
 **Not accepted:** broader suppression. Any drift in path, version, advisory or date fails the gate.
 
-## Activation (only after Brandon approves)
+## Activation (done 2026-10-13)
 
-1. In a reviewed commit, set `approval` to `{ "status": "approved", "approvedBy": "<name>", "approvedAt": "<ISO date>" }`.
-2. Apply `proposed-workflow-integration.patch` (`git apply`) and update the "inactive" regression test that pins the current workflow.
-3. Merge only after GooseyPrime/SAVR#181, because the records match its lockfiles.
+1. `approval` set to `{ "status": "approved", "approvedBy": "Brandon", "approvedAt": "2026-10-13" }`, with Brandon's condition recorded.
+2. The workflow patch was applied to `phase-06-hardening.yml` and `corrective-04-mobile-compatibility.yml`. The regression test now pins the active integration: the gate is the only enforcing audit step, the full report still prints, every control runs, and both workspaces stay in the matrix.
+3. Merge order: this PR merges into GooseyPrime/SAVR#181's branch first, and #181 must then be fully green before it merges into `main`. The records match #181's lockfiles.
+
+**Condition monitoring:** the exceptions cover build tooling only and change no runtime code. Onboarding, the app and the site are protected by the unchanged functional gates (web unit tests, build, E2E smoke; mobile unit tests, Expo Doctor, Android and iOS exports) and by the `bundle-sources` control, which fails if an excepted package reaches an app bundle.
 
 ## Expiry and exit
 

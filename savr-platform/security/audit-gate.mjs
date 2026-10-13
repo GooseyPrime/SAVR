@@ -2,8 +2,9 @@
 /**
  * Advisory-specific gate around `npm audit --audit-level=high`.
  *
- * PROPOSAL ONLY (ADR-005). Not wired into CI. Records in
- * audit-exceptions.json exempt nothing until `approval.status` is
+ * ADR-005 (accepted 2026-10-13). Enforced by the "Enforce audit gate"
+ * step in .github/workflows/phase-06-hardening.yml. Records in
+ * audit-exceptions.json exempt anything only while `approval.status` is
  * "approved" with an approver and date recorded in a reviewed commit.
  *
  * Semantics: every high/critical advisory reported by a full `npm audit`

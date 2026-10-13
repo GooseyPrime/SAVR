@@ -1,5 +1,5 @@
 /**
- * Regression tests for the PROPOSED advisory exception gate (ADR-005).
+ * Regression tests for the advisory exception gate (ADR-005, approved 2026-10-13).
  *
  * Fixtures are real `npm audit --json` and `npm ls braces node-forge --all --json`
  * output captured from the GooseyPrime/SAVR#181 lockfiles, so every case is
@@ -33,6 +33,8 @@ function readJson(file: string) {
 }
 
 const COMMITTED = readJson(path.join(ROOT, 'security', 'audit-exceptions.json'));
+/** The same records with approval withdrawn, held in memory only. */
+const PENDING = { ...structuredClone(COMMITTED), approval: { status: 'pending', approvedBy: null, approvedAt: null } };
 const BEFORE_EXPIRY = new Date('2026-10-13T12:00:00Z');
 const PUBLISHED = {
   braces: ['2.3.2', '3.0.0', '3.0.1', '3.0.2', '3.0.3'],
@@ -46,12 +48,9 @@ function fixture(workspace: 'web' | 'mobile') {
   };
 }
 
-/** The committed records with approval simulated in memory only. */
+/** A fresh copy of the committed (approved) records. */
 function approved() {
-  return {
-    ...structuredClone(COMMITTED),
-    approval: { status: 'approved', approvedBy: 'test-approver', approvedAt: '2026-10-14T00:00:00Z' },
-  };
+  return structuredClone(COMMITTED);
 }
 
 function run(
@@ -70,9 +69,12 @@ function run(
 
 // ── Committed proposal state ────────────────────────────────────
 
-test('committed proposal is inactive: approval pending, three records, all expiring 2026-11-12', () => {
-  assert.equal(COMMITTED.approval.status, 'pending');
-  assert.equal(isApproved(COMMITTED), false);
+test('committed records: approved by Brandon on 2026-10-13, exactly three, all expiring 2026-11-12', () => {
+  assert.deepEqual(
+    { status: COMMITTED.approval.status, approvedBy: COMMITTED.approval.approvedBy, approvedAt: COMMITTED.approval.approvedAt },
+    { status: 'approved', approvedBy: 'Brandon', approvedAt: '2026-10-13' },
+  );
+  assert.equal(isApproved(COMMITTED), true);
   assert.deepEqual(
     COMMITTED.records.map((r: { id: string; package: string; version: string; workspace: string }) =>
       `${r.workspace}:${r.id}:${r.package}@${r.version}`),
@@ -86,8 +88,8 @@ test('committed proposal is inactive: approval pending, three records, all expir
 });
 
 for (const workspace of ['web', 'mobile'] as const) {
-  test(`${workspace}: pending approval blocks exactly like npm audit --audit-level=high`, () => {
-    const result = run(workspace, { exceptions: COMMITTED });
+  test(`${workspace}: without approval the gate blocks exactly like npm audit --audit-level=high`, () => {
+    const result = run(workspace, { exceptions: PENDING });
     assert.equal(result.ok, false);
     assert.ok(result.findings.length > 0);
     assert.ok(result.findings.every((f: { decision: string }) => f.decision === 'BLOCKING'));
@@ -245,17 +247,30 @@ test('an unexpected audit report shape fails closed', () => {
   );
 });
 
-// ── Inactive until approved ─────────────────────────────────────
+// ── Active CI integration ───────────────────────────────────────
 
-test('live CI still enforces plain npm audit --audit-level=high; integration exists only as a patch', () => {
-  const workflow = readFileSync(path.join(ROOT, '..', '.github', 'workflows', 'phase-06-hardening.yml'), 'utf8');
-  assert.match(workflow, /run: npm audit --audit-level=high\n/);
-  assert.doesNotMatch(workflow, /audit-gate|exception-controls/);
+test('CI enforces the gate in place of plain npm audit, keeps the full report, and runs every control', () => {
+  const workflows = path.join(ROOT, '..', '.github', 'workflows');
+  const hardening = readFileSync(path.join(workflows, 'phase-06-hardening.yml'), 'utf8');
+  const mobile = readFileSync(path.join(workflows, 'corrective-04-mobile-compatibility.yml'), 'utf8');
 
-  const patch = readFileSync(path.join(ROOT, 'security', 'proposed-workflow-integration.patch'), 'utf8');
-  assert.match(patch, /^-\s+run: npm audit --audit-level=high$/m);
-  assert.match(patch, /^\+\s+run: node \.\.\/security\/audit-gate\.mjs --workspace \$\{\{ matrix\.package \}\}$/m);
-  assert.match(patch, /bundle-sources dist\/android dist\/ios/);
+  // The enforcing step is the gate; the full unfiltered report is still printed.
+  assert.match(hardening, /run: node \.\.\/security\/audit-gate\.mjs --workspace \$\{\{ matrix\.package \}\}\n/);
+  assert.match(hardening, /run: npm audit \|\| true\n/);
+  assert.doesNotMatch(hardening, /npm audit --audit-level=high/, 'no second, bypassable enforcement path');
+  assert.doesNotMatch(hardening, /--omit=dev|--audit-level=(moderate|low|critical)|continue-on-error/);
+  // Both workspaces stay in the audit matrix.
+  assert.match(hardening, /- package: web\n/);
+  assert.match(hardening, /- package: mobile\n/);
+  // Compensating controls.
+  assert.match(hardening, /exception-controls\.mjs web-lint-root-dir eslint\.config\.mjs/);
+  assert.match(hardening, /exception-controls\.mjs mobile-update-signing app\.config\.ts app\.json/);
+  assert.match(mobile, /expo export --platform android --source-maps --output-dir dist\/android/);
+  assert.match(mobile, /expo export --platform ios --source-maps --output-dir dist\/ios/);
+  assert.match(mobile, /exception-controls\.mjs bundle-sources dist\/android dist\/ios/);
+  // Changes to the gate or records re-run the workflows that enforce them.
+  assert.match(hardening, /- 'savr-platform\/security\/\*\*'/);
+  assert.match(mobile, /- 'savr-platform\/security\/\*\*'/);
 });
 
 // ── Compensating controls ───────────────────────────────────────

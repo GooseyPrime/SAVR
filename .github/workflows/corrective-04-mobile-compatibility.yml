@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - 'savr-platform/mobile/**'
+      - 'savr-platform/security/**'
       - '.github/workflows/corrective-04-mobile-compatibility.yml'
       - 'docs/decisions/ADR-003-canonical-expo-version.md'
   pull_request:
     paths:
       - 'savr-platform/mobile/**'
+      - 'savr-platform/security/**'
       - '.github/workflows/corrective-04-mobile-compatibility.yml'
       - 'docs/decisions/ADR-003-canonical-expo-version.md'
 
@@ -50,10 +52,14 @@ jobs:
         run: npx expo-doctor
 
       - name: Export — Android bundle
-        run: npx expo export --platform android
+        run: npx expo export --platform android --source-maps --output-dir dist/android
 
       - name: Export — iOS bundle
-        run: npx expo export --platform ios
+        run: npx expo export --platform ios --source-maps --output-dir dist/ios
+
+      # ADR-005: the excepted build-tool packages must never ship in an app bundle.
+      - name: Exception control — excepted packages absent from app bundles
+        run: node ../security/exception-controls.mjs bundle-sources dist/android dist/ios
 
       - name: Clean export artifacts
         if: always()

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Compensating controls for the proposed ADR-005 audit exceptions.
+ * Compensating controls for the ADR-005 audit exceptions.
  *
- * PROPOSAL ONLY. Each check keeps one exception's "not reachable" argument
- * true; if a check fails, the matching exception no longer holds.
+ * Enforced in CI (phase-06-hardening.yml, corrective-04-mobile-compatibility.yml).
+ * Each check keeps one exception's "not reachable" argument true; if a
+ * check fails, the matching exception no longer holds.
  *
  *   web-lint-root-dir      braces (web) is only reached through
  *                          @next/eslint-plugin-next's getRootDirs(), which
