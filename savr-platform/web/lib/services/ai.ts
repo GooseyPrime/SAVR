@@ -10,6 +10,7 @@ import {
 } from '../types/functions';
 import { normalizeAiIngredients, aiIngredientsToExtracted } from '../utils/units';
 import { filterIngredientsForPet, PET_RECIPE_DISCLAIMER } from '../config/forbiddenFoods';
+import { detectImageLabels, formatVisionLabels } from './visionLabels';
 
 // Lazy initialization to avoid instantiation during build
 let openaiInstance: OpenAI | null = null;
@@ -170,11 +171,10 @@ Only return the JSON array, no other text.`,
 }
 
 async function extractWithGoogleVision(imageUrl: string): Promise<ExtractedIngredient[]> {
-  const [result] = await getVisionClient().labelDetection(imageUrl);
-  const labels = result.labelAnnotations || [];
+  const labels = await detectImageLabels(getVisionClient(), imageUrl);
 
   // Use GPT-4 to process Google Vision labels into structured ingredients
-  const labelText = labels.map(label => `${label.description} (confidence: ${label.score})`).join(', ');
+  const labelText = formatVisionLabels(labels);
 
   const completion = await callOpenAIWithFallback(
     {
