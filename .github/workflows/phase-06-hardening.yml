@@ -76,6 +76,49 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
+  # Every installed package must satisfy every declared dependency and peer
+  # range in the committed lockfile (`npm ls --all`). Catches peer mismatches
+  # such as a shared React Navigation package requiring a newer core than the
+  # app declares, which neither lint, types nor bundling detect.
+  dependency-tree:
+    name: Dependency tree — ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: web
+            working-directory: savr-platform/web
+            lockfile: savr-platform/web/package-lock.json
+            node-version: '22'
+          - package: mobile
+            working-directory: savr-platform/mobile
+            lockfile: savr-platform/mobile/package-lock.json
+            node-version: '20'
+          - package: e2e-tests
+            working-directory: savr-platform/e2e-tests
+            lockfile: savr-platform/e2e-tests/package-lock.json
+            node-version: '22'
+    defaults:
+      run:
+        working-directory: ${{ matrix.working-directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.lockfile }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify dependency and peer ranges (npm ls --all)
+        run: node ../scripts/check-dependency-tree.mjs
+
   security-audit:
     name: Security audit — ${{ matrix.package }}
     runs-on: ubuntu-latest
