@@ -1,0 +1,96 @@
+# ADR-005 — Temporary Build-Tool Advisory Exceptions
+
+**Status:** Accepted — approved by Brandon on 2026-10-13, conditional on no degradation of customer onboarding, the app or the site. **Active** in CI.  
+**Date:** 2026-10-13  
+**Deciders:** Brandon (approval), Echo (review and merge)  
+**Expires:** 2026-11-12T00:00:00Z (every record)
+
+---
+
+## Decision requested
+
+Approve three temporary, advisory-specific exceptions to the `npm audit --audit-level=high` gate for build-tool packages that have **no patched release**. Each one is matched exactly by advisory ID, package, version, workspace and dependency path.
+
+| # | Advisory | Package@version | Workspace | Exact dependency path(s) |
+|---|---|---|---|---|
+| 1 | GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) | braces@3.0.3 | web | `eslint-config-next@16.3.8 > @next/eslint-plugin-next@16.3.8 > fast-glob@3.3.1 > micromatch@4.0.8 > braces@3.0.3` |
+| 2 | GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) | braces@3.0.3 | mobile | `expo@57.0.28 > @expo/metro@56.0.2 > metro-file-map@0.84.5 > micromatch@4.0.8 > braces@3.0.3` |
+| 3 | GHSA-86w9-cpqp-85rv (CVE-2026-85393) | node-forge@1.4.0 | mobile | `expo@57.0.28 > @expo/cli@57.0.29 > @expo/code-signing-certificates@0.0.6 > node-forge@1.4.0` and `expo@57.0.28 > @expo/cli@57.0.29 > node-forge@1.4.0` |
+
+The records live in `savr-platform/security/audit-exceptions.json` with `approval: { status: "approved", approvedBy: "Brandon", approvedAt: "2026-10-13" }`. Echo reviewed the build-only reachability and bundle-exclusion evidence before approval.
+
+## Context
+
+- GooseyPrime/SAVR#181 regenerates the web and mobile lockfiles and fixes every patchable high or critical advisory (`next` 16.3.8 critical, `shell-quote` critical, and others).
+- After that, `npm audit --audit-level=high` still fails, only on the two advisories above. Main's mobile audit is already red, and main's web audit turned red once the braces advisory was published (2026-09-18 per OSV).
+- The thresholds stay at `high`. No blanket ignore, `--omit=dev`, version spoofing, fork or npm alias is proposed.
+
+### Upstream proof (checked 2026-10-13)
+
+| Package | Registry | Upstream source | Supported replacement |
+|---|---|---|---|
+| braces | latest is 3.0.3; affected range is "last_affected 3.0.3" (all versions) | `micromatch/braces` `master` was last changed 2025-01-19 (`e53730e`), with no branch or release after 3.0.3. Issue #70 has about 12 competing **unmerged** community PRs (#71, #75, #77–#79, #81–#83, #86–#88, dated 2026-09-21 to 2026-10-10). | None. `@next/eslint-plugin-next` 16.3.8, 16.4.0 and 16.5.0-canary.9 pin `fast-glob` 3.3.1, which uses micromatch and so braces. `metro-file-map` 0.84.5 through 0.87.1 (the SDK 58 line) depends on `micromatch ^4.0.4`. |
+| node-forge | latest is 1.4.0; affected range is "last_affected 1.4.0" | `digitalbazaar/forge` `main` (`7232404`) has only "Fix tests" and "Update security policy" since 1.4.0, plus a "Start 1.4.1-0" version bump. The fix is **unmerged** external PR #1152 (`ceba344`, 2026-09-09), which adds a DigestAlgorithm element-count check in `lib/rsa.js`. | None. Every published `@expo/cli` (SDK 57 and 58) depends on `node-forge ^1.3.3`, and `@expo/code-signing-certificates` 0.0.7 needs `^1.4.0`. |
+
+Applying an unmerged community patch was rejected for three reasons. The code has not been reviewed by the maintainers. An alias or fork would hide the package from `npm audit`. A patch keeps the version number unchanged, so the audit result would not change anyway.
+
+### Reachability evidence
+
+1. **braces (web), dev-only.** `@next/eslint-plugin-next/dist/utils/get-root-dirs.js` is the only caller of `fast-glob`, from the rule `no-html-link-for-pages`. It globs only when `settings.next.rootDir` is set; otherwise it returns `[context.cwd]`. `savr-platform/web/eslint.config.mjs` does not set it. `npm audit --omit=dev` reports 0 for web; that is shown for information only and is not proposed as a gate. The production build contains no braces or micromatch source: Next.js ships only compiled `glob` and `picomatch`. **Not reachable.**
+2. **braces (mobile), build tooling.** `metro-file-map/src/watchers/common.js` `includedByGlob()` passes Metro's own configured glob patterns to micromatch. File paths are only matched, never expanded as patterns. No external input supplies patterns. The worst case is a stack-overflow crash of a local or EAS build process. **Not reachable by external input.**
+3. **node-forge (mobile), Expo CLI tooling.** Only two files load it: `@expo/cli/build/src/run/ios/codeSigning/Security.js` (`certificateFromPem` only) and `@expo/code-signing-certificates/build/main.js`. The vulnerable PKCS#1 v1.5 `verify` runs in three places:
+   - `signBufferRSASHA256AndVerify`: verifies a signature the CLI has just produced.
+   - `validateSelfSignedCertificate`: runs only when `updates.codeSigningCertificate` is configured and `--private-key-path` is given. SAVR configures neither.
+   - `csr.verify`: never called by the CLI.
+
+   The Expo development certificate chain is only checked for validity dates. Forging a signature needs an attacker-made signature against a low-exponent RSA key, and SAVR verifies no signature it did not create. **Not reachable.**
+4. **App bundles.** The `expo export --source-maps` output for Android and iOS (2,292 sources) contains no `node-forge`, `braces`, `micromatch` or `metro-file-map` source.
+
+## Proposed mechanism
+
+- **`savr-platform/security/audit-gate.mjs`** (Node built-ins only). It runs a full `npm audit --json` with devDependencies included, traces every high or critical entry to its root advisories, and fails closed on any unexpected report shape. A finding is excepted only if an approved record matches its ID, package, installed version, workspace and **exact set** of `npm ls` paths. The full table of IDs, versions and paths is always printed.
+- **The gate fails when:**
+  - any other high or critical advisory appears, including a second advisory on an excepted package;
+  - a new dependency path or a different installed version appears;
+  - a recorded path disappears;
+  - a record matches nothing (unused);
+  - the current time is at or after `expiresAt` (2026-11-12T00:00:00Z);
+  - `npm view <pkg> versions` lists a stable release above `lastAffected` (an upstream fix exists: upgrade and delete the record);
+  - `approval` is not `approved` with `approvedBy` and `approvedAt` set.
+- **`savr-platform/security/exception-controls.mjs`** keeps each reachability argument true:
+  - `web-lint-root-dir`: evaluates the flat config file ESLint itself selects (imports, spreads, computed keys, nested arrays and `extends` resolved) and fails if any entry, whatever its `files` scope, sets `settings.next.rootDir`;
+  - `mobile-update-signing`: reads Expo's resolved config (`expo config --json`, config plugins applied) and fails if any `codeSigning*` setting (`updates.codeSigningCertificate`, `updates.codeSigningMetadata`, or the same keys passed to a plugin) is present;
+  - both fail closed when the configuration cannot be resolved; neither searches source text;
+  - `bundle-sources`: fails if an excepted package appears in an exported bundle's source maps.
+- **CI integration** (applied on activation; previously proposed as `proposed-workflow-integration.patch`):
+  - keeps a full informational `npm audit` step;
+  - replaces the enforcing step with the gate;
+  - adds the controls;
+  - exports bundles with source maps to scan them.
+- **Regression tests:** `savr-platform/web/tests/audit-gate.test.ts` runs under the existing web unit-test job, and `savr-platform/mobile/tests/exception-controls.test.ts` under the mobile unit-test job; fixtures under each `tests/fixtures/exception-controls/` enable `rootDir` or update signing through imported, computed-key, nested, `extends` and config-plugin configuration that a source search would miss. It is deterministic: fixtures are real `npm audit`/`npm ls` output from the #181 lockfiles, and the clock and registry version lists are injected.
+
+## Security tradeoff
+
+**Accepted if approved:** until 2026-11-12 at the latest, CI passes with three known high-severity advisories present in **build tooling only**. The remaining risk is a denial-of-service crash of a developer or CI build through braces, and no reachable signature-forgery path through node-forge. Production web and the shipped mobile apps contain neither package.
+
+**Avoided:** blocking every PR's security job on advisories no dependency change can fix, while keeping every other high or critical finding blocking.
+
+**Not accepted:** broader suppression. Any drift in path, version, advisory or date fails the gate.
+
+## Activation (done 2026-10-13)
+
+1. `approval` set to `{ "status": "approved", "approvedBy": "Brandon", "approvedAt": "2026-10-13" }`, with Brandon's condition recorded.
+2. The workflow patch was applied to `phase-06-hardening.yml` and `corrective-04-mobile-compatibility.yml`. The regression test now pins the active integration: the gate is the only enforcing audit step, the full report still prints, every control runs, and both workspaces stay in the matrix.
+3. Merge order: this PR merges into GooseyPrime/SAVR#181's branch first, and #181 must then be fully green before it merges into `main`. The records match #181's lockfiles.
+
+**Condition monitoring:** the exceptions cover build tooling only and change no runtime code. Onboarding, the app and the site are protected by the unchanged functional gates (web unit tests, build, E2E smoke; mobile unit tests, Expo Doctor, Android and iOS exports) and by the `bundle-sources` control, which fails if an excepted package reaches an app bundle.
+
+## Expiry and exit
+
+- The exceptions end when a fix is published (the gate fails and forces an upgrade and record removal), when 2026-11-12T00:00:00Z passes (the gate fails), or when Brandon withdraws approval.
+- Renewing requires a new reviewed commit with a new date and fresh upstream and reachability evidence.
+- To roll back, revert the workflow patch: CI returns to plain `npm audit --audit-level=high`.
+
+## Alternative
+
+Do not approve. GooseyPrime/SAVR#181 and GooseyPrime/SAVR#182 stay unmerged, or merge with red security jobs, until upstream releases `braces` > 3.0.3 and `node-forge` > 1.4.0.

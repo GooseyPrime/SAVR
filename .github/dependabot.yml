@@ -14,6 +14,11 @@ updates:
       # eslint-config-next does not load under ESLint 10 yet.
       - dependency-name: eslint
         update-types: [version-update:semver-major]
+    # Batch compatible minor/patch bumps for this workspace into one PR.
+    # Majors and the SDK-pinned packages above stay excluded by `ignore`.
+    groups:
+      web-minor-and-patch:
+        update-types: [minor, patch]
 
   - package-ecosystem: npm
     directory: /savr-platform/mobile
@@ -24,8 +29,11 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: react-native
         update-types: [version-update:semver-major]
+      # React and its types are pinned by the Expo SDK as well; they move
+      # with `npx expo install --fix`, not independently.
       - dependency-name: react
-        update-types: [version-update:semver-major]
+      - dependency-name: "@types/react"
+        update-types: [version-update:semver-major, version-update:semver-minor]
       # Native modules are pinned by the Expo SDK. Versions outside the SDK's
       # expected range build fine but can crash the app on launch, so these
       # move only through `npx expo install --fix` when the SDK is upgraded.
@@ -37,8 +45,17 @@ updates:
       # eslint-config-expo does not load under ESLint 10 yet.
       - dependency-name: eslint
         update-types: [version-update:semver-major]
+    # Batch compatible minor/patch bumps for this workspace into one PR.
+    # Majors and the SDK-pinned packages above stay excluded by `ignore`.
+    groups:
+      mobile-minor-and-patch:
+        update-types: [minor, patch]
 
   - package-ecosystem: npm
     directory: /savr-platform/e2e-tests
     schedule:
       interval: weekly
+    # Batch compatible minor/patch bumps for this workspace into one PR.
+    groups:
+      e2e-minor-and-patch:
+        update-types: [minor, patch]

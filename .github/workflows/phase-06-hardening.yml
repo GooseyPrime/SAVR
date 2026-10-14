@@ -8,6 +8,7 @@ on:
       - 'savr-platform/e2e-tests/**'
       - 'savr-platform/supabase/**'
       - 'savr-platform/scripts/**'
+      - 'savr-platform/security/**'
       - '.github/workflows/phase-06-hardening.yml'
       - 'docs/validation/required-gates.md'
       - 'MIGRATION_STATUS.md'
@@ -19,6 +20,7 @@ on:
       - 'savr-platform/e2e-tests/**'
       - 'savr-platform/supabase/**'
       - 'savr-platform/scripts/**'
+      - 'savr-platform/security/**'
       - '.github/workflows/phase-06-hardening.yml'
       - 'docs/validation/required-gates.md'
       - 'MIGRATION_STATUS.md'
@@ -74,6 +76,49 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
+  # Every installed package must satisfy every declared dependency and peer
+  # range in the committed lockfile (`npm ls --all`). Catches peer mismatches
+  # such as a shared React Navigation package requiring a newer core than the
+  # app declares, which neither lint, types nor bundling detect.
+  dependency-tree:
+    name: Dependency tree — ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: web
+            working-directory: savr-platform/web
+            lockfile: savr-platform/web/package-lock.json
+            node-version: '22'
+          - package: mobile
+            working-directory: savr-platform/mobile
+            lockfile: savr-platform/mobile/package-lock.json
+            node-version: '20'
+          - package: e2e-tests
+            working-directory: savr-platform/e2e-tests
+            lockfile: savr-platform/e2e-tests/package-lock.json
+            node-version: '22'
+    defaults:
+      run:
+        working-directory: ${{ matrix.working-directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.lockfile }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify dependency and peer ranges (npm ls --all)
+        run: node ../scripts/check-dependency-tree.mjs
+
   security-audit:
     name: Security audit — ${{ matrix.package }}
     runs-on: ubuntu-latest
@@ -105,8 +150,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run dependency audit
-        run: npm audit --audit-level=high
+      # Full, unfiltered report (devDependencies included) so every advisory
+      # stays visible. Enforcement happens in the next step.
+      - name: Dependency audit report (informational)
+        run: npm audit || true
+
+      # ADR-005: same --audit-level=high semantics, except the exact approved
+      # records in savr-platform/security/audit-exceptions.json. Fails on any
+      # other high/critical advisory, a new path or version, an expired or
+      # unused record, or a published upstream fix.
+      - name: Enforce audit gate (ADR-005)
+        run: node ../security/audit-gate.mjs --workspace ${{ matrix.package }}
+
+      - name: Exception control — web lint rootDir unset (ADR-005)
+        if: matrix.package == 'web'
+        run: node ../security/exception-controls.mjs web-lint-root-dir .
+
+      - name: Exception control — mobile update code signing unset (ADR-005)
+        if: matrix.package == 'mobile'
+        run: node ../security/exception-controls.mjs mobile-update-signing .
 
   e2e-smoke:
     name: E2E — Smoke

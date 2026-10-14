@@ -1,0 +1,39 @@
+{
+  "version": "0.1.0",
+  "name": "web",
+  "dependencies": {
+    "eslint-config-next": {
+      "version": "16.3.8",
+      "resolved": "https://registry.npmjs.org/eslint-config-next/-/eslint-config-next-16.3.8.tgz",
+      "overridden": false,
+      "dependencies": {
+        "@next/eslint-plugin-next": {
+          "version": "16.3.8",
+          "resolved": "https://registry.npmjs.org/@next/eslint-plugin-next/-/eslint-plugin-next-16.3.8.tgz",
+          "overridden": false,
+          "dependencies": {
+            "fast-glob": {
+              "version": "3.3.1",
+              "resolved": "https://registry.npmjs.org/fast-glob/-/fast-glob-3.3.1.tgz",
+              "overridden": false,
+              "dependencies": {
+                "micromatch": {
+                  "version": "4.0.8",
+                  "resolved": "https://registry.npmjs.org/micromatch/-/micromatch-4.0.8.tgz",
+                  "overridden": true,
+                  "dependencies": {
+                    "braces": {
+                      "version": "3.0.3",
+                      "resolved": "https://registry.npmjs.org/braces/-/braces-3.0.3.tgz",
+                      "overridden": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
