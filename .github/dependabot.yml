@@ -14,6 +14,21 @@ updates:
       # eslint-config-next does not load under ESLint 10 yet.
       - dependency-name: eslint
         update-types: [version-update:semver-major]
+      # typescript-eslint (via eslint-config-next) refuses to load under
+      # TypeScript 7, so a TS major breaks `npm run lint`.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # Stripe SDK majors change the pinned API version and response types
+      # used by server-side billing; they need a deliberate billing migration.
+      - dependency-name: stripe
+        update-types: [version-update:semver-major]
+      - dependency-name: "@stripe/stripe-js"
+        update-types: [version-update:semver-major]
+      # ADR-005 excepts braces only on the exact path through
+      # eslint-config-next@16.3.8. Any eslint-config-next version changes that
+      # path and fails the audit gate by design, so it moves only together
+      # with a re-approved exception record (or once braces is fixed upstream).
+      - dependency-name: eslint-config-next
     # Batch compatible minor/patch bumps for this workspace into one PR.
     # Majors and the SDK-pinned packages above stay excluded by `ignore`.
     groups:
@@ -27,8 +42,10 @@ updates:
     ignore:
       - dependency-name: expo
         update-types: [version-update:semver-major]
+      # react-native is pinned to an exact version by the Expo SDK
+      # (bundledNativeModules); even a semver-minor bump fails Expo Doctor.
+      # It moves only with `npx expo install --fix`.
       - dependency-name: react-native
-        update-types: [version-update:semver-major]
       # React and its types are pinned by the Expo SDK as well; they move
       # with `npx expo install --fix`, not independently.
       - dependency-name: react
@@ -59,3 +76,31 @@ updates:
     groups:
       e2e-minor-and-patch:
         update-types: [minor, patch]
+
+  # Protected reference folders (AGENTS.md): read-only after import and
+  # checked by Reference Integrity. Ignoring every dependency here also stops
+  # Dependabot security-update PRs, which honour ignore conditions; such PRs
+  # are what modified these manifests on main before.
+  - package-ecosystem: npm
+    directory: /SAVR-old/web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: npm
+    directory: /SAVR-old/mobile
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: npm
+    directory: /savr-premium-mobile-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
