@@ -209,20 +209,6 @@
         "isSemVerMajor": true
       }
     },
-    "@react-navigation/core": {
-      "name": "@react-navigation/core",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        "query-string"
-      ],
-      "effects": [],
-      "range": "<=7.22.0 || 8.0.0-alpha.0 - 8.0.0-alpha.9",
-      "nodes": [
-        "node_modules/@react-navigation/core"
-      ],
-      "fixAvailable": true
-    },
     "braces": {
       "name": "braces",
       "severity": "high",
@@ -257,40 +243,6 @@
         "version": "44.0.6",
         "isSemVerMajor": true
       }
-    },
-    "decode-uri-component": {
-      "name": "decode-uri-component",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        {
-          "source": 1147955,
-          "name": "decode-uri-component",
-          "dependency": "decode-uri-component",
-          "title": "decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input",
-          "url": "https://github.com/advisories/GHSA-vcc3-ghjq-m6fr",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-400",
-            "CWE-405",
-            "CWE-407",
-            "CWE-1176"
-          ],
-          "cvss": {
-            "score": 0,
-            "vectorString": null
-          },
-          "range": "<=0.4.2"
-        }
-      ],
-      "effects": [
-        "query-string"
-      ],
-      "range": "<=0.4.2",
-      "nodes": [
-        "node_modules/decode-uri-component"
-      ],
-      "fixAvailable": true
     },
     "expo": {
       "name": "expo",
@@ -450,22 +402,6 @@
         "isSemVerMajor": true
       }
     },
-    "query-string": {
-      "name": "query-string",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        "decode-uri-component"
-      ],
-      "effects": [
-        "@react-navigation/core"
-      ],
-      "range": "5.0.0 - 9.4.1",
-      "nodes": [
-        "node_modules/query-string"
-      ],
-      "fixAvailable": true
-    },
     "react-native": {
       "name": "react-native",
       "severity": "high",
@@ -545,18 +481,18 @@
     "vulnerabilities": {
       "info": 0,
       "low": 0,
-      "moderate": 10,
+      "moderate": 7,
       "high": 14,
       "critical": 0,
-      "total": 24
+      "total": 21
     },
     "dependencies": {
-      "prod": 547,
-      "dev": 288,
+      "prod": 544,
+      "dev": 287,
       "optional": 65,
       "peer": 0,
       "peerOptional": 0,
-      "total": 845
+      "total": 841
     }
   }
 }

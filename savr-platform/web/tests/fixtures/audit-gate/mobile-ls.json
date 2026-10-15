@@ -3,13 +3,13 @@
   "name": "mobile",
   "dependencies": {
     "expo": {
-      "version": "57.0.28",
-      "resolved": "https://registry.npmjs.org/expo/-/expo-57.0.28.tgz",
+      "version": "57.0.30",
+      "resolved": "https://registry.npmjs.org/expo/-/expo-57.0.30.tgz",
       "overridden": false,
       "dependencies": {
         "@expo/cli": {
-          "version": "57.0.29",
-          "resolved": "https://registry.npmjs.org/@expo/cli/-/cli-57.0.29.tgz",
+          "version": "57.0.31",
+          "resolved": "https://registry.npmjs.org/@expo/cli/-/cli-57.0.31.tgz",
           "overridden": false,
           "dependencies": {
             "@expo/code-signing-certificates": {

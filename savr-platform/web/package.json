@@ -55,5 +55,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

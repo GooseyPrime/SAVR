@@ -14,8 +14,8 @@ Approve three temporary, advisory-specific exceptions to the `npm audit --audit-
 | # | Advisory | Package@version | Workspace | Exact dependency path(s) |
 |---|---|---|---|---|
 | 1 | GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) | braces@3.0.3 | web | `eslint-config-next@16.3.8 > @next/eslint-plugin-next@16.3.8 > fast-glob@3.3.1 > micromatch@4.0.8 > braces@3.0.3` |
-| 2 | GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) | braces@3.0.3 | mobile | `expo@57.0.28 > @expo/metro@56.0.2 > metro-file-map@0.84.5 > micromatch@4.0.8 > braces@3.0.3` |
-| 3 | GHSA-86w9-cpqp-85rv (CVE-2026-85393) | node-forge@1.4.0 | mobile | `expo@57.0.28 > @expo/cli@57.0.29 > @expo/code-signing-certificates@0.0.6 > node-forge@1.4.0` and `expo@57.0.28 > @expo/cli@57.0.29 > node-forge@1.4.0` |
+| 2 | GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) | braces@3.0.3 | mobile | `expo@57.0.30 > @expo/metro@56.0.2 > metro-file-map@0.84.5 > micromatch@4.0.8 > braces@3.0.3` |
+| 3 | GHSA-86w9-cpqp-85rv (CVE-2026-85393) | node-forge@1.4.0 | mobile | `expo@57.0.30 > @expo/cli@57.0.31 > @expo/code-signing-certificates@0.0.6 > node-forge@1.4.0` and `expo@57.0.30 > @expo/cli@57.0.31 > node-forge@1.4.0` |
 
 The records live in `savr-platform/security/audit-exceptions.json` with `approval: { status: "approved", approvedBy: "Brandon", approvedAt: "2026-10-13" }`. Echo reviewed the build-only reachability and bundle-exclusion evidence before approval.
 
@@ -94,3 +94,10 @@ Applying an unmerged community patch was rejected for three reasons. The code ha
 ## Alternative
 
 Do not approve. GooseyPrime/SAVR#181 and GooseyPrime/SAVR#182 stay unmerged, or merge with red security jobs, until upstream releases `braces` > 3.0.3 and `node-forge` > 1.4.0.
+
+
+## Parent-path refresh approved 2026-10-15
+
+Brandon explicitly approved updating the mobile records for Expo 57.0.30 and @expo/cli 57.0.31 after Expo Doctor required SDK-compatible patches. The advisory IDs, braces 3.0.3 and node-forge 1.4.0 versions, dependency chain topology, controls and 2026-11-12 expiry are unchanged. The original October 13 approval remains recorded; the path refresh is recorded separately.
+
+Reviewed the published @expo/cli 57.0.29 and 57.0.31 packages: build/src/run/ios/codeSigning/Security.js is byte-identical (SHA-256 af3f12dfb57ef87ae4cb3903af4398eeb034750c08d4fe523bc6a7d3062998b2). @expo/code-signing-certificates remains 0.0.6, and the braces dependency chain below Expo remains unchanged. On ad6f484, Expo Doctor, Android and iOS exports, and the bundle-source exclusion control passed. Both upstream advisories still report no patched release. This refresh does not authorize additional advisories, vulnerable versions, paths, or an expiry extension.
