@@ -2,7 +2,7 @@
  * Regression tests for the advisory exception gate (ADR-005, approved 2026-10-13).
  *
  * Fixtures are real `npm audit --json` and `npm ls braces node-forge --all --json`
- * output captured from the GooseyPrime/SAVR#181 lockfiles, so every case is
+ * output captured from the supported lockfiles (mobile refreshed with #182), so every case is
  * deterministic and offline. The clock and the registry version lists are
  * injected, never read.
  */
@@ -123,8 +123,8 @@ test('moderate advisories stay non-blocking, matching --audit-level=high', () =>
 test('report never hides names, versions or paths', () => {
   const report = formatReport('mobile', run('mobile'));
   assert.match(report, /GHSA-86w9-cpqp-85rv high node-forge@1\.4\.0/);
-  assert.match(report, /path: expo@57\.0\.28 > @expo\/cli@57\.0\.29 > node-forge@1\.4\.0/);
-  assert.match(report, /path: expo@57\.0\.28 > @expo\/metro@56\.0\.2 > metro-file-map@0\.84\.5 > micromatch@4\.0\.8 > braces@3\.0\.3/);
+  assert.match(report, /path: expo@57\.0\.30 > @expo\/cli@57\.0\.31 > node-forge@1\.4\.0/);
+  assert.match(report, /path: expo@57\.0\.30 > @expo\/metro@56\.0\.2 > metro-file-map@0\.84\.5 > micromatch@4\.0\.8 > braces@3\.0\.3/);
   assert.match(report, /audit-gate: PASS/);
 });
 

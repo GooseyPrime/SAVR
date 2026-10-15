@@ -4,7 +4,12 @@
     "status": "approved",
     "approvedBy": "Brandon",
     "approvedAt": "2026-10-13",
-    "condition": "No degradation of customer onboarding, the app or the site."
+    "condition": "No degradation of customer onboarding, the app or the site.",
+    "pathRefresh": {
+      "approvedBy": "Brandon",
+      "approvedAt": "2026-10-15",
+      "scope": "Expo 57.0.30 and @expo/cli 57.0.31 parent paths only; advisory versions and expiry unchanged."
+    }
   },
   "records": [
     {
@@ -33,7 +38,7 @@
       "workspace": "mobile",
       "paths": [
         [
-          "expo@57.0.28",
+          "expo@57.0.30",
           "@expo/metro@56.0.2",
           "metro-file-map@0.84.5",
           "micromatch@4.0.8",
@@ -51,14 +56,14 @@
       "workspace": "mobile",
       "paths": [
         [
-          "expo@57.0.28",
-          "@expo/cli@57.0.29",
+          "expo@57.0.30",
+          "@expo/cli@57.0.31",
           "@expo/code-signing-certificates@0.0.6",
           "node-forge@1.4.0"
         ],
         [
-          "expo@57.0.28",
-          "@expo/cli@57.0.29",
+          "expo@57.0.30",
+          "@expo/cli@57.0.31",
           "node-forge@1.4.0"
         ]
       ],
