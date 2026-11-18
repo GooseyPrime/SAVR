@@ -13,7 +13,7 @@ export default function TermsPage() {
         
         <div className="prose prose-lg max-w-none space-y-6 text-foreground-secondary">
           <p className="text-sm text-foreground-secondary">
-            Last Updated: February 7, 2025
+            Last Updated: November 18, 2026
           </p>
 
           <section>
@@ -21,7 +21,7 @@ export default function TermsPage() {
               1. Agreement to Terms
             </h2>
             <p>
-              By accessing and using SAVR (&quot;the Service&quot;), you agree to be bound by these Terms and Conditions. 
+              InTellMe operates SAVR. By accessing and using SAVR (&quot;the Service&quot;), you agree to be bound by these Terms and Conditions. 
               If you do not agree to these terms, please do not use the Service.
             </p>
           </section>

@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         
         <div className="prose prose-lg max-w-none space-y-6 text-foreground-secondary">
           <p className="text-sm text-foreground-secondary">
-            Last Updated: February 7, 2025
+            Last Updated: November 18, 2026
           </p>
 
           <section>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
               1. Introduction
             </h2>
             <p>
-              SAVR (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy 
+              InTellMe, the operator of SAVR (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy 
               explains how we collect, use, disclose, and safeguard your information when you use our AI-powered 
               cooking assistant service.
             </p>
