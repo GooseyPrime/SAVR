@@ -1,10 +1,9 @@
 /**
  * Regression tests for the advisory exception gate (ADR-005, approved 2026-10-13).
  *
- * Fixtures are real `npm audit --json` and `npm ls braces node-forge --all --json`
- * output captured from the supported lockfiles (mobile refreshed with #182), so every case is
- * deterministic and offline. The clock and the registry version lists are
- * injected, never read.
+ * Historical `npm audit --json` and `npm ls braces node-forge --all --json`
+ * fixtures exercise the gate deterministically and offline. The clock and
+ * registry version lists are injected, never read.
  */
 
 import assert from 'node:assert/strict';
@@ -16,6 +15,7 @@ import {
   collectBlockingAdvisories,
   evaluate,
   fixedVersionsAbove,
+  findInstallPaths,
   formatReport,
   isApproved,
 } from '../../security/audit-gate.mjs';
@@ -29,15 +29,13 @@ import {
 
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(__dirname, 'fixtures', 'audit-gate');
+const BEFORE_EXPIRY = new Date('2026-10-13T12:00:00Z');
 
 function readJson(file: string) {
   return JSON.parse(readFileSync(file, 'utf8'));
 }
 
 const COMMITTED = readJson(path.join(ROOT, 'security', 'audit-exceptions.json'));
-/** The same records with approval withdrawn, held in memory only. */
-const PENDING = { ...structuredClone(COMMITTED), approval: { status: 'pending', approvedBy: null, approvedAt: null } };
-const BEFORE_EXPIRY = new Date('2026-10-13T12:00:00Z');
 const PUBLISHED = {
   braces: ['2.3.2', '3.0.0', '3.0.1', '3.0.2', '3.0.3'],
   'node-forge': ['1.3.2', '1.3.3', '1.4.0'],
@@ -50,9 +48,33 @@ function fixture(workspace: 'web' | 'mobile') {
   };
 }
 
-/** A fresh copy of the committed (approved) records. */
+/** In-memory historical records let these fixtures test exception semantics. */
+const TEST_APPROVED = {
+  approval: { status: 'approved', approvedBy: 'test fixture', approvedAt: '2026-10-13' },
+  records: (['web', 'mobile'] as const).flatMap((workspace) => {
+    const { auditJson, lsJson } = fixture(workspace);
+    return collectBlockingAdvisories(auditJson).map((advisory: { id: string; package: string }) => {
+      const paths = findInstallPaths(lsJson, advisory.package);
+      const version = paths[0]?.at(-1)?.split('@').pop() ?? '';
+      return {
+        id: advisory.id,
+        package: advisory.package,
+        version,
+        lastAffected: version,
+        workspace,
+        paths,
+        expiresAt: '2026-11-12T00:00:00Z',
+        reason: 'Historical test fixture only.',
+      };
+    });
+  }),
+};
+
+/** The same in-memory records with approval withdrawn. */
+const PENDING = { ...structuredClone(TEST_APPROVED), approval: { status: 'pending', approvedBy: null, approvedAt: null } };
+
 function approved() {
-  return structuredClone(COMMITTED);
+  return structuredClone(TEST_APPROVED);
 }
 
 function run(
@@ -71,22 +93,27 @@ function run(
 
 // ── Committed proposal state ────────────────────────────────────
 
-test('committed records: approved by Brandon on 2026-10-13, exactly three, all expiring 2026-11-12', () => {
-  assert.deepEqual(
-    { status: COMMITTED.approval.status, approvedBy: COMMITTED.approval.approvedBy, approvedAt: COMMITTED.approval.approvedAt },
-    { status: 'approved', approvedBy: 'Brandon', approvedAt: '2026-10-13' },
-  );
-  assert.equal(isApproved(COMMITTED), true);
-  assert.deepEqual(
-    COMMITTED.records.map((r: { id: string; package: string; version: string; workspace: string }) =>
-      `${r.workspace}:${r.id}:${r.package}@${r.version}`),
-    [
-      'web:GHSA-vfj7-8cjw-p6xm:braces@3.0.3',
-      'mobile:GHSA-vfj7-8cjw-p6xm:braces@3.0.3',
-      'mobile:GHSA-86w9-cpqp-85rv:node-forge@1.4.0',
-    ],
-  );
-  for (const record of COMMITTED.records) assert.equal(record.expiresAt, '2026-11-12T00:00:00Z');
+test('the committed exception file has no active records or approval', () => {
+  assert.deepEqual(COMMITTED.records, []);
+  assert.equal(isApproved(COMMITTED), false);
+});
+
+test('current manifests and lockfiles pin fixed audit dependencies', () => {
+  const webManifest = readJson(path.join(ROOT, 'web', 'package.json'));
+  const mobileManifest = readJson(path.join(ROOT, 'mobile', 'package.json'));
+  const webLock = readJson(path.join(ROOT, 'web', 'package-lock.json'));
+  const mobileLock = readJson(path.join(ROOT, 'mobile', 'package-lock.json'));
+
+  assert.equal(webManifest.overrides.zod, '^4.6.6');
+  assert.equal(mobileManifest.overrides.zod, '^4.6.6');
+  assert.equal(mobileManifest.overrides['node-forge'], '1.4.3');
+  assert.equal(webLock.packages['node_modules/zod'].version, '4.6.7');
+  assert.equal(mobileLock.packages['node_modules/zod'].version, '4.6.7');
+  assert.equal(mobileLock.packages['node_modules/node-forge'].version, '1.4.3');
+  assert.equal(mobileManifest.dependencies.expo, '~57.0.34');
+  assert.equal(mobileManifest.dependencies['expo-auth-session'], '~57.0.17');
+  assert.equal(mobileManifest.dependencies['expo-image-picker'], '~57.0.22');
+  assert.equal(mobileManifest.devDependencies['eslint-config-expo'], '~57.0.2');
 });
 
 for (const workspace of ['web', 'mobile'] as const) {
@@ -107,7 +134,7 @@ for (const workspace of ['web', 'mobile'] as const) {
   });
 }
 
-test('blocking advisories in the real reports are exactly the two unpatched ones', () => {
+test('historical fixtures contain the advisories the gate must reject or explicitly match', () => {
   const ids = (w: 'web' | 'mobile') =>
     collectBlockingAdvisories(fixture(w).auditJson).map((a: { id: string; package: string }) => `${a.id}:${a.package}`).sort();
   assert.deepEqual(ids('web'), ['GHSA-vfj7-8cjw-p6xm:braces']);

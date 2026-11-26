@@ -1,6 +1,6 @@
 # ADR-005 — Temporary Build-Tool Advisory Exceptions
 
-**Status:** Accepted — approved by Brandon on 2026-10-13, conditional on no degradation of customer onboarding, the app or the site. **Active** in CI.  
+**Status:** Resolved — the temporary exception records described here are no longer active in CI.
 **Date:** 2026-10-13  
 **Deciders:** Brandon (approval), Echo (review and merge)  
 **Expires:** 2026-11-12T00:00:00Z (every record)
@@ -95,9 +95,12 @@ Applying an unmerged community patch was rejected for three reasons. The code ha
 
 Do not approve. GooseyPrime/SAVR#181 and GooseyPrime/SAVR#182 stay unmerged, or merge with red security jobs, until upstream releases `braces` > 3.0.3 and `node-forge` > 1.4.0.
 
-
 ## Parent-path refresh approved 2026-10-15
 
 Brandon explicitly approved updating the mobile records for Expo 57.0.30 and @expo/cli 57.0.31 after Expo Doctor required SDK-compatible patches. The advisory IDs, braces 3.0.3 and node-forge 1.4.0 versions, dependency chain topology, controls and 2026-11-12 expiry are unchanged. The original October 13 approval remains recorded; the path refresh is recorded separately.
 
 Reviewed the published @expo/cli 57.0.29 and 57.0.31 packages: build/src/run/ios/codeSigning/Security.js is byte-identical (SHA-256 af3f12dfb57ef87ae4cb3903af4398eeb034750c08d4fe523bc6a7d3062998b2). @expo/code-signing-certificates remains 0.0.6, and the braces dependency chain below Expo remains unchanged. On ad6f484, Expo Doctor, Android and iOS exports, and the bundle-source exclusion control passed. Both upstream advisories still report no patched release. This refresh does not authorize additional advisories, vulnerable versions, paths, or an expiry extension.
+
+## Resolution (2026-11-26)
+
+The temporary exception records have been removed from `savr-platform/security/audit-exceptions.json`. Mobile now pins `node-forge` 1.4.3 and both workspace lockfiles resolve Zod to the fixed 4.6.7 release; Expo SDK 57 was aligned to a CLI release that no longer requires Zod 3. The expired and unused `braces` records were removed. No active audit exceptions remain.

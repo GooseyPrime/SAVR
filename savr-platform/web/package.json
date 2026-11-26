@@ -27,7 +27,8 @@
     "tinyglobby@^0.2": {
       "picomatch": "^4.0.4"
     },
-    "postcss": "^8.5.26"
+    "postcss": "^8.5.26",
+    "zod": "^4.6.6"
   },
   "dependencies": {
     "@google-cloud/vision": "^6.2.0",
@@ -37,7 +38,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "html5-qrcode": "^2.3.8",
-    "next": "16.4.2",
+    "next": "16.4.6",
     "openai": "^7.39.0",
     "qrcode": "^1.5.4",
     "react": "19.3.1",
